@@ -1067,6 +1067,8 @@ export interface CarSpec {
   head?: (f: Frame) => Pt;
   /** The drawn barrel / launcher: muzzle point(s) and launch angle in degrees above forward. */
   gun?: (f: Frame) => { at: Pt[]; aim: number };
+  /** Wheels (by index) that stay physics only: the skin draws a ski, track or foot there instead. */
+  hideWheels?: number[];
   /** With a skin: also hide the bolted-on parts (the skin draws them itself). */
   hideParts?: boolean;
   /** No head/tail light pixels (creatures, blobs…). */
@@ -1160,7 +1162,7 @@ export function buildCar(spec: CarSpec): CarDef {
   const s = spec.s ?? 1;
   const pre = PRESETS[arch];
   const body = polys.map((p) => ({ ...p, pts: p.pts.map((q) => scalePt(q, s)) }));
-  const wheels = f.wheels.map((w) => ({ ...w, x: +(w.x * s).toFixed(3), y: +(w.y * s).toFixed(3), r: +Math.min(0.95, Math.max(0.2, w.r * s)).toFixed(3) }));
+  const wheels = f.wheels.map((w, i) => ({ ...w, x: +(w.x * s).toFixed(3), y: +(w.y * s).toFixed(3), r: +Math.min(0.95, Math.max(0.2, w.r * s)).toFixed(3), ...(spec.hideWheels?.includes(i) ? { hidden: true } : {}) }));
   const head = { x: +(f.head.x * s).toFixed(3), y: +(f.head.y * s).toFixed(3), r: +Math.min(0.36, Math.max(0.22, f.head.r * Math.sqrt(s))).toFixed(3) };
   // Keep the head clear of the hull it pokes out of when the car is shrunk.
   if (s < 1) head.y = +(head.y - head.r * (1 - s) * 0.6).toFixed(3);

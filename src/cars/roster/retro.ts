@@ -171,7 +171,7 @@ export const RETRO = group('retro', [
       circ(f.nose.x - 0.3, 0.08, 0.06, 'light'),
     ],
   }],
-  ['antique-mobile', 'Antique Mobile', 'Безкінна карета 1905 року: латунь, спиці і ручне кермо.', 'carriage', ['#2a2a3a', '#c8a040'], {
+  ['antique-mobile', 'Antique Mobile', 'Безкінна карета 1905 року: латунь, спиці і ручне кермо.', 'carriage', ['#2a6a4a', '#c8a040'], {
     o: o({ tall: 0.8 }),
     skin: (f) => [
       ...carriage(f, { trim: 'gold' }),
@@ -495,7 +495,7 @@ export const RETRO = group('retro', [
       ],
     }],
   }],
-  ['hog', 'Hog', 'Важкий круїзер-чопер: довга вилка, високий кермо, багато хрому.', 'bike', ['#2a2a2a', '#c0c0c8'], {
+  ['hog', 'Hog', 'Важкий круїзер-чопер: довга вилка, високий кермо, багато хрому.', 'bike', ['#b03a1a', '#c0c0c8'], {
     o: o({ len: 1.15 }), mass: 1.3,
     skin: (f) => [...path([[-0.55, -0.4], [-0.62, -0.95], [-0.5, -1.0]], 0.07, 'chrome'), ...bike(f, { style: 'chopper' }), rr(-1.25, -0.5, -0.85, -0.18, 0.05, 'brown'), ...flameDecal(0.45, -0.1, -0.3, 0.14)],
   }],

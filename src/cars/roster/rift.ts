@@ -2,7 +2,7 @@ import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spi
 import { arc, boxy, carriage, hover, pickup, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
-import { dims, saddle, theropod, arm, pincer, maw } from '../critters';
+import { dims, saddle, theropod, arm, pincer, maw, browEye } from '../critters';
 import { group, o } from './util';
 
 function base(f: Frame, mat: CarMat = 'body', h = 0.38): CarPoly[] {
@@ -20,14 +20,25 @@ const tentacles = (x: number, y: number, n: number, len: number, mat: CarMat = '
 const glowEyes = (x: number, y: number, n: number, mat: CarMat = 'accent'): CarPoly[] => Array.from({ length: n }, (_, i) => circ(x + i * 0.2, y - (i % 2) * 0.08, 0.07, mat));
 
 export const RIFT = group('rift', [
-  ['crystallizer', 'CrystalLizer', 'Гусеничний кристалізатор: обростає кристалічною бронею.', 'tracked', ['#5ad0f0', '#ffffff'], {
+  ['crystallizer', 'CrystalLizer', 'Кристалічний ящір на гусеницях: броня-дзеркало відбиває снаряди.', 'tracked', ['#5ad0f0', '#ffffff'], {
     parts: ['crystals'], hideParts: true,
-    skin: (f) => [
-      ...base(f, 'purple'),
-      crystal(-1.45, -0.5, 0.9, 0.4, 'sky'), crystal(-1.1, -0.5, 1.6, 0.55, 'sky'), crystal(-0.75, -0.5, 1.1, 0.4, 'body'), crystal(0.35, -0.5, 0.5, 0.3, 'body'), crystal(0.75, -0.5, 0.95, 0.42), crystal(1.15, -0.5, 0.6, 0.32, 'sky'),
-      stripe(-1.6, 1.6, -0.2, 0.06, 'white'),
-      ...[[-1.1, -1.4], [0.75, -1.0], [-0.75, -1.0]].map(([x, y]) => seg([x - 0.05, y + 0.1], [x + 0.03, y + 0.4], 0.04, 'white')),
-    ],
+    skin: (f) => {
+      const a = f.wheels[0], b = f.wheels[f.wheels.length - 1], y = a.y - a.r - 0.06;
+      return [
+        ...tracks(f),
+        // a crystal lizard sprawled over the tracks: clawed legs, faceted body, spiky tail
+        ...[a.x + 0.2, b.x - 0.2].flatMap((x) => [...path([[x, y - 0.3], [x + 0.2, y - 0.05], [x + 0.3, y + 0.05]], 0.14, 'body'), ...[0, 1].map((i) => poly([[x + 0.24 + i * 0.1, y + 0.02], [x + 0.32 + i * 0.1, y + 0.02], [x + 0.4 + i * 0.1, y + 0.12]], 'white'))]),
+        blob([[a.x - a.r, y - 0.25], [a.x - a.r - 0.6, y - 0.55], [a.x - a.r - 0.95, y - 0.75], [a.x - a.r - 0.5, y - 0.4], [a.x - 0.2, y - 0.05]], 'body', {}, 1),
+        blob([[a.x - 0.3, y - 0.05], [a.x - 0.2, y - 0.5], [0.0, y - 0.65], [b.x - 0.1, y - 0.55], [b.x + 0.3, y - 0.3], [b.x + 0.1, y - 0.02]], 'body', {}, 2),
+        ...[[-0.9, 0.35], [-0.45, 0.5], [0.4, 0.45], [0.8, 0.3]].map(([x, h]) => crystal(x, y - 0.55, h, 0.22, 'sky')),
+        ...[[-0.6, y - 0.3], [0.2, y - 0.35], [0.6, y - 0.2]].map(([x, yy]) => poly([[x - 0.12, yy], [x, yy - 0.12], [x + 0.12, yy], [x, yy + 0.12]], 'white', { flat: true })),
+        // head: wedge snout with crystal horns and a glowing eye
+        blob([[b.x - 0.05, y - 0.6], [b.x + 0.45, y - 0.65], [b.x + 0.95, y - 0.4], [b.x + 0.9, y - 0.2], [b.x + 0.2, y - 0.15]], 'body', {}, 1),
+        crystal(b.x + 0.2, y - 0.6, 0.35, 0.14, 'sky'), crystal(b.x + 0.42, y - 0.62, 0.25, 0.12, 'white'),
+        ...browEye(b.x + 0.5, y - 0.45, 0.07, 'purple', 'sky'),
+        rect(b.x + 0.5, y - 0.28, b.x + 0.9, y - 0.25, 'dark', { flat: true }),
+      ];
+    },
   }],
   ['freezer', 'Freezer', 'Кріогенна машина з балоном рідкого азоту. Заморожує суперника.', 'box', ['#a8e0ff', '#ffffff'], {
     parts: ['tank'], hideParts: true,

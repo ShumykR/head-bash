@@ -236,14 +236,18 @@ export const WINTER = group('winter', [
     ],
   }],
   ['snowcycle', 'Snowcycle', 'Зимовий мотоцикл: лижа спереду, гусениця ззаду.', 'bike', ['#3a3ad8', '#e0e0e0'], {
-    o: o({ rim: 'monster' }),
+    o: o({ rim: 'monster' }), hideWheels: [1],
     skin: (f) => {
-      const a = f.wheels[0];
+      const a = f.wheels[0], b = f.wheels[1];
       return [
-        rr(a.x - a.r - 0.08, a.y - a.r - 0.08, a.x + a.r + 0.3, a.y + a.r + 0.08, a.r + 0.06, 'rubber'),
+        // rear track loop with lugs and road wheels
+        rr(a.x - a.r - 0.1, a.y - a.r - 0.1, a.x + a.r + 0.4, a.y + a.r + 0.06, a.r + 0.06, 'rubber'),
+        ...Array.from({ length: 7 }, (_, i) => rect(a.x - a.r + i * ((2 * a.r + 0.35) / 7), a.y - a.r - 0.14, a.x - a.r + i * ((2 * a.r + 0.35) / 7) + 0.07, a.y - a.r - 0.06, 'rubber')),
+        ...[a.x - 0.15, a.x + 0.2].map((x) => circ(x, a.y + 0.05, 0.12, 'grey')),
         ...bike(f, { style: 'sport' }),
-        ...path([[0.7, 0.28], [1.3, 0.28], [1.45, 0.15]], 0.1, 'chrome'),
-        ...Array.from({ length: 7 }, (_, i) => rect(a.x - a.r + i * ((2 * a.r + 0.3) / 7), a.y - a.r - 0.12, a.x - a.r + i * ((2 * a.r + 0.3) / 7) + 0.07, a.y - a.r - 0.04, 'rubber')),
+        // front ski on a strut where the front wheel would be
+        ...path([[b.x - 0.05, -0.1], [b.x, b.y]], 0.1, 'dark'),
+        ...path([[b.x - 0.45, b.y + b.r - 0.02], [b.x + 0.4, b.y + b.r - 0.02], [b.x + 0.58, b.y + b.r - 0.15], [b.x + 0.55, b.y + b.r - 0.28]], 0.09, 'chrome'),
       ];
     },
   }],
@@ -374,7 +378,8 @@ export const WINTER = group('winter', [
       ...truckCab(f),
       snowCap(f.roof.x0, f.nose.x - 0.3, f.roof.y),
       poly([[f.deck.x0, f.deck.y - 0.32], [f.deck.x1, f.deck.y - 0.32], [f.deck.x1, f.deck.y + 0.1], [f.deck.x0, f.deck.y + 0.1]], 'body'),
-      rect(f.deck.x0 + 0.08, f.deck.y - 0.24, f.deck.x1 - 0.08, f.deck.y + 0.02, 'dark', { flat: true }),
+      blob([[f.deck.x0 + 0.05, f.deck.y - 0.25], [f.deck.x0 + 0.3, f.deck.y - 0.6], [f.deck.x0 + 0.8, f.deck.y - 0.72], [f.deck.x1 - 0.5, f.deck.y - 0.62], [f.deck.x1 - 0.05, f.deck.y - 0.3]], 'white', {}, 2),
+      ...[[f.deck.x0 + 0.5, f.deck.y - 0.5], [f.deck.x1 - 0.6, f.deck.y - 0.45]].map(([x, y]) => circ(x, y, 0.07, 'sky')),
       ...[0.4, 0.9, 1.4].map((dx) => rect(f.deck.x0 + dx, f.deck.y - 0.3, f.deck.x0 + dx + 0.06, f.deck.y + 0.08, 'body')),
       ...lightbar(f.roof.x0 + 0.1, f.roof.x1 - 0.1, f.roof.y - 0.1, 'orange', 'orange'),
       ...fenders(f, 'dark', 0.12),

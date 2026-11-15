@@ -45,15 +45,24 @@ export const CNY = group('cny', [
     },
   }],
   ['emperor-carriage', 'The Emperor\'s Carriage', 'Золотий імператорський паланкін з ліхтарями.', 'carriage', ['#e0b020', '#c02a2a'], {
-    parts: ['lantern'], hideParts: true,
+    parts: ['lantern'], hideParts: true, hideWheels: [0, 1],
+    // No wheels: two porters in conical hats carry the palanquin on long poles (their feet are the wheels).
     skin: (f) => [
-      ...carriage(f, { trim: 'red' }),
+      ...carriage({ ...f, wheels: [] }, { trim: 'red' }),
       poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 - 0.05, f.roof.y - 0.28], [f.roof.x0 + 0.05, f.roof.y - 0.28]], 'accent'),
       poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x0 - 0.1, f.roof.y - 0.12], [f.roof.x0 - 0.5, f.roof.y - 0.2]], 'accent'), poly([[f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.1, f.roof.y - 0.12], [f.roof.x1 + 0.5, f.roof.y - 0.2]], 'accent'),
       circ(0, f.roof.y - 0.38, 0.1, 'gold'),
       rr(-0.45, f.roof.y + 0.2, 0.45, f.roof.y + 0.62, 0.04, 'red'), ...[-0.3, -0.1, 0.1, 0.3].map((x) => rect(x - 0.02, f.roof.y + 0.2, x + 0.02, f.roof.y + 0.62, 'gold', { flat: true })),
       ...lantern(f.tail.x + 0.4, -0.05, 0.8), ...lantern(f.nose.x - 0.4, -0.05, 0.8),
       ...[f.tail.x - 0.1, f.nose.x + 0.1].map((x) => rr(x - 0.4, 0.02, x + 0.4, 0.1, 0.03, 'wood')),
+      ...f.wheels.flatMap((w) => [
+        rr(w.x - 0.12, w.y + w.r - 0.12, w.x + 0.14, w.y + w.r, 0.03, 'black'),
+        ...path([[w.x - 0.05, w.y + w.r - 0.1], [w.x - 0.02, w.y - 0.15], [w.x, -0.2]], 0.13, 'blue'),
+        ...path([[w.x + 0.08, w.y + w.r - 0.1], [w.x + 0.06, w.y - 0.15]], 0.12, 'blue'),
+        rr(w.x - 0.17, -0.85, w.x + 0.17, -0.15, 0.06, 'blue'), rect(w.x - 0.17, -0.42, w.x + 0.17, -0.36, 'gold', { flat: true }),
+        circ(w.x + 0.02, -1.0, 0.14, 'tan'),
+        poly([[w.x - 0.32, -1.05], [w.x + 0.36, -1.05], [w.x + 0.02, -1.32]], 'gold'),
+      ]),
     ],
   }],
   ['cloud', 'Cloud', 'Чарівна хмаринка: пливе над ареною.', 'blob', ['#f4f8ff', '#ffd23f'], {
