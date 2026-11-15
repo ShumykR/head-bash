@@ -1,3 +1,4 @@
+import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug/report';
 import { Application, TextureSource } from 'pixi.js';
 import { Game, GameEvent } from './game/game';
 import { GameView } from './render/view';
@@ -56,9 +57,36 @@ async function boot() {
   pauseBtn.addEventListener('click', () => pause());
   document.getElementById('ui')!.appendChild(pauseBtn);
 
+  // Bug report: a JSON snapshot + the last seconds of recording, saved as a file (or shared on phones).
+  let recorder: FlightRecorder | null = null;
+  let fps = 60;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  document.getElementById('ui')!.appendChild(toast);
+  let toastTimer = 0;
+  const say = (msg: string) => {
+    toast.textContent = msg;
+    toast.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => toast.classList.remove('on'), 2600);
+  };
+  const reportBug = async () => {
+    if (!game) return;
+    const rep = buildReport(game, recorder, { fps, uiState: state, mode });
+    const res = await saveReport(rep);
+    say(res === 'cancelled' ? 'Звіт не відправлено' : res === 'shared' ? 'Звіт відправлено' : `Звіт збережено: ${reportFileName(rep)}`);
+  };
+  const bugBtn = document.createElement('button');
+  bugBtn.className = 'btn bug-btn';
+  bugBtn.textContent = '🐞';
+  bugBtn.title = 'Зберегти звіт про баг (F9)';
+  bugBtn.addEventListener('click', () => void reportBug());
+  document.getElementById('ui')!.appendChild(bugBtn);
+
   const setState = (s: State) => {
     state = s;
     pauseBtn.style.display = s === 'play' ? '' : 'none';
+    bugBtn.style.display = s === 'play' ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
     if (s !== 'play') audio.stopEngines();
@@ -96,6 +124,7 @@ async function boot() {
   const newGame = (cfg: ConstructorParameters<typeof Game>[0]) => {
     game = new Game(cfg);
     game.on(onEvent);
+    recorder = new FlightRecorder(game);
     view.attach(game);
     (window as any).__game = game;
     (window as any).__music = music;
@@ -178,6 +207,7 @@ async function boot() {
   input.onAnyKey = (code) => {
     audio.unlock();
     if (code === 'Backquote') view.debug = !view.debug;
+    if (code === 'F9' && game) void reportBug();
     if (code === 'Escape' && state === 'play') pause();
   };
   window.addEventListener('pointerdown', () => audio.unlock(), { once: false });
@@ -201,7 +231,9 @@ async function boot() {
 
   app.ticker.add((t) => {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
+    if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
     if (!game) return;
+    if (state !== 'paused') recorder?.tick(dt);
     if (input.touchEnabled && state === 'play') view.showTouch = true;
     if (state === 'play' || state === 'menu' || state === 'over') {
       game.inputs[0] = input.dir(0);
@@ -225,6 +257,7 @@ async function boot() {
 
   (window as any).__ready = true;
   (window as any).__view = view;
+  (window as any).__bugReport = reportBug;
   (window as any).__app = { menu, settings, get state() { return state; } };
 }
 

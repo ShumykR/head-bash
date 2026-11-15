@@ -19,6 +19,12 @@ export interface Kit {
   blurb?: string;
 }
 
+/** Cars whose hull keeps them afloat: boats, fish, sea creatures and hovercraft (the amphibian swims through its trait). */
+export const SWIMMERS = new Set([
+  'rowboat', 'yacht', 'speedboat', 'lucky-shark', 'chomp-shark', 'piranha-racer', 'abyss-eel', 'blast-fish', 'jelly-shock',
+  'cosmic-squid', 'turtle', 'steel-crab', 'penguin-slider', 'woodie-surfer', 'hovercar',
+]);
+
 export const KIT: Record<string, Kit> = {
   // ---------------------------------------------------------------- originals
   mammoth: { ab: 'stomp|Монстр-приземлення' },
@@ -187,6 +193,7 @@ export function applyKit(def: CarDef): CarDef {
   const out: CarDef = { ...def };
   delete out.ability;
   delete out.traits;
+  if (SWIMMERS.has(def.id)) out.swims = true;
   if (!k) return out;
   if (k.ab) out.ability = parseAbility(k.ab);
   // Shots leave from the car's drawn barrel, along it.

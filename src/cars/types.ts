@@ -219,6 +219,8 @@ export interface CarDef {
   lights?: boolean;
   /** Where the car's own barrel / launcher is: shots leave from here (see AbilityDef.muzzle). */
   gun?: { at: Pt[]; aim: number };
+  /** Watertight hull (boats, fish, sharks…): floats and paddles in water. Not a quirk, so many cars can share it; the amphibian has the 'swim' trait on top. */
+  swims?: boolean;
   /** Gravity scale for the whole car (<1 = floaty hover/flying vehicles). */
   float?: number;
 }

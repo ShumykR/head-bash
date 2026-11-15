@@ -101,6 +101,10 @@ html, body {
 
 .pause-btn { position: fixed; top: max(6px, env(safe-area-inset-top)); left: max(6px, env(safe-area-inset-left)); z-index: 6; width: 40px; height: 40px; padding: 0; font-size: 16px; opacity: .75; }
 
+.bug-btn { position: fixed; top: max(6px, env(safe-area-inset-top)); left: calc(max(6px, env(safe-area-inset-left)) + 48px); z-index: 6; width: 40px; height: 40px; padding: 0; font-size: 18px; opacity: .55; }
+.toast { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 9; background: rgba(12, 9, 20, .92); color: var(--ink); border: 2px solid var(--gold); border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 700; max-width: 90vw; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.toast.on { opacity: 1; }
+
 @media (max-height: 430px) {
   .btn.big { font-size: 15px; padding: 8px 16px; }
   .main-buttons { gap: 5px; }

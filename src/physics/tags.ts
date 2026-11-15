@@ -9,7 +9,7 @@ export type FixtureTag =
   | { kind: 'hazard'; type: 'lava' | 'saw' | 'spikes' | 'water' | 'laser' }
   | { kind: 'field' }
   | { kind: 'block'; body: Body }
-  | { kind: 'pad'; power: number; nx: number; ny: number }
+  | { kind: 'pad'; power: number; nx: number; ny: number; /** One-way canopy: only a car landing on it from above touches and bounces. */ topOnly?: boolean }
   | { kind: 'platform' }
   | { kind: 'loop' }
   | { kind: 'ledge' }

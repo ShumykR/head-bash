@@ -232,7 +232,7 @@ export class Arena {
             friction: 0.6,
             filterCategoryBits: CAT.TERRAIN,
             filterMaskBits: MASK.TERRAIN,
-            userData: { kind: 'pad', power: 14, nx: 0, ny: -1 } satisfies FixtureTag,
+            userData: { kind: 'pad', power: 14, nx: 0, ny: -1, topOnly: true } satisfies FixtureTag,
           });
           this.padBodies.push(body);
           break;
