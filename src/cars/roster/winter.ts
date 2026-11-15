@@ -10,8 +10,8 @@ const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
 /** Sled runners with a curled front, joined to the body by struts. */
 function runners(f: Frame, mat: CarMat = 'chrome', y = 0.2, struts = true): CarPoly[] {
   const x0 = f.tail.x - 0.05, x1 = f.nose.x - 0.35;
-  const out = path([[x0 - 0.1, y - 0.08], [x0, y], [x1, y], [x1 + 0.3, y - 0.1], [x1 + 0.45, y - 0.32], [x1 + 0.38, y - 0.52], [x1 + 0.2, y - 0.55], [x1 + 0.12, y - 0.42]], 0.09, mat);
-  if (struts) for (const x of [x0 + 0.35, (x0 + x1) / 2, x1 - 0.2]) out.push(seg([x, y], [x + 0.06, y - 0.2], 0.08, mat));
+  const out = path([[x0 - 0.1, y - 0.08], [x0, y], [x1, y], [x1 + 0.3, y - 0.1], [x1 + 0.45, y - 0.32], [x1 + 0.38, y - 0.52], [x1 + 0.2, y - 0.55], [x1 + 0.12, y - 0.42]], 0.11, mat);
+  if (struts) for (const x of [x0 + 0.35, (x0 + x1) / 2, x1 - 0.2]) out.push(seg([x, y], [x + 0.06, y - 0.2], 0.1, mat));
   return out;
 }
 
@@ -54,8 +54,9 @@ export const WINTER = group('winter', [
         ...[f.tail.x + 0.2, -0.65, -0.3].map((x) => circ(x, a.y + a.r - 0.25, 0.1, 'dark')),
         ...path([[0.3, 0.08], [f.nose.x - 0.1, 0.24], [f.nose.x + 0.15, 0.18], [f.nose.x + 0.25, 0.02]], 0.08, 'chrome'),
         seg([0.6, 0.0], [0.65, 0.22], 0.07, 'dark'),
-        blob([[f.tail.x, 0.1], [f.tail.x, -0.18], [-0.6, -0.22], [0.2, -0.28], [f.nose.x - 0.1, -0.12], [f.nose.x + 0.15, 0.06], [0.4, 0.12]], 'body', {}, 1),
-        rr(-1.05, -0.36, -0.15, -0.22, 0.05, 'black'),
+        blob([[f.tail.x, 0.12], [f.tail.x - 0.02, -0.3], [-0.6, -0.3], [0.1, -0.4], [f.nose.x - 0.1, -0.2], [f.nose.x + 0.18, 0.04], [0.4, 0.14]], 'body', {}, 1),
+        poly([[-0.2, -0.02], [f.nose.x + 0.05, 0.0], [f.nose.x - 0.05, 0.08], [-0.2, 0.08]], 'accent', { flat: true }),
+        rr(-1.05, -0.44, -0.15, -0.3, 0.05, 'black'),
         blob([[0.2, -0.26], [0.45, -0.58], [0.6, -0.55], [0.55, -0.24]], 'glass', {}, 1),
         stripe(-1.2, 1.0, -0.06, 0.07, 'accent'),
         headlight(f.nose.x - 0.05, -0.04, 0.07),
@@ -181,8 +182,10 @@ export const WINTER = group('winter', [
     speed: 1.05,
     skin: (f) => [
       ...runners(f, 'chrome'),
-      blob([[f.tail.x + 0.05, 0.06], [f.tail.x + 0.05, -0.28], [-0.4, -0.3], [0.6, -0.22], [f.nose.x - 0.05, -0.08], [f.nose.x - 0.2, 0.08]], 'body', {}, 1),
-      stripe(f.tail.x + 0.1, 0.9, -0.2, 0.06, 'accent'),
+      blob([[f.tail.x + 0.05, 0.1], [f.tail.x + 0.02, -0.4], [-0.7, -0.42], [-0.2, -0.3], [0.6, -0.3], [f.nose.x - 0.05, -0.12], [f.nose.x - 0.1, 0.06], [f.nose.x - 0.3, 0.12]], 'body', {}, 1),
+      poly([[f.tail.x + 0.1, -0.2], [f.nose.x - 0.15, -0.08], [f.nose.x - 0.15, -0.02], [f.tail.x + 0.1, -0.1]], 'accent', { flat: true }),
+      blob([[0.3, -0.3], [0.55, -0.55], [0.75, -0.5], [0.8, -0.26]], 'glass', {}, 1),
+      rr(f.nose.x - 0.2, -0.1, f.nose.x - 0.04, 0.0, 0.03, 'light'),
       circ(0.2, -0.06, 0.13, 'white'), rect(0.17, -0.13, 0.23, 0.01, 'black', { flat: true }),
       rr(f.tail.x + 0.05, -0.55, f.tail.x + 0.2, -0.25, 0.04, 'accent'),
     ],
@@ -213,7 +216,8 @@ export const WINTER = group('winter', [
     o: o({ len: 1.15 }), parts: ['sail'], accel: 1.2, hideParts: true,
     skin: (f) => [
       ...runners(f, 'chrome'),
-      blob([[f.tail.x, 0.05], [f.tail.x + 0.1, -0.2], [f.nose.x - 0.4, -0.18], [f.nose.x, 0.0], [f.nose.x - 0.3, 0.08]], 'body', {}, 1),
+      blob([[f.tail.x, 0.1], [f.tail.x + 0.05, -0.32], [-0.4, -0.34], [f.nose.x - 0.5, -0.24], [f.nose.x + 0.02, 0.0], [f.nose.x - 0.3, 0.12]], 'body', {}, 1),
+      poly([[f.tail.x + 0.1, -0.12], [f.nose.x - 0.2, -0.06], [f.nose.x - 0.25, 0.0], [f.tail.x + 0.1, -0.04]], 'accent', { flat: true }),
       ...path([[0.0, -0.18], [0.0, -2.0]], 0.08, 'wood'),
       poly([[0.06, -1.95], [0.06, -0.3], [1.1, -0.32]], 'white'), poly([[-0.06, -1.7], [-0.06, -0.35], [-0.8, -0.38]], 'sky'),
       stripe(0.06, 0.8, -0.9, 0.06, 'accent'),
@@ -263,7 +267,8 @@ export const WINTER = group('winter', [
     parts: ['booster'], hideParts: true,
     skin: (f) => [
       ...runners(f, 'chrome'),
-      blob([[f.tail.x + 0.05, 0.05], [f.tail.x + 0.05, -0.32], [0.3, -0.3], [f.nose.x - 0.2, -0.15], [f.nose.x - 0.2, 0.05]], 'body', {}, 1),
+      blob([[f.tail.x + 0.05, 0.1], [f.tail.x + 0.02, -0.44], [-0.7, -0.44], [-0.2, -0.32], [0.3, -0.34], [f.nose.x - 0.1, -0.14], [f.nose.x - 0.15, 0.08]], 'body', {}, 1),
+      rr(f.tail.x + 0.15, -0.08, 0.4, 0.02, 0.03, 'dark'),
       tank(f.tail.x - 0.4, -0.6, -0.5, 0.18, 'chrome'), poly([[f.tail.x - 0.4, -0.62], [f.tail.x - 0.7, -0.6], [f.tail.x - 0.7, -0.4], [f.tail.x - 0.4, -0.38]], 'dark'),
       poly([[-0.9, -0.66], [-1.2, -0.95], [-1.0, -0.95], [-0.7, -0.66]], 'accent'),
       blob([[0.35, -0.3], [0.65, -0.55], [0.85, -0.22]], 'glass', {}, 1),
