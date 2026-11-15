@@ -2,9 +2,10 @@ import { World, Body, Polygon, Circle, WheelJoint, RopeJoint, RevoluteJoint, Vec
 import { CAT, MASK, STEP_DT, DEFAULT_GRAVITY } from '../physics/constants';
 
 /** Tuning knobs shared by all cars. */
-export const TUNE = { groundTilt: 1.6, maxSpin: 7.5, selfRight: 14 };
+/** wheelieSlope: slope (rad) at which the wheelie assist has faded out completely. */
+export const TUNE = { groundTilt: 1.6, maxSpin: 7.5, selfRight: 14, wheelieSlope: 0.4 };
 /** Wall riding: grip force on a vertical wall (× weight), and the speed along the surface where it starts / is full. */
-export const WALL_GRIP = { force: 1.0, from: 3, full: 7 };
+export const WALL_GRIP = { force: 1.0, from: 3, full: 7, /** share of the force that already works at a standstill (climbing out of a pit) */ low: 0.8 };
 const SELF_RIGHT = TUNE.selfRight;
 import type { FixtureTag } from '../physics/tags';
 import type { AbilityDef, CarDef, Pt, WheelDef } from './types';
@@ -572,7 +573,10 @@ export class Car {
       const n = this.groundNormal;
       const lift = -dir * wrapAngle(this.angle - (n ? Math.atan2(n.x, -n.y) : 0)); // >0 when the pressed end is already up
       const liftRate = -dir * w;
-      const want = 80 * ((d.wheelie ?? 0.45) - lift) - 9 * liftRate;
+      // On a slope the nose is not lifted: the front wheels must stay on the ground to pull (and the car must not tip back over the rear axle).
+      const slope = n ? Math.abs(Math.atan2(n.x, -n.y)) : 0;
+      const wheelie = (d.wheelie ?? 0.45) * Math.max(0, 1 - slope / TUNE.wheelieSlope);
+      const want = 80 * (wheelie - lift) - 9 * liftRate;
       // Below the target it lifts; above it, a weaker assist pushes back down so
       // holding the throttle doesn't simply loop the car over.
       const mag = Math.min(Math.max(want, -d.air * TUNE.groundTilt * 0.6), d.air * TUNE.groundTilt);
@@ -586,7 +590,7 @@ export class Car {
       const steep = 1 + n.y; // 0 on the flat, 1 on a wall, 2 under a ceiling
       const v = this.chassis.getLinearVelocity();
       const along = Math.abs(v.x * -n.y + v.y * n.x);
-      const gate = Math.max(0, Math.min(1, (along - WALL_GRIP.from) / (WALL_GRIP.full - WALL_GRIP.from)));
+      const gate = Math.max(WALL_GRIP.low, Math.min(1, (along - WALL_GRIP.from) / (WALL_GRIP.full - WALL_GRIP.from)));
       const f = this.mass * DEFAULT_GRAVITY * WALL_GRIP.force * Math.min(2, steep) * gate;
       if (steep > 0.08 && f > 0) this.chassis.applyForceToCenter(new Vec2(-n.x * f, -n.y * f), true);
     }

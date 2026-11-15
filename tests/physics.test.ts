@@ -4,6 +4,7 @@ import { CARS } from '../src/cars/defs';
 import { MAPS, MAP_BY_ID } from '../src/maps/defs';
 import { CAR_BY_ID } from '../src/cars/defs';
 import { Vec2 } from 'planck';
+import { climbTest } from '../src/physics/probe';
 import { tagOf } from '../src/physics/tags';
 
 function mkGame(mapIdx = 0, a = 0, b = 1) {
@@ -103,5 +104,27 @@ describe('swimming and umbrellas', () => {
     car.chassis.setPosition(new Vec2(at.x, at.y + 1));
     car.chassis.setLinearVelocity(new Vec2(0, -6));
     expect(landing(pad, car.chassis)).toBe(false);
+  });
+});
+
+describe('spawn and moving platforms', () => {
+  it('moon: a platform sliding over the spawn point is not mistaken for the ground', () => {
+    const g = new Game({ cars: [CAR_BY_ID.snowman, CAR_BY_ID.hovercar], maps: [MAP_BY_ID.moon], randomMaps: false, target: 3, roundTime: 60, seed: 5 });
+    const ys = new Set<number>();
+    for (let i = 0; i < 600; i++) {
+      g.step();
+      if (i % 20 === 0) ys.add(Math.round(g.spawnPoint(0, g.roundCars[0])[1] * 10));
+    }
+    expect(ys.size).toBe(1);
+  });
+});
+
+describe('climbing out of a pit', () => {
+  it('cars pull up 45° slopes from a standstill, wheels on the ground', () => {
+    for (const id of ['mammoth', 'monster-truck', 'sparrow', 'hotrod', 'minibus', 'race-car-f1', 'go-kart']) {
+      const r = climbTest(CAR_BY_ID[id], 45);
+      expect(r.flipped, `${id} tipped over`).toBe(false);
+      expect(r.out, `${id} stuck`).toBeGreaterThan(0);
+    }
   });
 });
