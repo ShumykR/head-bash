@@ -381,6 +381,9 @@ export const RETRO = group('retro', [
         poly([[d.x0 - 0.1, d.y - 0.5], [d.x1 + 0.05, d.y - 0.75], [d.x1 + 0.05, d.y + 0.1], [d.x0 + 0.1, d.y + 0.1]], 'body'),
         ...[0.5, 1.2, 1.9].map((dx) => rect(d.x0 + dx, d.y - 0.55, d.x0 + dx + 0.08, d.y + 0.05, 'dark', { flat: true })),
         poly([[d.x1 - 0.1, d.y - 0.75], [f.nose.x - 0.1, f.roof.y - 0.1], [f.nose.x - 0.1, f.roof.y], [d.x1 - 0.1, d.y - 0.62]], 'body'),
+        poly([[d.x0 - 0.1, d.y - 0.5], [d.x1 + 0.05, d.y - 0.75], [d.x1 + 0.05, d.y - 0.66], [d.x0 - 0.1, d.y - 0.42]], 'dark', { flat: true }),
+        rr(d.x0, d.y + 0.08, d.x1, d.y + 0.2, 0.03, 'black'), ...ladder([d.x1 - 0.05, d.y + 0.1], [d.x1 - 0.05, d.y - 0.6], 0.12, 'grey', 4),
+        ...[0, 1, 2].map((i) => poly([[d.x0 - 0.1, d.y - 0.32 + i * 0.13], [d.x0 + 0.1, d.y - 0.38 + i * 0.13], [d.x0 + 0.1, d.y - 0.32 + i * 0.13], [d.x0 - 0.1, d.y - 0.26 + i * 0.13]], 'yellow', { flat: true })),
         ...fenders(f, 'dark', 0.12),
       ];
     },
@@ -388,8 +391,10 @@ export const RETRO = group('retro', [
   ['limousine', 'Limousine', 'Подовжений лімузин: довгий, важкий, з тонованими вікнами.', 'sedan', ['#1a1a24', '#d0d0d8'], {
     o: o({ len: 1.35 }),
     skin: (f) => [
-      ...sedan(f, { glass: 'dark', doors: 3, rx0: f.roof.x0 - 0.3 }),
-      stripe(f.tail.x, f.nose.x - 0.05, 0.04, 0.05, 'chrome'),
+      ...sedan(f, { doors: 3, rx0: f.roof.x0 - 0.3, pin: 'chrome' }),
+      ...[0, 1, 2].map((i) => rect(f.roof.x0 - 0.1 + i * 0.5, f.roof.y + 0.04, f.roof.x0 - 0.04 + i * 0.5, f.nose.y0 - 0.04, 'chrome')),
+      stripe(f.tail.x, f.nose.x - 0.05, 0.16, 0.04, 'chrome'),
+      seg([f.nose.x - 0.4, f.nose.y0], [f.nose.x - 0.38, f.nose.y0 - 0.3], 0.04, 'chrome'), poly([[f.nose.x - 0.38, f.nose.y0 - 0.3], [f.nose.x - 0.14, f.nose.y0 - 0.25], [f.nose.x - 0.38, f.nose.y0 - 0.18]], 'red'),
       ...grille(f.nose.x - 0.08, -0.1, f.nose.x + 0.03, 0.14),
       circ(f.nose.x - 0.25, -0.22, 0.05, 'chrome'),
     ],
@@ -402,13 +407,19 @@ export const RETRO = group('retro', [
       bumper(f.nose.x - 0.25, f.nose.x + 0.1, 0.24, 0.14), bumper(f.tail.x - 0.1, f.tail.x + 0.25, 0.24, 0.14),
       stripe(f.tail.x, f.nose.x, 0.04, 0.05, 'chrome'), ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.04, 0.14),
       taillight(f.tail.x - 0.02, -0.22, 0.07),
+      poly([[f.roof.x0 + 0.02, f.roof.y], [f.roof.x1, f.roof.y], [f.roof.x1 + 0.05, f.roof.y + 0.07], [f.roof.x0 - 0.03, f.roof.y + 0.07]], 'white'),
+      poly([[f.nose.x - 0.2, f.nose.y0 - 0.02], [f.nose.x - 0.12, f.nose.y0 - 0.14], [f.nose.x - 0.06, f.nose.y0 - 0.02]], 'chrome'),
+      ell(f.wheels[0].x, f.wheels[0].y, f.wheels[0].r * 0.5, f.wheels[0].r * 0.5, 'white', { deco: true }),
     ],
   }],
   ['steamroller', 'Steamroller', 'Паровий дорожній коток: розплющує все на шляху.', 'box', ['#e0b020', '#3a3a3a'], {
     s: 0.9, parts: ['roller', 'stack'], hideParts: true,
     skin: (f) => [
       rr(f.tail.x, -0.4, f.nose.x - 0.1, 0.25, 0.08, 'body'),
-      tank(-0.3, f.nose.x - 0.05, -0.6, 0.28, 'black'), rect(0.2, -0.88, 0.28, -0.32, 'gold', { flat: true }),
+      tank(-0.3, f.nose.x - 0.05, -0.6, 0.28, 'black'), ...[0.2, 0.55].map((x) => rect(x, -0.88, x + 0.08, -0.32, 'gold', { flat: true })),
+      ...[-0.15, 0.1, 0.35, 0.65].map((x) => circ(x, -0.42, 0.03, 'grey')),
+      circ(f.tail.x + 0.3, -0.05, 0.22, 'dark'), circ(f.tail.x + 0.3, -0.05, 0.08, 'gold'), ...[0, 1, 2].map((i) => seg([f.tail.x + 0.3, -0.05], [f.tail.x + 0.3 + Math.cos(i * 2.1) * 0.2, -0.05 + Math.sin(i * 2.1) * 0.2], 0.04, 'gold')),
+      stripe(f.tail.x, f.nose.x - 0.1, 0.1, 0.06, 'accent'),
       ...stack(f.nose.x - 0.35, -0.85, 0.7, 0.14, 'black'),
       rect(f.head.x - 0.45, f.roof.y - 0.1, f.head.x - 0.35, -0.4, 'dark'),
       rr(f.head.x - 0.7, f.roof.y - 0.26, f.roof.x1 + 0.3, f.roof.y - 0.04, 0.07, 'accent'), rect(f.head.x - 0.6, f.roof.y - 0.1, f.roof.x1 + 0.2, f.roof.y - 0.04, 'dark', { flat: true }),
@@ -418,7 +429,12 @@ export const RETRO = group('retro', [
   ['pickup-truck', 'Pickup Truck', 'Бортовий пікап із ящиками в кузові — вони падають на кожній ямі.', 'pickup', ['#c83a3a', '#f0f0f0'], {
     cargo: ['crate', 2],
     art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.26, 'body'))],
-    skin: (f) => [...pickup(f), ...grille(f.nose.x - 0.06, -0.14, f.nose.x + 0.03, 0.14, 2), stripe(f.tail.x, f.nose.x, 0.06, 0.06, 'accent')],
+    skin: (f) => [
+      ...path([[f.roof.x0 - 0.12, f.deck.y], [f.roof.x0 - 0.08, f.roof.y - 0.12], [f.roof.x1, f.roof.y - 0.12]], 0.08, 'black'),
+      ...[0.2, 0.45].map((dx) => [rr(f.roof.x0 + dx - 0.08, f.roof.y - 0.28, f.roof.x0 + dx + 0.08, f.roof.y - 0.14, 0.03, 'black'), circ(f.roof.x0 + dx, f.roof.y - 0.21, 0.05, 'light')]).flat(),
+      ...pickup(f), ...grille(f.nose.x - 0.06, -0.14, f.nose.x + 0.03, 0.14, 2),
+      ...f.wheels.map((w) => rect(w.x - w.r - 0.08, 0.2, w.x - w.r - 0.02, 0.55, 'black')),
+    ],
   }],
   ['motocross-bike', 'Motocross Bike', 'Кросовий мотоцикл: високі крила, шипи на шинах і трамплінний стрибок.', 'bike', ['#ff7a1a', '#2a2a2a'], {
     o: o({ wheel: 1.1 }), arch: 'bouncy',
@@ -431,7 +447,8 @@ export const RETRO = group('retro', [
       const mini = (x: number, yy: number, m: 'red' | 'yellow' | 'green' | 'blue') => [
         blob([[x, yy], [x, yy - 0.2], [x + 0.25, yy - 0.22], [x + 0.4, yy - 0.38], [x + 0.7, yy - 0.38], [x + 0.85, yy - 0.2], [x + 1.0, yy - 0.18], [x + 1.0, yy]], m, {}, 1),
         poly([[x + 0.45, yy - 0.22], [x + 0.48, yy - 0.33], [x + 0.68, yy - 0.33], [x + 0.78, yy - 0.22]], 'glass'),
-        circ(x + 0.22, yy, 0.1, 'rubber'), circ(x + 0.8, yy, 0.1, 'rubber'),
+        circ(x + 0.22, yy, 0.1, 'rubber'), circ(x + 0.8, yy, 0.1, 'rubber'), circ(x + 0.22, yy, 0.04, 'chrome'), circ(x + 0.8, yy, 0.04, 'chrome'),
+        rect(x + 0.93, yy - 0.16, x + 1.0, yy - 0.1, 'light'), stripe(x + 0.05, x + 0.95, yy - 0.1, 0.03, 'white'),
       ];
       return {
         hit: [rect(x0 + 0.05, y - 0.78, x1 - 0.45, y - 0.68), rect(x0 + 0.02, y - 1.2, x0 + 0.12, y), rect(x1 - 0.55, y - 1.2, x1 - 0.45, y)],
@@ -448,10 +465,11 @@ export const RETRO = group('retro', [
     // No visible wheels: it rolls on hidden casters under the rubber skirt.
     s: 0.85, arch: 'tiny', glide: 0.27, parts: ['antenna'], bounce: 0.4, noLights: true, hideParts: true,
     skin: (f) => [
-      rr(f.tail.x - 0.12, -0.02, f.nose.x + 0.1, 0.27, 0.13, 'rubber'),
-      rr(f.tail.x - 0.05, 0.12, f.nose.x + 0.03, 0.17, 0.02, 'dark', { flat: true }),
-      blob([[f.tail.x + 0.02, 0.0], [f.tail.x - 0.02, -0.4], [f.tail.x + 0.2, -0.5], [-0.35, -0.3], [0.35, -0.22], [f.nose.x - 0.15, -0.3], [f.nose.x, -0.15], [f.nose.x - 0.05, 0.0]], 'body', {}, 2),
-      starShape(0.6, -0.1, 0.11, 'gold'),
+      rr(f.tail.x - 0.14, -0.06, f.nose.x + 0.12, 0.27, 0.15, 'rubber'),
+      rr(f.tail.x - 0.05, 0.02, f.nose.x + 0.03, 0.07, 0.02, 'grey', { flat: true }),
+      blob([[f.tail.x + 0.02, -0.02], [f.tail.x - 0.02, -0.5], [f.tail.x + 0.22, -0.6], [-0.35, -0.36], [0.35, -0.3], [f.nose.x - 0.15, -0.4], [f.nose.x, -0.2], [f.nose.x - 0.05, -0.02]], 'body', {}, 2),
+      poly([[f.tail.x + 0.02, -0.2], [f.nose.x - 0.02, -0.16], [f.nose.x - 0.02, -0.1], [f.tail.x + 0.02, -0.14]], 'accent', { flat: true }),
+      circ(0.55, -0.14, 0.13, 'white'), starShape(0.55, -0.14, 0.1, 'gold'),
       ...path([[f.tail.x + 0.2, -0.45], [f.tail.x + 0.25, -1.45]], 0.07, 'chrome'), circ(f.tail.x + 0.25, -1.5, 0.08, 'yellow'),
       ...seat(-0.32, -0.22, 0.32, 'accent'),
       seg([0.45, -0.24], [0.3, -0.45], 0.05, 'black'), seg([0.2, -0.5], [0.4, -0.4], 0.06, 'black'),
@@ -461,8 +479,9 @@ export const RETRO = group('retro', [
     s: 0.85, arch: 'scoop',
     skin: (f) => [
       rr(f.tail.x, -0.35, f.nose.x - 0.1, 0.3, 0.08, 'body'),
-      rr(f.tail.x - 0.1, -0.55, f.tail.x + 0.55, 0.15, 0.12, 'dark'),
-      ...path([[f.tail.x + 0.4, -0.35], [f.tail.x + 0.45, f.roof.y - 0.6], [f.nose.x - 0.45, f.roof.y - 0.6], [f.nose.x - 0.2, -0.35]], 0.09, 'dark'),
+      rr(f.tail.x - 0.12, -0.58, f.tail.x + 0.55, 0.18, 0.12, 'dark'), ...[0, 1, 2, 3].map((i) => poly([[f.tail.x - 0.1, -0.4 + i * 0.16], [f.tail.x + 0.53, -0.5 + i * 0.16], [f.tail.x + 0.53, -0.44 + i * 0.16], [f.tail.x - 0.1, -0.34 + i * 0.16]], 'yellow', { flat: true })),
+      ...path([[f.tail.x + 0.4, -0.35], [f.tail.x + 0.45, f.roof.y - 0.6], [f.nose.x - 0.45, f.roof.y - 0.6], [f.nose.x - 0.2, -0.35]], 0.12, 'dark'),
+      stripe(f.tail.x + 0.55, f.nose.x - 0.1, 0.06, 0.07, 'black'), ...frontLamp(f.nose.x - 0.1, -0.22),
       ...seat(f.head.x - 0.05, -0.35, 0.4),
       ...beacon(f.tail.x + 0.6, f.roof.y - 0.65, 'orange', 0.14),
     ],
@@ -478,7 +497,7 @@ export const RETRO = group('retro', [
   }],
   ['hog', 'Hog', 'Важкий круїзер-чопер: довга вилка, високий кермо, багато хрому.', 'bike', ['#2a2a2a', '#c0c0c8'], {
     o: o({ len: 1.15 }), mass: 1.3,
-    skin: (f) => [...bike(f, { style: 'chopper' }), ...path([[-0.35, -0.25], [-0.55, -0.7], [-0.62, -0.72]], 0.06, 'chrome')],
+    skin: (f) => [...path([[-0.55, -0.4], [-0.62, -0.95], [-0.5, -1.0]], 0.07, 'chrome'), ...bike(f, { style: 'chopper' }), rr(-1.25, -0.5, -0.85, -0.18, 0.05, 'brown'), ...flameDecal(0.45, -0.1, -0.3, 0.14)],
   }],
   ['ice-cream-van', 'Ice Cream Van', 'Фургон морозива. Стріляє ріжками — суперник замерзає.', 'van', ['#ffb0d0', '#ffffff'], {
     parts: ['cone'], hideParts: true,
@@ -487,6 +506,7 @@ export const RETRO = group('retro', [
       rr(-1.25, -0.68, 0.1, -0.22, 0.04, 'cream'), rect(-1.2, -0.62, 0.05, -0.28, 'dark', { flat: true }),
       ...[-1.15, -0.85, -0.55, -0.25].map((x, i) => poly([[x - 0.06, -0.72], [x + 0.06, -0.72], [x, -0.42]], i % 2 ? 'pink' : 'white')),
       rect(-1.3, -0.24, 0.15, -0.17, 'white'),
+      ...[0, 1, 2, 3, 4, 5].map((i) => poly([[-1.32 + i * 0.25, -0.86], [-1.07 + i * 0.25, -0.86], [-1.1 + i * 0.25, -0.7], [-1.35 + i * 0.25, -0.7]], i % 2 ? 'white' : 'red')),
       stripe(f.tail.x, f.nose.x, 0.1, 0.08, 'accent'), ...[-1.3, -0.9, -0.5, -0.1, 0.3].map((x) => ell(x, 0.02, 0.18, 0.08, 'white')),
       poly([[f.roof.x0 + 0.02, f.roof.y - 0.85], [f.roof.x0 + 0.58, f.roof.y - 0.85], [f.roof.x0 + 0.3, f.roof.y + 0.02]], 'tan'), ...[0.3, 0.55].map((h) => seg([f.roof.x0 + 0.3 - h * 0.3, f.roof.y - h], [f.roof.x0 + 0.3 + h * 0.3, f.roof.y - h], 0.04, 'brown')),
       circ(f.roof.x0 + 0.3, f.roof.y - 1.05, 0.36, 'pink'), circ(f.roof.x0 + 0.3, f.roof.y - 1.45, 0.26, 'cream'), circ(f.roof.x0 + 0.34, f.roof.y - 1.74, 0.1, 'red'),
@@ -494,7 +514,7 @@ export const RETRO = group('retro', [
   }],
   ['motorbike', 'Motorbike', 'Класичний швидкісний мотоцикл.', 'bike', ['#2a6ae0', '#ffffff'], {
     speed: 1.15,
-    skin: (f) => [...bike(f, { style: 'sport' }), stripe(-0.2, 0.5, -0.02, 0.05, 'accent')],
+    skin: (f) => [...bike(f, { style: 'sport' })],
   }],
   ['fire-truck', 'Fire Truck', 'Пожежна машина з драбиною. Брандспойт збиває суперника струменем води.', 'truck', ['#e02a2a', '#f0f0f0'], {
     gun: (f) => ({ at: [[f.deck.x1 + 0.85, -0.86]], aim: 4 }),
@@ -515,6 +535,9 @@ export const RETRO = group('retro', [
         rect(d.x1 - 0.2, -0.88, d.x1 - 0.05, -0.65, 'dark'),
         ...lightbar(f.roof.x0 + 0.05, f.roof.x1 - 0.1, f.roof.y, 'red', 'red'),
         circ(-0.65, 0.05, 0.14, 'gold'), circ(-0.65, 0.05, 0.06, 'dark'),
+        stripe(f.tail.x, f.nose.x, 0.14, 0.04, 'white'),
+        rr(f.tail.x - 0.15, 0.12, f.tail.x + 0.2, 0.2, 0.03, 'chrome'), ...ladder([f.tail.x + 0.05, 0.12], [f.tail.x + 0.05, -0.6], 0.12, 'chrome', 4),
+        circ(d.x1 - 0.5, -0.3, 0.18, 'red'), circ(d.x1 - 0.5, -0.3, 0.08, 'chrome'),
       ];
     },
   }],
@@ -524,9 +547,10 @@ export const RETRO = group('retro', [
       ...sedan(f, { bumper: 'black' }),
       blob([[-1.0, -0.14], [0.85, -0.14], [0.85, 0.16], [-1.0, 0.16]], 'white', {}, 1),
       ...door(-1.0, -0.14, -0.08, 0.22, 'white'), ...door(-0.04, -0.14, 0.85, 0.22, 'white'),
-      starShape(-0.5, 0.02, 0.12, 'gold'),
+      starShape(-0.5, 0.02, 0.13, 'gold'), stripe(-0.2, 0.85, 0.06, 0.06, 'blue'),
       ...lightbar(-0.65, 0.15, f.roof.y),
-      rect(f.nose.x - 0.12, 0.0, f.nose.x + 0.1, 0.28, 'black'),
+      ...path([[f.nose.x - 0.05, -0.05], [f.nose.x + 0.15, 0.0], [f.nose.x + 0.15, 0.3], [f.nose.x - 0.05, 0.34]], 0.08, 'black'), seg([f.nose.x + 0.05, 0.15], [f.nose.x + 0.15, 0.15], 0.06, 'black'),
+      seg([f.tail.x + 0.3, -0.16], [f.tail.x + 0.2, -0.7], 0.03, 'black'),
     ],
   }],
   ['cherry-picker', 'Cherry Picker', 'Автовишка з люлькою на стрілі.', 'truck', ['#f0f0f0', '#ff8a1a'], {
@@ -550,7 +574,7 @@ export const RETRO = group('retro', [
       return [
         ...truckCab(f),
         stripe(f.tail.x, f.nose.x, 0.04, 0.08, 'accent'),
-        rr(d.x0 + 0.05, d.y - 0.3, d.x0 + 0.7, d.y + 0.05, 0.04, 'grey'),
+        rr(d.x0 + 0.05, d.y - 0.3, d.x0 + 0.7, d.y + 0.05, 0.04, 'grey'), ...[0, 1, 2].map((i) => poly([[d.x0 + 0.08 + i * 0.22, d.y + 0.02], [d.x0 + 0.2 + i * 0.22, d.y + 0.02], [d.x0 + 0.3 + i * 0.22, d.y - 0.28], [d.x0 + 0.18 + i * 0.22, d.y - 0.28]], 'yellow', { flat: true })),
         circ(d.x0 + 0.38, d.y - 0.2, 0.12, 'dark'),
         ...beacon(f.roof.x0 + 0.35, f.roof.y, 'orange', 0.14),
         ...[0.1, 1.4].map((dx) => rect(d.x0 + dx, d.y, d.x0 + dx + 0.08, 0.3, 'dark')),
@@ -560,7 +584,9 @@ export const RETRO = group('retro', [
   ['golf-cart', 'Golf Cart', 'Електричний гольф-кар. Б\'є м\'ячиком для гольфу точно в шолом.', 'buggy', ['#f0f0f0', '#3ab04a'], {
     s: 0.85,
     skin: (f) => [
-      blob([[f.tail.x, 0.22], [f.tail.x, -0.15], [-0.3, -0.12], [0.6, -0.1], [f.nose.x, 0.0], [f.nose.x, 0.22]], 'body', {}, 1),
+      blob([[f.tail.x, 0.3], [f.tail.x, -0.2], [-0.3, -0.18], [0.5, -0.16], [f.nose.x - 0.05, -0.08], [f.nose.x + 0.02, 0.3]], 'body', {}, 1),
+      poly([[f.tail.x + 0.02, 0.04], [f.nose.x, 0.04], [f.nose.x, 0.12], [f.tail.x + 0.02, 0.12]], 'accent', { flat: true }),
+      poly([[0.45, -0.16], [0.6, -0.16], [0.48, f.roof.y + 0.04], [0.4, f.roof.y + 0.04]], 'glass'), ...frontLamp(f.nose.x, -0.02, 0.1),
       ...seat(f.head.x + 0.05, -0.12, 0.42, 'accent'),
       seg([-0.85, -0.12], [-0.75, f.roof.y], 0.07, 'chrome'), seg([0.53, -0.1], [0.41, -0.36], 0.07, 'chrome'),
       rr(f.roof.x0 - 0.15, f.roof.y - 0.12, f.roof.x1 + 0.15, f.roof.y + 0.02, 0.05, 'accent'),
@@ -579,6 +605,8 @@ export const RETRO = group('retro', [
       ...path([[f.tail.x + 0.05, f.deck.y + 0.1], [f.tail.x - 0.45, f.deck.y - 0.5]], 0.06, 'chrome'), rr(f.tail.x - 0.6, f.deck.y - 0.56, f.tail.x - 0.35, f.deck.y - 0.44, 0.04, 'black'),
       seg([0.0, 0.12], [-0.3, 0.4], 0.05, 'chrome'), seg([0.0, 0.12], [0.3, 0.4], 0.05, 'chrome'),
       circ(0.25, f.deck.y + 0.3, 0.1, 'gold'), circ(0.25, f.deck.y + 0.3, 0.05, 'red'),
+      ...Array.from({ length: 6 }, (_, i) => circ(f.tail.x + 0.2 + i * ((f.nose.x - f.tail.x - 0.4) / 5), f.deck.y + 0.02, 0.07, 'white')),
+      ...[-0.3, 0.3].map((x) => path([[x * 0.4, 0.14], [x, 0.22], [x * 0.4, 0.32], [x, 0.4]], 0.04, 'chrome')).flat(),
     ],
   }],
   ['tanker-truck', 'Tanker Truck', 'Тягач із цистерною-напівпричепом: вона мотляється ззаду й складається на поворотах.', 'truck', ['#e0e0e0', '#3a6ad8'], {
@@ -592,6 +620,8 @@ export const RETRO = group('retro', [
         ...[0.9, 1.9, 2.9].map((dx) => rect(x0 + dx, y - 1.02, x0 + dx + 0.07, y + 0.0, 'grey', { flat: true })),
         poly([[x0 + 1.9, y - 0.8], [x0 + 2.18, y - 0.52], [x0 + 1.9, y - 0.24], [x0 + 1.62, y - 0.52]], 'orange'), rect(x0 + 1.87, y - 0.64, x0 + 1.93, y - 0.44, 'black', { flat: true }),
         rr(x0 + 0.4, y - 1.12, x0 + 0.8, y - 1.0, 0.03, 'grey'), rr(x0 + 2.4, y - 1.12, x0 + 2.8, y - 1.0, 0.03, 'grey'),
+        rect(x0 + 0.3, y - 1.1, x1 - 0.3, y - 1.06, 'grey'), ...ladder([x1 - 0.35, y], [x1 - 0.35, y - 1.0], 0.12, 'grey', 5),
+        rect(x0 + 0.1, y - 0.36, x1 - 0.15, y - 0.32, 'dark', { flat: true }), rearLamp(x0 - 0.02, y + 0.06, 0.1),
       ],
     }))],
   }],
@@ -602,6 +632,8 @@ export const RETRO = group('retro', [
       stripe(0.3, f.nose.x - 0.1, -0.12, 0.05, 'accent'), stripe(0.3, f.nose.x - 0.1, -0.03, 0.05, 'accent'),
       ...seat(f.head.x + 0.02, -0.16, 0.35, 'brown'),
       ell(f.tail.x + 0.4, -0.22, 0.2, 0.08, 'black'),
+      ...spare(f.tail.x - 0.1, -0.2, 0.22),
+      ...f.wheels.map((w) => ell(w.x, w.y, w.r * 0.48, w.r * 0.48, 'white')),
     ],
   }],
   ['rowboat', 'Rowboat', 'Дерев\'яний човен із веслами на колесах.', 'boat', ['#a06a3a', '#e0c080'], {
@@ -609,6 +641,9 @@ export const RETRO = group('retro', [
     skin: (f) => [
       blob([[f.tail.x - 0.05, -0.5], [f.nose.x + 0.1, -0.6], [f.nose.x - 0.2, -0.1], [f.nose.x - 0.6, 0.12], [f.tail.x + 0.3, 0.12]], 'wood', {}, 1),
       stripe(f.tail.x, f.nose.x - 0.1, -0.42, 0.08, 'accent'),
+      ...[-0.25, -0.05].map((y) => stripe(f.tail.x + 0.15, f.nose.x - 0.4, y, 0.025, 'brown')),
+      poly([[f.tail.x + 0.3, 0.02], [f.nose.x - 0.6, 0.02], [f.nose.x - 0.6, 0.12], [f.tail.x + 0.3, 0.12]], 'red', { flat: true }),
+      rr(f.tail.x + 0.2, 0.12, f.nose.x - 0.5, 0.24, 0.04, 'dark'),
       ...path([[-0.7, -0.7], [0.3, 0.25]], 0.07, 'tan'), ell(0.35, 0.28, 0.18, 0.07, 'tan'),
       ...path([[-0.3, -0.7], [-1.3, 0.2]], 0.07, 'tan'), ell(-1.35, 0.24, 0.18, 0.07, 'tan'),
       ell(-1.05, -0.62, 0.16, 0.08, 'orange'),
@@ -619,8 +654,9 @@ export const RETRO = group('retro', [
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', top: -0.5, rx0: -0.7, rx1: 0.05, glass: 'dark', bumper: 'black' }),
       seg([f.tail.x + 0.25, -0.12], [f.tail.x + 0.2, -0.38], 0.07, 'black'), rr(f.tail.x - 0.1, -0.5, f.tail.x + 0.55, -0.36, 0.03, 'black'),
-      stripe(f.tail.x, f.nose.x - 0.1, -0.03, 0.06, 'accent'),
-      poly([[0.65, 0.04], [1.0, 0.04], [0.95, 0.14], [0.7, 0.14]], 'black'),
+      poly([[f.nose.x - 0.2, 0.0], [f.tail.x + 0.2, -0.12], [f.tail.x + 0.2, 0.02], [f.nose.x - 0.2, 0.06]], 'accent', { flat: true }),
+      rr(-0.55, 0.06, -0.05, 0.2, 0.04, 'black'), ...[0, 1, 2].map((i) => rect(-0.5 + i * 0.15, 0.09, -0.42 + i * 0.15, 0.17, 'dark', { flat: true })),
+      circ(0.4, -0.05, 0.13, 'white'), rect(0.37, -0.13, 0.43, 0.03, 'black', { flat: true }),
     ],
   }],
   ['superstar-dragster', 'Superstar Dragster', 'Зірковий дрегстер із ракетою й плавником.', 'dragster', ['#c02ae0', '#ffd23f'], {
@@ -640,6 +676,7 @@ export const RETRO = group('retro', [
       ...truckCab(f),
       rr(f.deck.x0, f.deck.y - 0.3, f.deck.x0 + 0.1, f.deck.y + 0.05, 0.02, 'accent'),
       rr(f.deck.x0, f.deck.y - 0.02, f.deck.x1, f.deck.y + 0.1, 0.03, 'accent'),
+      ...[f.deck.x0 + 0.05, (f.deck.x0 + f.deck.x1) / 2, f.deck.x1 - 0.1].map((x) => rect(x, f.deck.y - 0.5, x + 0.06, f.deck.y, 'grey')), rect(f.deck.x0, f.deck.y - 0.52, f.deck.x1, f.deck.y - 0.47, 'grey'),
       ...[0, 1, 2, 3, 4, 5].map((i) => poly([[f.tail.x + 0.1 + i * 0.5, 0.3], [f.tail.x + 0.3 + i * 0.5, 0.3], [f.tail.x + 0.45 + i * 0.5, 0.1], [f.tail.x + 0.25 + i * 0.5, 0.1]], 'yellow', { flat: true })),
       circ(1.45, -0.2, 0.12, 'yellow'), ...[0, 1, 2].map((i) => poly([[1.45, -0.2], [1.45 + Math.cos(i * 2.1) * 0.11, -0.2 + Math.sin(i * 2.1) * 0.11], [1.45 + Math.cos(i * 2.1 + 0.8) * 0.11, -0.2 + Math.sin(i * 2.1 + 0.8) * 0.11]], 'black', { flat: true })),
     ],
@@ -651,6 +688,9 @@ export const RETRO = group('retro', [
       blob([[0.1, -0.85], [0.9, -0.5], [0.95, -0.15], [0.2, -0.28]], 'glass', {}, 1),
       blob([[-0.15, -1.28], [0.05, -1.32], [0.05, 0.15], [-0.15, 0.15]], 'accent', {}, 1),
       stripe(-0.85, 0.85, -0.05, 0.1, 'accent'), circ(-0.5, -0.5, 0.1, 'white'),
+      poly([[0.3, -0.75], [0.6, -0.62], [0.55, -0.56], [0.28, -0.68]], 'white', { flat: true }),
+      ...[0, 1, 2].map((i) => rect(-0.7 + i * 0.12, -0.3, -0.64 + i * 0.12, -0.14, 'dark', { flat: true })),
+      rr(-0.8, 0.12, 0.8, 0.28, 0.06, 'dark'), rr(0.55, -0.2, 0.92, 0.1, 0.06, 'accent'),
     ],
   }],
   ['muscle-car', 'Muscle Car', 'Потужне купе з подвійними гоночними смугами.', 'coupe', ['#ff8a1a', '#1a1a1a'], {
@@ -658,7 +698,8 @@ export const RETRO = group('retro', [
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', bumper: 'chrome' }),
       stripe(f.tail.x, f.nose.x - 0.1, -0.12, 0.05, 'accent'), stripe(f.tail.x, f.nose.x - 0.05, -0.04, 0.05, 'accent'),
-      rr(0.55, -0.3, 1.0, -0.14, 0.04, 'black'),
+      rr(0.5, -0.36, 1.05, -0.14, 0.05, 'black'), rect(0.55, -0.3, 1.0, -0.26, 'dark', { flat: true }),
+      ...path([[-0.2, 0.26], [f.tail.x - 0.15, 0.24]], 0.09, 'chrome'),
       seg([f.tail.x + 0.2, -0.14], [f.tail.x + 0.15, -0.34], 0.06, 'black'), rr(f.tail.x - 0.05, -0.42, f.tail.x + 0.45, -0.32, 0.03, 'black'),
       ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.03, 0.14, 2),
     ],

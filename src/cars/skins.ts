@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt, WheelDef } from './types';
-import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, taillight, tank, windows } from './draw';
+import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, tank, windows } from './draw';
 
 /*
  * Skin templates: a good-looking base body per vehicle type, built around the
@@ -286,38 +286,46 @@ export function kart(f: Frame, o: { mat?: CarMat } = {}): CarPoly[] {
   ];
 }
 
-/** Motorbike: tank, seat, engine, forks, fenders, exhaust. */
+/**
+ * Motorbike: chunky bodywork like hand-drawn arcade bikes — a big tank, a side panel with a
+ * number plate, a finned engine block, a thick frame, a chrome fork, fenders and an exhaust.
+ */
 export function bike(f: Frame, o: { mat?: CarMat; style?: 'road' | 'chopper' | 'dirt' | 'sport' | 'scooter'; fairing?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const st = o.style ?? 'road';
   const rw = firstW(f), fw = lastW(f);
   const out: CarPoly[] = [];
   const hx = f.head.x;
+  const forkTop: Pt = st === 'chopper' ? [fw.x - 0.55, -0.52] : [fw.x - 0.3, -0.46];
   // swing arm and frame
-  out.push(seg([rw.x, rw.y], [hx + 0.15, 0.1], 0.09, 'dark'));
-  out.push(seg([hx - 0.2, -0.14], [hx + 0.45, 0.18], 0.08, 'dark'));
-  // engine
-  out.push(rr(hx + 0.05, -0.02, hx + 0.55, 0.3, 0.06, 'grey'), rect(hx + 0.12, 0.04, hx + 0.48, 0.08, 'dark', { flat: true }), rect(hx + 0.12, 0.14, hx + 0.48, 0.18, 'dark', { flat: true }));
+  out.push(seg([rw.x, rw.y], [hx + 0.15, 0.12], 0.12, 'dark'));
+  out.push(seg([hx - 0.2, -0.16], [hx + 0.5, 0.2], 0.11, 'dark'));
+  // engine block with cooling fins
+  out.push(rr(hx - 0.05, -0.06, hx + 0.6, 0.36, 0.07, 'grey'));
+  for (let i = 0; i < 4; i++) out.push(rect(hx + 0.02, -0.01 + i * 0.09, hx + 0.53, 0.03 + i * 0.09, 'dark', { flat: true }));
+  out.push(circ(hx + 0.12, 0.26, 0.09, 'chrome'));
   // exhaust
-  out.push(...path([[hx + 0.2, 0.28], [hx - 0.1, 0.32], [rw.x + 0.05, 0.2]], 0.09, 'chrome'));
-  // fork
-  const forkTop: Pt = st === 'chopper' ? [fw.x - 0.55, -0.42] : [fw.x - 0.28, -0.3];
-  out.push(seg([fw.x, fw.y], forkTop, 0.09, 'chrome'));
-  // tank and seat
+  out.push(...path([[hx + 0.25, 0.32], [hx - 0.15, 0.36], [rw.x + 0.1, 0.22], [rw.x - 0.25, 0.12]], 0.12, 'chrome'));
+  out.push(seg([fw.x, fw.y], forkTop, 0.12, 'chrome'));
   if (st === 'scooter') {
-    out.push(blob([[rw.x - 0.25, 0.15], [rw.x - 0.2, -0.15], [hx + 0.2, -0.18], [hx + 0.4, 0.2]], m, {}, 1));
-    out.push(blob([[hx + 0.4, 0.22], [forkTop[0] - 0.05, -0.3], [forkTop[0] + 0.12, -0.25], [hx + 0.65, 0.22]], m, {}, 1));
+    out.push(blob([[rw.x - 0.3, 0.18], [rw.x - 0.25, -0.2], [hx + 0.2, -0.24], [hx + 0.45, 0.22]], m, {}, 1));
+    out.push(blob([[hx + 0.4, 0.24], [forkTop[0] - 0.08, -0.36], [forkTop[0] + 0.14, -0.3], [hx + 0.7, 0.24]], m, {}, 1));
+    out.push(rr(hx - 0.55, -0.32, hx + 0.1, -0.18, 0.05, 'black'));
   } else {
-    out.push(blob([[hx + 0.05, -0.1], [hx + 0.15, -0.3], [forkTop[0] - 0.02, -0.28], [forkTop[0] + 0.05, -0.12], [hx + 0.5, -0.02]], m, {}, 1));
-    out.push(rr(hx - 0.55, -0.24, hx + 0.12, -0.12, 0.05, 'black'));
-    out.push(blob([[rw.x - 0.3, -0.08], [hx - 0.55, -0.24], [hx - 0.35, -0.12], [rw.x, 0.0]], m, {}, 1));
+    // side panel under the seat with a number plate
+    out.push(blob([[rw.x - 0.4, -0.2], [hx - 0.62, -0.42], [hx + 0.05, -0.36], [hx + 0.12, 0.06], [rw.x + 0.05, 0.04]], m, {}, 1));
+    if (st === 'dirt' || st === 'sport') out.push(ell(hx - 0.3, -0.14, 0.18, 0.13, 'white'), rect(hx - 0.33, -0.22, hx - 0.27, -0.06, 'black', { flat: true }));
+    // big tank
+    out.push(blob([[hx - 0.02, -0.06], [hx + 0.06, -0.52], [forkTop[0] - 0.04, -0.5], [forkTop[0] + 0.1, -0.2], [hx + 0.55, 0.02]], m, {}, 1));
+    out.push(poly([[hx + 0.06, -0.34], [forkTop[0], -0.32], [forkTop[0] + 0.06, -0.24], [hx + 0.04, -0.26]], 'accent', { flat: true }));
+    out.push(rr(hx - 0.62, -0.48, hx + 0.12, -0.34, 0.05, 'black'));
   }
   // fenders
-  out.push(fender(rw.x, rw.y, rw.r, 0.08, m), fender(fw.x, fw.y, fw.r, 0.08, st === 'dirt' ? 'white' : m));
-  out.push(seg(forkTop, [forkTop[0] - 0.1, forkTop[1] - 0.18], 0.07, 'chrome'), seg([forkTop[0] - 0.1, forkTop[1] - 0.18], [forkTop[0] - 0.3, forkTop[1] - 0.2], 0.07, 'black'));
-  out.push(headlight(forkTop[0] + 0.1, forkTop[1] + 0.06, 0.08));
-  if (o.fairing || st === 'sport') out.push(blob([[forkTop[0] - 0.15, forkTop[1] - 0.1], [forkTop[0] + 0.05, forkTop[1] - 0.25], [forkTop[0] + 0.25, forkTop[1] + 0.1], [hx + 0.55, 0.15], [hx + 0.35, -0.05]], m, {}, 1));
-  out.push(taillight(rw.x - 0.3, -0.06, 0.06));
+  out.push(fender(rw.x, rw.y, rw.r, 0.1, m), fender(fw.x, fw.y, fw.r, 0.1, st === 'dirt' ? 'white' : m));
+  out.push(seg(forkTop, [forkTop[0] - 0.1, forkTop[1] - 0.2], 0.08, 'chrome'), seg([forkTop[0] - 0.1, forkTop[1] - 0.2], [forkTop[0] - 0.32, forkTop[1] - 0.22], 0.08, 'black'));
+  out.push(circ(forkTop[0] + 0.12, forkTop[1] + 0.08, 0.1, 'chrome'), circ(forkTop[0] + 0.14, forkTop[1] + 0.08, 0.065, 'light'));
+  if (o.fairing || st === 'sport') out.push(blob([[forkTop[0] - 0.15, forkTop[1] - 0.12], [forkTop[0] + 0.05, forkTop[1] - 0.28], [forkTop[0] + 0.28, forkTop[1] + 0.1], [hx + 0.6, 0.18], [hx + 0.35, -0.06]], m, {}, 1));
+  out.push(rearLamp(rw.x - 0.36, -0.1, 0.1));
   return out;
 }
 
