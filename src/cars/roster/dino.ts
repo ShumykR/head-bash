@@ -67,7 +67,7 @@ export const DINO = group('dino', [
       ];
     },
   }],
-  ['triceratops', 'Triceratops', 'Трицератопс із комірцем і трьома рогами. Таранить з розгону.', 'creature', ['#7a8a5a', '#e0d0a0'], {
+  ['triceratops', 'Triceratops', 'Трицератопс із комірцем і трьома рогами. Таранить з розгону.', 'creature', ['#6a9a3a', '#e8d8a0'], {
     parts: ['tail'], noLights: true, hideParts: true,
     art: () => [hidden(poly([[1.45, -0.95], [1.55, -1.05], [2.05, -1.25]], 'bone', { deco: false, density: 0.3 }))],
     skin: (f) => {
@@ -105,7 +105,7 @@ export const DINO = group('dino', [
       ];
     },
   }],
-  ['velociraptor', 'Velociraptor', 'Швидкий велоцираптор: стрибає на здобич зі смугастою спиною.', 'creature', ['#8a7a3a', '#e04a2a'], {
+  ['velociraptor', 'Velociraptor', 'Швидкий велоцираптор: стрибає на здобич зі смугастою спиною.', 'creature', ['#b08a2a', '#e04a2a'], {
     s: 0.85, o: o({ neck: 'raptor' }), parts: ['tail'], speed: 1.15, noLights: true, hideParts: true,
     skin: (f) => {
       const h = dinoHead('raptor');
@@ -124,7 +124,8 @@ export const DINO = group('dino', [
       ...path([[f.tail.x - 0.6, -0.65], [-0.8, -0.55], [0.0, -0.62], [0.7, -0.45], [1.05, -0.85], [1.4, -1.35]], 0.12, 'bone'),
       ...[-0.7, -0.4, -0.1, 0.2, 0.5].map((x) => path([[x, -0.58], [x + 0.06, -0.3], [x - 0.02, -0.02]], 0.09, 'bone')).flat(),
       ...f.wheels.map((w) => seg([w.x, -0.55], [w.x, w.y - 0.1], 0.1, 'bone')),
-      seg([-0.75, -0.05], [0.55, -0.05], 0.08, 'bone'),
+      seg([-0.75, -0.05], [0.55, -0.05], 0.1, 'bone'), rr(-1.0, 0.0, 0.85, 0.12, 0.04, 'dark'),
+      ...[-0.7, -0.4, -0.1, 0.2, 0.5].map((x) => circ(x + 0.03, -0.3, 0.05, 'bone')), circ(1.5, -1.5, 0.03, 'green'),
       blob([[1.2, -1.45], [1.5, -1.62], [1.85, -1.5], [1.82, -1.36], [1.3, -1.3]], 'bone', {}, 1),
       circ(1.5, -1.5, 0.07, 'black'), ...[0, 1, 2].map((i) => rect(1.55 + i * 0.08, -1.4, 1.58 + i * 0.08, -1.32, 'black', { flat: true })),
     ],
@@ -136,6 +137,8 @@ export const DINO = group('dino', [
       ...[[-0.4, -0.7, 0.14], [0.3, -0.95, 0.1], [0.5, -0.3, 0.12], [-0.5, -0.15, 0.09], [0.1, -0.5, 0.07]].map(([x, y, r]) => ell(x, y, r, r * 0.8, 'accent')),
       ...path([[-0.9, -0.55], [-0.6, -0.65], [-0.4, -0.5], [-0.2, -0.62], [-0.05, -0.5], [0.15, -0.6]], 0.05, 'brown'),
       ...eyeball(0.55, -0.6, 0.1),
+      ...path([[-0.2, -1.25], [-0.05, -1.1], [0.1, -1.2], [0.25, -1.05]], 0.05, 'brown'),
+      rr(-0.8, 0.12, 0.8, 0.3, 0.05, 'dark'), ell(-0.4, -0.95, 0.18, 0.08, 'white', { flat: true }),
     ],
   }],
   ['parasaurolophus', 'Parasaurolophus', 'Динозавр із трубчастим гребенем: трубить, як у ріг.', 'creature', ['#4a8ab0', '#ffd23f'], {
@@ -173,6 +176,8 @@ export const DINO = group('dino', [
       ...fangs(f.nose.x - 0.58, f.nose.x - 0.05, -0.04, 4, 0.12), ...fangs(f.nose.x - 0.55, f.nose.x - 0.1, 0.17, 4, 0.1, true),
       ...eyeball(f.nose.x - 0.5, -0.32, 0.11, 'red'),
       ...[-0.6, -0.3, 0.0].map((x) => poly([[x, -0.3], [x + 0.15, -0.3], [x + 0.05, -0.05]], 'dark', { flat: true })),
+      ...[[-0.8, -0.35], [-0.5, -0.45], [-0.2, -0.4], [0.1, -0.5], [0.4, -0.4]].map(([x, y]) => ell(x, y, 0.06, 0.05, 'orange')),
+      rr(-1.0, 0.24, 1.0, 0.38, 0.05, 'dark'),
     ],
   }],
   ['mechasaurus', 'Mechasaurus', 'Кібердинозавр із ракетними пускачами на спині.', 'creature', ['#a0a8b8', '#e02a2a'], {
@@ -203,7 +208,7 @@ export const DINO = group('dino', [
       ];
     },
   }],
-  ['ankylosaurus', 'Ankylosaurus', 'Панцерний динозавр із булавою на хвості — вона розгойдується й б\'є.', 'creature', ['#7a6a4a', '#c0a060'], {
+  ['ankylosaurus', 'Ankylosaurus', 'Панцерний динозавр із булавою на хвості — вона розгойдується й б\'є.', 'creature', ['#8a6a3a', '#d8b060'], {
     o: o({ neck: 'none', tall: 0.9 }), parts: ['plates'], noLights: true, hideParts: true,
     flail: { from: 'tail', len: 0.75, r: 0.26, look: 'mace' },
     art: (f) => [hidden(poly([[f.tail.x + 0.3, f.tail.y0], [f.tail.x + 0.3, f.tail.y1 - 0.1], [f.tail.x - 0.25, (f.tail.y0 + f.tail.y1) / 2 - 0.05]], 'body', { deco: false }))],

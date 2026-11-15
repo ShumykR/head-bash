@@ -461,9 +461,16 @@ export function beast(f: Frame, o: { mat?: CarMat; belly?: CarMat; cx?: number; 
   const m = o.mat ?? 'body';
   const cx = o.cx ?? 0, cy = o.cy ?? -0.2, rx = o.rx ?? 1.05, ry = o.ry ?? 0.42;
   const out: CarPoly[] = [];
+  // A machine under the animal: chassis rail between the axles and a mudguard over each wheel.
+  const xs = f.wheels.map((w) => w.x);
+  const ay = Math.min(...f.wheels.map((w) => w.y));
+  out.push(rr(Math.min(...xs) - 0.25, ay - 0.12, Math.max(...xs) + 0.25, ay + 0.02, 0.04, 'dark'));
+  for (const w of f.wheels) out.push(arc(w.x, w.y, w.r + 0.08, Math.PI * 1.12, Math.PI * 1.88, 0.09, 'dark'));
   if (o.legs !== false) for (const w of f.wheels) out.push(blob([[w.x - 0.17, cy], [w.x + 0.17, cy], [w.x + 0.13, w.y - 0.1], [w.x - 0.13, w.y - 0.1]], m, {}, 1));
   out.push(ell(cx, cy, rx, ry, m, {}, 24));
   if (o.belly) out.push(ell(cx + 0.05, cy + ry * 0.45, rx * 0.75, ry * 0.4, o.belly, {}, 20));
+  // a saddle-blanket under the driver keeps the "vehicle" readable
+  out.push(rr(cx - 0.45, cy - ry * 0.95, cx + 0.15, cy - ry * 0.6, 0.05, 'red'), rect(cx - 0.45, cy - ry * 0.68, cx + 0.15, cy - ry * 0.62, 'gold', { flat: true }));
   return out;
 }
 
