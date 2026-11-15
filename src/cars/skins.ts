@@ -374,7 +374,11 @@ export function saucer(f: Frame, o: { mat?: CarMat; dome?: CarMat; lights?: CarM
     ell((x0 + x1) / 2, -0.12, (x1 - x0) / 2 - 0.35, 0.14, 'chrome', {}, 24),
     ell((x0 + x1) / 2, 0.2, 0.55, 0.12, 'dark'),
   ];
-  for (let i = -3; i <= 3; i++) out.push(circ(i * 0.38, 0.03, 0.06, o.lights ?? 'light'));
+  for (let i = -3; i <= 3; i++) out.push(circ(i * 0.38, 0.03, 0.08, 'dark'), circ(i * 0.38, 0.03, 0.055, o.lights ?? 'light'));
+  // rim band, dome base ring and a pair of landing struts
+  out.push(rect(x0 + 0.05, 0.12, x1 - 0.05, 0.15, 'dark', { flat: true }));
+  out.push(rr(-0.68, -0.32, 0.68, -0.22, 0.04, 'chrome'));
+  for (const x of [x0 + 0.5, x1 - 0.5]) out.push(seg([x, 0.15], [x + Math.sign(x) * 0.15, 0.4], 0.06, 'grey'), rr(x + Math.sign(x) * 0.15 - 0.1, 0.38, x + Math.sign(x) * 0.15 + 0.1, 0.44, 0.02, 'dark'));
   return out;
 }
 
