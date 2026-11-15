@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarDef, CarPoly } from './types';
-import { arc, blob, bumper, circ, ell, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spare, spikesAlong, stack, starShape, stripe, tank } from './draw';
+import { blob, bumper, circ, ell, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spare, spikesAlong, stack, starShape, stripe, tank } from './draw';
 import { fenders, frontLamp, mirror, monsterChassis, pickup, rearLamp, sedan, tracks, tractor } from './skins';
 
 /*
@@ -224,11 +224,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     const f = fr(d, { x0: -1.0, x1: 1.5, y0: -0.4, y1: 0.2 });
     return [
       ...tractor(f, { cab: false }),
-      arc(-0.6, 0.22, 0.86, Math.PI * 1.05, Math.PI * 1.95, 0.14, 'body'),
-      rr(0.35, -0.5, 1.55, 0.05, 0.06, 'body'), ...grille(1.42, -0.42, 1.56, 0.02, 3), ...frontLamp(1.55, -0.3),
-      ...[0.55, 0.8, 1.05].map((x) => rect(x, -0.4, x + 0.12, -0.33, 'dark', { flat: true })),
       rr(-1.06, -1.32, 0.18, -1.16, 0.04, 'accent'), rect(-0.04, -1.18, 0.08, -0.4, 'dark'), rect(-0.95, -1.18, -0.83, -0.35, 'dark'),
-      ...stack(1.0, -0.5, 0.55, 0.11, 'black'), rect(0.92, -1.1, 1.08, -1.04, 'dark'),
     ];
   },
   bumper: () => [
