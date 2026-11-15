@@ -46,10 +46,22 @@ function ramp(c: RGB): RGB[] {
   ];
 }
 
+/**
+ * Tinted glass: dark panes with a pale glint, the way hand-drawn arcade sprites read windows
+ * (bright cyan glass made every car look like a toy). The car's own glass colour only tints it.
+ */
+function glassRamp(tint: RGB): RGB[] {
+  const base: RGB = mix([38, 38, 66], tint, 0.12);
+  return [mix(base, [8, 6, 16], 0.55), mix(base, [8, 6, 16], 0.25), base, mix([112, 116, 160], tint, 0.25), mix([226, 230, 246], tint, 0.15)];
+}
+
 export function carPalette(p: CarPalette): (RGB | null)[] {
   const pal: (RGB | null)[] = [null, mix(shade(hex(p.dark), 0.3), [14, 10, 24], 0.6)];
   const src: Record<string, string> = { body: p.body, accent: p.accent, dark: p.dark, glass: p.glass, light: p.light };
-  for (const m of MATS) for (const c of ramp(hex(src[m] ?? FIXED[m] ?? '#ff00ff'))) pal.push(c);
+  for (const m of MATS) {
+    if (m === 'glass') { pal.push(...glassRamp(hex(p.glass))); continue; }
+    for (const c of ramp(hex(src[m] ?? FIXED[m] ?? '#ff00ff'))) pal.push(c);
+  }
   return pal;
 }
 
@@ -141,29 +153,32 @@ export function generateCarGrid(def: CarDef, ppm = CAR_PPM): PixelGrid {
       while (dn < 64 && matAt(x, y + dn + 1) === m) dn++;
       const H = up + dn + 1;
       const t = H > 1 ? up / (H - 1) : 0.5;
-      const dith = ((x & 1) ^ (y & 1)) === 1;
       let tn = T_BASE;
+      // Crisp bands like hand-shaded sprites: a bright rim on top, a light band under it,
+      // the base colour, a darker lower band and a deep bottom row. No dither noise.
       if (flatOf[me]) tn = T_BASE;
       else if (up === 0 && H >= 3) tn = T_HI;
+      else if (H >= 5 && dn === 0) tn = T_DEEP;
       else if (H >= 4) {
-        if (t < 0.22 || (t < 0.32 && dith)) tn = T_LIGHT;
-        else if (t > 0.8 || (t > 0.7 && dith)) tn = T_DARK;
+        if (up === 1 && H >= 7) tn = T_LIGHT;
+        else if (t < 0.24) tn = T_LIGHT;
+        else if (t > 0.72) tn = T_DARK;
       }
       // Material textures
       switch (mat) {
-        case 'metal': if ((x + y * 3) % 7 === 0 && tn === T_BASE) tn = T_LIGHT; break;
         case 'wood': if (y % 4 === 0 && tn !== T_HI) tn = T_DARK; else if ((x * 5 + (y >> 2) * 3) % 13 === 0) tn = T_DEEP; break;
         case 'scoop': if ((x + y) % 7 < 2 && tn !== T_HI) { gset(out, x, y, P.HAZARD); continue; } break;
         case 'spike': tn = (x + y) % 3 === 0 ? T_HI : y % 2 ? T_DARK : T_BASE; break;
         case 'glass': {
-          const k = (x - y + 256) % 9;
-          tn = k === 0 || k === 1 ? T_HI : up < 2 ? T_LIGHT : t > 0.75 ? T_DARK : T_BASE;
+          // Dark pane, a lighter strip under the frame and a slanted glint.
+          const k = (x - y + 256) % 11;
+          tn = k === 0 || k === 1 ? T_LIGHT : up === 0 ? T_LIGHT : up < 2 && H > 4 ? T_BASE : t > 0.6 ? T_DEEP : T_DARK;
+          if (k === 0 && up > 0 && dn > 0) tn = T_HI;
           break;
         }
-        case 'chrome': tn = up === 0 ? T_HI : t < 0.4 ? T_LIGHT : t < 0.55 ? T_DARK : t < 0.8 ? T_BASE : T_DARK; break;
+        case 'chrome': tn = up === 0 ? T_HI : t < 0.45 ? T_LIGHT : t < 0.75 ? T_BASE : T_DARK; break;
         case 'rubber': if (tn === T_HI) tn = T_LIGHT; break;
-        case 'dark': if ((x * 7 + y * 3) % 11 === 0 && tn === T_BASE) tn = T_LIGHT; break;
-        case 'light': tn = up === 0 ? T_HI : T_BASE; break;
+        case 'light': tn = up === 0 ? T_HI : T_LIGHT; break;
       }
       gset(out, x, y, tone(mat, tn));
     }
@@ -225,16 +240,29 @@ export function generateLinkGrid(def: CarDef, i: number, ppm = CAR_PPM): PixelGr
 }
 
 export function wheelPalette(p: CarPalette): (RGB | null)[] {
-  const acc = hex(p.accent);
-  return [null, [14, 12, 18], [40, 38, 46], [70, 68, 78], shade(acc, 0.6), mix(acc, [200, 205, 215], 0.45), [230, 234, 240], [28, 26, 32]];
+  // Black tyre with a soft grey sheen, a pale rim ring and a small hub in the car's own colour
+  // (the accent when the body is black, white or grey).
+  const sat = (c: RGB) => Math.max(...c) - Math.min(...c);
+  const body = hex(p.body), acc = hex(p.accent);
+  const lum = (c: RGB) => (c[0] + c[1] + c[2]) / 3;
+  const hub = sat(body) >= 60 ? body : sat(acc) >= 60 ? acc : lum(acc) > 70 && lum(acc) < 200 ? acc : ([200, 60, 60] as RGB);
+  return [null, [14, 12, 20], [30, 28, 38], [62, 60, 74], [150, 152, 168], [222, 224, 234], hub, shade(hub, 0.6)];
 }
 
+/**
+ * Wheel sprite: a thick black tyre, a thin pale rim and a coloured hub with a
+ * pale cross so the spin shows. Slots: TIRE / TIRE_L tyre, RIM_D / RIM rim ring,
+ * RIM_L hub colour, HUB hub shadow and cross gaps.
+ */
 export function generateWheelGrid(wd: WheelDef, ppm = CAR_PPM): PixelGrid {
   const r = Math.max(3, Math.round(wd.r * ppm));
   const size = r * 2 + 1;
   const g = makeGrid(size, size, r, r);
   const style = wd.rim ?? 'spokes';
-  const tireIn = style === 'monster' ? r * 0.55 : r * 0.66;
+  const monster = style === 'monster';
+  const tireIn = Math.max(1.6, r * (monster ? 0.44 : 0.52));
+  const rimIn = Math.max(1.2, tireIn - Math.max(1, r * 0.13));
+  const arms = style === 'star' ? 5 : style === 'disc' ? 0 : style === 'monster' ? 6 : 4;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const dx = x - r, dy = y - r;
@@ -244,15 +272,21 @@ export function generateWheelGrid(wd: WheelDef, ppm = CAR_PPM): PixelGrid {
       let c: number;
       if (d > r - 0.7) c = WP.OUTLINE;
       else if (d > tireIn) {
-        const tread = Math.floor(((a + Math.PI) / (Math.PI * 2)) * (style === 'monster' ? 10 : 14)) % 2;
-        c = d > r - 1.7 && tread ? WP.OUTLINE : tread ? WP.TIRE_L : WP.TIRE;
-      } else if (d > tireIn - 1) c = WP.RIM_D;
-      else if (d < Math.max(1.2, r * 0.18)) c = WP.HUB;
+        // Sheen on the upper-left of the tyre; chunky tread blocks on off-road tyres.
+        const sheen = dx + dy < -r * 0.5 && d > tireIn + 0.8 && d < r - 1.2;
+        c = sheen ? WP.TIRE_L : WP.TIRE;
+        if (monster || r >= 9) {
+          const tread = Math.floor(((a + Math.PI) / (Math.PI * 2)) * (monster ? 12 : 16)) % 2;
+          if (tread && d > r - 1.7) c = WP.OUTLINE;
+        }
+      } else if (d > rimIn) c = dx + dy < 0 ? WP.RIM : WP.RIM_D;
       else {
-        const sectors = style === 'star' ? 5 : style === 'disc' ? 0 : style === 'monster' ? 6 : 4;
-        const s = sectors ? Math.abs(Math.sin((a * sectors) / 2)) : 1;
-        if (style === 'disc') c = d < tireIn * 0.55 ? WP.RIM_L : WP.RIM;
-        else c = s < 0.3 ? WP.RIM_L : s < 0.55 ? WP.RIM : WP.RIM_D;
+        c = dy > rimIn * 0.35 ? WP.HUB : WP.RIM_L;
+        if (arms && rimIn >= 2) {
+          const s = Math.abs(Math.sin((a * arms) / 2));
+          if (s < 0.28 && d > 0.8) c = WP.RIM;
+        }
+        if (d < 0.9) c = WP.RIM;
       }
       gset(g, x, y, c);
     }

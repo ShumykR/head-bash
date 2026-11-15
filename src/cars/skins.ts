@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt, WheelDef } from './types';
-import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, taillight, tank, windows } from './draw';
+import { arc, blob, bumper, circ, door, ell, fender, grille, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, tank, windows } from './draw';
 
 /*
  * Skin templates: a good-looking base body per vehicle type, built around the
@@ -10,6 +10,29 @@ import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly
 
 const lastW = (f: Frame) => f.wheels.reduce((a, w) => (w.x > a.x ? w : a), f.wheels[0]);
 const firstW = (f: Frame) => f.wheels.reduce((a, w) => (w.x < a.x ? w : a), f.wheels[0]);
+
+// ---------------------------------------------------------------- shared trim
+
+/**
+ * Bottom of the drawn body: a little lower than the collision hull, so the body wraps the
+ * top of the wheels (arches) instead of floating over them as a thin slab. Render only.
+ */
+export function skirt(f: Frame, bot: number): number {
+  const wy = Math.min(...f.wheels.map((w) => w.y)), wr = Math.min(...f.wheels.map((w) => w.r));
+  return Math.max(bot, Math.min(bot + 0.16, wy + wr * 0.3));
+}
+
+/** Dark chassis showing under the body between the wheels (drawn first, behind the body). */
+export const underbody = (f: Frame, bot: number, x0?: number, x1?: number): CarPoly =>
+  rr(x0 ?? firstW(f).x - firstW(f).r * 0.6, bot - 0.12, x1 ?? lastW(f).x + lastW(f).r * 0.6, bot + 0.05, 0.04, 'black');
+/** Chunky lamp block at a body corner: yellow head lamp with an orange side marker. */
+export const frontLamp = (x1: number, y: number, h = 0.13): CarPoly[] => [
+  rr(x1 - 0.13, y - h / 2, x1 + 0.02, y + h / 2, 0.03, 'light'),
+  rect(x1 - 0.2, y - h / 2 + 0.02, x1 - 0.13, y + h / 2 - 0.02, 'orange', { flat: true }),
+];
+export const rearLamp = (x0: number, y: number, h = 0.13): CarPoly => rr(x0 - 0.02, y - h / 2, x0 + 0.1, y + h / 2, 0.03, 'red');
+/** Wing mirror at the foot of the windscreen. */
+export const mirror = (x: number, y: number): CarPoly[] => [seg([x - 0.04, y + 0.04], [x + 0.02, y - 0.04], 0.04, 'dark'), rr(x - 0.02, y - 0.1, x + 0.08, y - 0.02, 0.025, 'dark')];
 
 // ---------------------------------------------------------------- cars
 
@@ -29,13 +52,15 @@ export interface SedanOpts {
   fins?: boolean;
   /** Belt line override. */
   belt?: number;
+  /** Pinstripe colour along the belt (null = none; default accent). */
+  pin?: CarMat | null;
 }
 
 /** Saloon / coupe / hatch / wagon body with glass, doors, lights and bumpers. */
 export function sedan(f: Frame, o: SedanOpts = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const x0 = f.tail.x, x1 = f.nose.x;
-  const belt = o.belt ?? f.nose.y0, bot = f.nose.y1;
+  const belt = o.belt ?? f.nose.y0, bot = skirt(f, f.nose.y1);
   const style = o.roof ?? 'sedan';
   const top = o.top ?? f.roof.y;
   let rb = o.rx0 ?? f.roof.x0, rf = o.rx1 ?? f.roof.x1;
@@ -64,7 +89,10 @@ export function sedan(f: Frame, o: SedanOpts = {}): CarPoly[] {
   const dx0 = lowerOnly ? (x0 + x1) / 2 - 0.5 : wb + 0.1, dx1 = lowerOnly ? (x0 + x1) / 2 + 0.4 : wf - 0.1;
   const dw = (dx1 - dx0) / nd;
   for (let i = 0; i < nd; i++) out.push(...door(dx0 + i * dw + 0.02, belt + 0.02, dx0 + (i + 1) * dw - 0.02, bot - 0.08, m));
-  out.push(headlight(x1 - 0.1, belt + 0.12, 0.09), taillight(x0 + 0.0, belt + 0.12, 0.08));
+  // Pinstripe along the belt, chunky corner lamps, a wing mirror: what makes a hand-drawn car read at 18 px/m.
+  if (o.pin !== null) out.push(stripe(x0 + 0.12, x1 - 0.2, belt + 0.07, 0.045, o.pin ?? 'accent'));
+  out.push(...frontLamp(x1, belt + 0.13), rearLamp(x0, belt + 0.13));
+  if (!lowerOnly) out.push(...mirror(wf - 0.1, belt - 0.04));
   if (o.bumper !== null) {
     const bm = o.bumper ?? 'chrome';
     out.push(bumper(x1 - 0.22, x1 + 0.05, bot - 0.05, 0.11, bm), bumper(x0 - 0.05, x0 + 0.22, bot - 0.05, 0.11, bm));
@@ -99,7 +127,7 @@ export interface BoxOpts {
 export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const x0 = o.x0 ?? f.tail.x, x1 = o.x1 ?? f.nose.x;
-  const top = o.top ?? f.roof.y, bot = o.bot ?? f.nose.y1;
+  const top = o.top ?? f.roof.y, bot = o.bot ?? skirt(f, f.nose.y1);
   const sl = o.slope ?? 0.4, sh = o.slopeH ?? 0.5;
   const rd = o.round ?? 0.1;
   const out: CarPoly[] = [];
@@ -112,7 +140,8 @@ export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
     out.push(...windows(wx0, wx1, wy0, wy1, n, 0.08));
   }
   for (const dx of o.doors ?? []) out.push(rect(dx, top + 0.08, dx + 0.42, bot - 0.08, m, { ring: true }), rect(dx + 0.06, (top + bot) / 2, dx + 0.16, (top + bot) / 2 + 0.05, 'chrome', { flat: true }));
-  if (o.lights !== false) out.push(headlight(x1 - 0.06, bot - 0.2, 0.09), taillight(x0, bot - 0.22, 0.09));
+  if (o.lights !== false) out.push(...frontLamp(x1, bot - 0.22), rearLamp(x0, bot - 0.24, 0.16));
+  if (o.screen !== false) out.push(...mirror(x1 - sl - 0.06, top + sh + 0.06));
   if (o.bumper !== null) {
     const bm = o.bumper ?? 'chrome';
     out.push(bumper(x1 - 0.2, x1 + 0.06, bot - 0.04, 0.12, bm), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.12, bm));
@@ -123,7 +152,7 @@ export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
 /** Lorry cab at the front of a truck frame + chassis rails under the bed. */
 export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number; grille?: boolean; rails?: CarMat | null; stack?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
-  const x1 = f.nose.x, bot = f.nose.y1, top = o.top ?? f.roof.y;
+  const x1 = f.nose.x, bot = skirt(f, f.nose.y1), top = o.top ?? f.roof.y;
   const cx0 = o.x0 ?? f.roof.x0;
   const out: CarPoly[] = [];
   if (o.rails !== null) out.push(rr(f.tail.x, bot - 0.26, cx0 + 0.1, bot - 0.06, 0.04, o.rails ?? 'dark'));
@@ -135,7 +164,7 @@ export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number;
     out.push(rect(x1 - 0.1, top + 0.55, x1 + 0.02, bot - 0.12, 'chrome'));
     for (let y = top + 0.6; y < bot - 0.16; y += 0.1) out.push(rect(x1 - 0.08, y, x1, y + 0.04, 'black', { flat: true }));
   }
-  out.push(headlight(x1 - 0.04, bot - 0.2, 0.08), bumper(x1 - 0.25, x1 + 0.07, bot - 0.03, 0.12, 'chrome'));
+  out.push(...frontLamp(x1, bot - 0.2), bumper(x1 - 0.25, x1 + 0.07, bot - 0.03, 0.12, 'chrome'), ...mirror(x1 - 0.3, top + 0.42));
   if (o.stack) out.push(...stack(cx0 - 0.04, top + 0.5, 0.75, 0.09));
   return out;
 }
@@ -143,7 +172,7 @@ export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number;
 /** Pickup: cab + open bed. */
 export function pickup(f: Frame, o: { mat?: CarMat; open?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
-  const x0 = f.tail.x, x1 = f.nose.x, belt = f.nose.y0, bot = f.nose.y1, top = f.roof.y;
+  const x0 = f.tail.x, x1 = f.nose.x, belt = f.nose.y0, bot = skirt(f, f.nose.y1), top = f.roof.y;
   const out: CarPoly[] = [];
   const rb = f.roof.x0, rf = f.roof.x1;
   const pts: Pt[] = [[x0, bot], [x0, belt - 0.02], [rb - 0.08, belt - 0.02]];
@@ -153,7 +182,9 @@ export function pickup(f: Frame, o: { mat?: CarMat; open?: boolean } = {}): CarP
   if (!o.open) out.push(poly([[rb + 0.06, belt - 0.06], [rb + 0.06, top + 0.07], [rf - 0.02, top + 0.07], [rf + 0.2, belt - 0.06]], 'glass'));
   out.push(rect(x0 + 0.05, belt - 0.02, rb - 0.14, belt + 0.06, 'dark', { flat: true }));
   out.push(...door(rb - 0.02, belt + 0.02, rf + 0.3, bot - 0.1, m));
-  out.push(headlight(x1 - 0.08, belt + 0.14, 0.09), taillight(x0, belt + 0.14, 0.08));
+  out.push(stripe(x0 + 0.1, x1 - 0.2, belt + 0.08, 0.045, 'accent'));
+  out.push(...frontLamp(x1, belt + 0.14), rearLamp(x0, belt + 0.14));
+  if (!o.open) out.push(...mirror(rf + 0.22, belt - 0.04));
   out.push(bumper(x1 - 0.22, x1 + 0.06, bot - 0.04, 0.13), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.13));
   return out;
 }
@@ -181,7 +212,9 @@ export function tracks(f: Frame, mat: CarMat = 'rubber', grow = 0.08): CarPoly[]
   const out: CarPoly[] = [rr(a.x - r, a.y - r, b.x + r, a.y + r, r, mat)];
   // tread lugs on the top run
   for (let x = a.x; x < b.x; x += 0.24) out.push(rect(x - 0.04, a.y - r - 0.04, x + 0.04, a.y - r + 0.03, mat));
-  out.push(rr(a.x - r + 0.08, a.y - r + 0.06, b.x + r - 0.08, a.y + r - 0.06, r - 0.08, 'dark'));
+  out.push(rr(a.x - r + 0.08, a.y - r + 0.06, b.x + r - 0.08, a.y + r - 0.06, r - 0.08, 'black'));
+  // a guard over the top run, so the track reads as a separate machine part
+  out.push(rr(a.x - r * 0.6, a.y - r - 0.1, b.x + r * 0.6, a.y - r + 0.02, 0.03, 'grey'));
   return out;
 }
 
@@ -204,68 +237,95 @@ export function formula(f: Frame, o: { mat?: CarMat; wing?: CarMat; num?: boolea
   // rear wing on struts
   out.push(seg([x0 + 0.3, -0.05], [x0 + 0.25, -0.55], 0.08, 'dark'));
   out.push(rr(x0 - 0.05, -0.68, x0 + 0.55, -0.5, 0.04, wg));
-  // body: engine cover rising behind the head, long nose
-  out.push(blob([[x0 + 0.1, 0.18], [x0 + 0.1, -0.06], [hx - 0.55, -0.12], [hx - 0.3, -0.38], [hx - 0.05, -0.2], [hx + 0.55, -0.16], [x1 - 0.2, -0.02], [x1, 0.06], [x1 - 0.05, 0.12], [hx + 0.4, 0.2]], m, {}, 1));
-  out.push(blob([[hx - 0.6, 0.18], [hx - 0.55, -0.02], [hx + 0.45, -0.04], [hx + 0.55, 0.18]], m, {}, 1));
-  out.push(rect(hx - 0.5, -0.05, hx + 0.4, 0.0, 'dark', { flat: true }));
+  // body: tall engine cover behind the head, chunky sidepods, long nose
+  out.push(blob([[x0 + 0.1, 0.24], [x0 + 0.05, -0.12], [hx - 0.6, -0.22], [hx - 0.32, -0.48], [hx - 0.05, -0.28], [hx + 0.55, -0.2], [x1 - 0.2, -0.04], [x1 + 0.02, 0.06], [x1 - 0.05, 0.16], [hx + 0.4, 0.26]], m, {}, 1));
+  out.push(blob([[hx - 0.7, 0.3], [hx - 0.62, -0.08], [hx + 0.5, -0.1], [hx + 0.62, 0.3]], m, {}, 1));
+  // livery band and a side intake
+  out.push(poly([[x0 + 0.1, -0.02], [hx + 0.6, 0.02], [x1 - 0.1, 0.04], [x1 - 0.1, 0.1], [hx + 0.6, 0.1], [x0 + 0.1, 0.1]], wg, { flat: true }));
+  out.push(rr(hx - 0.55, 0.12, hx - 0.15, 0.24, 0.04, 'black'));
   // intake above the helmet's back and cockpit rim
-  out.push(rr(hx - 0.42, -0.42, hx - 0.18, -0.26, 0.05, 'dark'));
-  out.push(pane(hx + 0.15, -0.36, hx + 0.38, -0.14, 0.12, 0));
+  out.push(rr(hx - 0.45, -0.55, hx - 0.15, -0.36, 0.05, 'dark'));
+  out.push(pane(hx + 0.15, -0.38, hx + 0.4, -0.16, 0.12, 0));
   // front wing
-  out.push(rr(x1 - 0.5, 0.12, x1 + 0.08, 0.2, 0.03, wg));
-  out.push(rect(x1 - 0.06, 0.04, x1 + 0.06, 0.2, wg));
-  if (o.num) out.push(circ(hx + 0.85, 0.02, 0.1, 'white'));
+  out.push(rr(x1 - 0.5, 0.12, x1 + 0.08, 0.22, 0.03, wg));
+  out.push(rect(x1 - 0.06, 0.02, x1 + 0.08, 0.22, wg));
+  out.push(rr(x0 - 0.06, -0.08, x0 + 0.06, 0.06, 0.03, 'red'));
+  if (o.num) out.push(circ(hx + 0.2, -0.04, 0.12, 'white'));
   return out;
 }
 
-/** Go-kart: low tray, bumper, steering column, seat. */
+/** Dragster hull: a deep tub around the driver tapering into a long nose, with a livery band. */
+export function dragsterBody(f: Frame, mat: CarMat = 'body', band: CarMat = 'accent'): CarPoly[] {
+  const x0 = f.tail.x, x1 = f.nose.x;
+  return [
+    blob([[x0 + 0.3, 0.34], [x0 + 0.25, -0.24], [-0.62, -0.38], [-0.3, -0.22], [x1 - 0.6, -0.06], [x1, 0.04], [x1 + 0.02, 0.2], [x0 + 0.4, 0.36]], mat, {}, 1),
+    poly([[-0.4, 0.04], [x1 - 0.1, 0.08], [x1 - 0.1, 0.14], [-0.4, 0.16]], band, { flat: true }),
+    rr(x0 + 0.35, 0.18, -0.6, 0.3, 0.04, 'dark'),
+    rr(x1 - 0.14, 0.02, x1 + 0.02, 0.1, 0.03, 'light'),
+  ];
+}
+
+/** Go-kart: tube chassis, side pods, nose fairing with a number plate, seat, engine and exhaust. */
 export function kart(f: Frame, o: { mat?: CarMat } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const x0 = f.tail.x, x1 = f.nose.x;
   const hx = f.head.x;
   return [
-    rr(x0 - 0.05, 0.08, x1, 0.18, 0.04, 'chrome'),
-    blob([[x0 + 0.1, 0.1], [x0 + 0.15, -0.08], [x1 - 0.35, -0.02], [x1, 0.02], [x1 + 0.05, 0.12], [x0 + 0.1, 0.16]], m, {}, 1),
-    rr(x1 - 0.2, -0.12, x1 + 0.1, 0.18, 0.06, 'accent'),
-    ...seat(hx - 0.1, -0.06, 0.46),
-    seg([hx + 0.55, -0.06], [hx + 0.32, -0.36], 0.06, 'black'),
-    seg([hx + 0.22, -0.42], [hx + 0.4, -0.3], 0.07, 'black'),
-    ...stack(x0 + 0.15, -0.06, 0.25, 0.08),
+    rr(x0 - 0.12, 0.06, x0 + 0.1, 0.24, 0.05, 'chrome'),
+    rr(x0 + 0.05, -0.18, hx - 0.2, 0.12, 0.05, 'grey'), rect(x0 + 0.1, -0.12, hx - 0.25, -0.08, 'dark', { flat: true }),
+    ...path([[x0 + 0.2, 0.0], [x0 - 0.1, -0.12], [x0 - 0.2, -0.3]], 0.08, 'chrome'),
+    rr(x0, 0.1, x1, 0.2, 0.04, 'dark'),
+    // side pod wrapping the rear wheel's front, and a tall nose fairing with a number plate
+    blob([[x0 + 0.1, 0.24], [x0 + 0.05, -0.12], [hx - 0.25, -0.2], [hx - 0.2, 0.24]], m, {}, 1),
+    blob([[hx - 0.35, 0.24], [hx - 0.3, -0.14], [hx + 0.55, -0.12], [x1 - 0.4, -0.2], [x1 - 0.08, -0.42], [x1 + 0.1, -0.14], [x1 + 0.1, 0.24]], m, {}, 1),
+    poly([[x0 + 0.08, 0.02], [x1 + 0.05, -0.02], [x1 + 0.05, 0.08], [x0 + 0.08, 0.12]], 'accent', { flat: true }),
+    rr(x1 - 0.46, -0.5, x1 - 0.1, -0.24, 0.04, 'white'), rect(x1 - 0.31, -0.45, x1 - 0.25, -0.29, 'black', { flat: true }),
+    ...seat(hx - 0.1, -0.06, 0.46, 'black'),
+    seg([hx + 0.55, -0.06], [hx + 0.32, -0.36], 0.07, 'black'),
+    seg([hx + 0.22, -0.42], [hx + 0.42, -0.3], 0.08, 'black'),
   ];
 }
 
-/** Motorbike: tank, seat, engine, forks, fenders, exhaust. */
+/**
+ * Motorbike: chunky bodywork like hand-drawn arcade bikes — a big tank, a side panel with a
+ * number plate, a finned engine block, a thick frame, a chrome fork, fenders and an exhaust.
+ */
 export function bike(f: Frame, o: { mat?: CarMat; style?: 'road' | 'chopper' | 'dirt' | 'sport' | 'scooter'; fairing?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const st = o.style ?? 'road';
   const rw = firstW(f), fw = lastW(f);
   const out: CarPoly[] = [];
   const hx = f.head.x;
+  const forkTop: Pt = st === 'chopper' ? [fw.x - 0.55, -0.52] : [fw.x - 0.3, -0.46];
   // swing arm and frame
-  out.push(seg([rw.x, rw.y], [hx + 0.15, 0.1], 0.09, 'dark'));
-  out.push(seg([hx - 0.2, -0.14], [hx + 0.45, 0.18], 0.08, 'dark'));
-  // engine
-  out.push(rr(hx + 0.05, -0.02, hx + 0.55, 0.3, 0.06, 'grey'), rect(hx + 0.12, 0.04, hx + 0.48, 0.08, 'dark', { flat: true }), rect(hx + 0.12, 0.14, hx + 0.48, 0.18, 'dark', { flat: true }));
+  out.push(seg([rw.x, rw.y], [hx + 0.15, 0.12], 0.12, 'dark'));
+  out.push(seg([hx - 0.2, -0.16], [hx + 0.5, 0.2], 0.11, 'dark'));
+  // engine block with cooling fins
+  out.push(rr(hx - 0.05, -0.06, hx + 0.6, 0.36, 0.07, 'grey'));
+  for (let i = 0; i < 4; i++) out.push(rect(hx + 0.02, -0.01 + i * 0.09, hx + 0.53, 0.03 + i * 0.09, 'dark', { flat: true }));
+  out.push(circ(hx + 0.12, 0.26, 0.09, 'chrome'));
   // exhaust
-  out.push(...path([[hx + 0.2, 0.28], [hx - 0.1, 0.32], [rw.x + 0.05, 0.2]], 0.09, 'chrome'));
-  // fork
-  const forkTop: Pt = st === 'chopper' ? [fw.x - 0.55, -0.42] : [fw.x - 0.28, -0.3];
-  out.push(seg([fw.x, fw.y], forkTop, 0.09, 'chrome'));
-  // tank and seat
+  out.push(...path([[hx + 0.25, 0.32], [hx - 0.15, 0.36], [rw.x + 0.1, 0.22], [rw.x - 0.25, 0.12]], 0.12, 'chrome'));
+  out.push(seg([fw.x, fw.y], forkTop, 0.12, 'chrome'));
   if (st === 'scooter') {
-    out.push(blob([[rw.x - 0.25, 0.15], [rw.x - 0.2, -0.15], [hx + 0.2, -0.18], [hx + 0.4, 0.2]], m, {}, 1));
-    out.push(blob([[hx + 0.4, 0.22], [forkTop[0] - 0.05, -0.3], [forkTop[0] + 0.12, -0.25], [hx + 0.65, 0.22]], m, {}, 1));
+    out.push(blob([[rw.x - 0.3, 0.18], [rw.x - 0.25, -0.2], [hx + 0.2, -0.24], [hx + 0.45, 0.22]], m, {}, 1));
+    out.push(blob([[hx + 0.4, 0.24], [forkTop[0] - 0.08, -0.36], [forkTop[0] + 0.14, -0.3], [hx + 0.7, 0.24]], m, {}, 1));
+    out.push(rr(hx - 0.55, -0.32, hx + 0.1, -0.18, 0.05, 'black'));
   } else {
-    out.push(blob([[hx + 0.05, -0.1], [hx + 0.15, -0.3], [forkTop[0] - 0.02, -0.28], [forkTop[0] + 0.05, -0.12], [hx + 0.5, -0.02]], m, {}, 1));
-    out.push(rr(hx - 0.55, -0.24, hx + 0.12, -0.12, 0.05, 'black'));
-    out.push(blob([[rw.x - 0.3, -0.08], [hx - 0.55, -0.24], [hx - 0.35, -0.12], [rw.x, 0.0]], m, {}, 1));
+    // side panel under the seat with a number plate
+    out.push(blob([[rw.x - 0.4, -0.2], [hx - 0.62, -0.42], [hx + 0.05, -0.36], [hx + 0.12, 0.06], [rw.x + 0.05, 0.04]], m, {}, 1));
+    if (st === 'dirt' || st === 'sport') out.push(ell(hx - 0.3, -0.14, 0.18, 0.13, 'white'), rect(hx - 0.33, -0.22, hx - 0.27, -0.06, 'black', { flat: true }));
+    // big tank
+    out.push(blob([[hx - 0.02, -0.06], [hx + 0.06, -0.52], [forkTop[0] - 0.04, -0.5], [forkTop[0] + 0.1, -0.2], [hx + 0.55, 0.02]], m, {}, 1));
+    out.push(poly([[hx + 0.06, -0.34], [forkTop[0], -0.32], [forkTop[0] + 0.06, -0.24], [hx + 0.04, -0.26]], 'accent', { flat: true }));
+    out.push(rr(hx - 0.62, -0.48, hx + 0.12, -0.34, 0.05, 'black'));
   }
   // fenders
-  out.push(fender(rw.x, rw.y, rw.r, 0.08, m), fender(fw.x, fw.y, fw.r, 0.08, st === 'dirt' ? 'white' : m));
-  out.push(seg(forkTop, [forkTop[0] - 0.1, forkTop[1] - 0.18], 0.07, 'chrome'), seg([forkTop[0] - 0.1, forkTop[1] - 0.18], [forkTop[0] - 0.3, forkTop[1] - 0.2], 0.07, 'black'));
-  out.push(headlight(forkTop[0] + 0.1, forkTop[1] + 0.06, 0.08));
-  if (o.fairing || st === 'sport') out.push(blob([[forkTop[0] - 0.15, forkTop[1] - 0.1], [forkTop[0] + 0.05, forkTop[1] - 0.25], [forkTop[0] + 0.25, forkTop[1] + 0.1], [hx + 0.55, 0.15], [hx + 0.35, -0.05]], m, {}, 1));
-  out.push(taillight(rw.x - 0.3, -0.06, 0.06));
+  out.push(fender(rw.x, rw.y, rw.r, 0.1, m), fender(fw.x, fw.y, fw.r, 0.1, st === 'dirt' ? 'white' : m));
+  out.push(seg(forkTop, [forkTop[0] - 0.1, forkTop[1] - 0.2], 0.08, 'chrome'), seg([forkTop[0] - 0.1, forkTop[1] - 0.2], [forkTop[0] - 0.32, forkTop[1] - 0.22], 0.08, 'black'));
+  out.push(circ(forkTop[0] + 0.12, forkTop[1] + 0.08, 0.1, 'chrome'), circ(forkTop[0] + 0.14, forkTop[1] + 0.08, 0.065, 'light'));
+  if (o.fairing || st === 'sport') out.push(blob([[forkTop[0] - 0.15, forkTop[1] - 0.12], [forkTop[0] + 0.05, forkTop[1] - 0.28], [forkTop[0] + 0.28, forkTop[1] + 0.1], [hx + 0.6, 0.18], [hx + 0.35, -0.06]], m, {}, 1));
+  out.push(rearLamp(rw.x - 0.36, -0.1, 0.1));
   return out;
 }
 
@@ -278,6 +338,12 @@ export function carriage(f: Frame, o: { mat?: CarMat; top?: number; trim?: CarMa
   out.push(rr(f.tail.x + 0.05, 0.06, f.nose.x - 0.05, 0.18, 0.04, 'dark'));
   out.push(blob([[x0 + 0.1, 0.18], [x0 - 0.05, top + 0.25], [x0 + 0.25, top], [x1 - 0.25, top], [x1 + 0.05, top + 0.25], [x1 - 0.1, 0.18]], m, {}, 1));
   out.push(rr(x0 - 0.12, top - 0.08, x1 + 0.12, top + 0.04, 0.03, o.trim ?? 'gold'));
+  // gilded belt and base, a door with a window, coach lamps at both corners
+  const tr = o.trim ?? 'gold', mid = (x0 + x1) / 2;
+  out.push(rect(x0, (top + 0.18) / 2 + 0.05, x1, (top + 0.18) / 2 + 0.09, tr, { flat: true }));
+  out.push(rr(x0 + 0.02, 0.1, x1 - 0.02, 0.18, 0.03, tr));
+  out.push(rect(mid - 0.2, top + 0.18, mid + 0.2, 0.14, m, { ring: true }), rr(mid - 0.13, top + 0.25, mid + 0.13, top + 0.48, 0.05, 'glass'));
+  for (const x of [x0 - 0.08, x1 + 0.08]) out.push(rect(x - 0.03, top + 0.3, x + 0.03, top + 0.45, 'black'), rr(x - 0.07, top + 0.12, x + 0.07, top + 0.3, 0.03, tr), rect(x - 0.04, top + 0.16, x + 0.04, top + 0.26, 'light'));
   return out;
 }
 
@@ -308,7 +374,11 @@ export function saucer(f: Frame, o: { mat?: CarMat; dome?: CarMat; lights?: CarM
     ell((x0 + x1) / 2, -0.12, (x1 - x0) / 2 - 0.35, 0.14, 'chrome', {}, 24),
     ell((x0 + x1) / 2, 0.2, 0.55, 0.12, 'dark'),
   ];
-  for (let i = -3; i <= 3; i++) out.push(circ(i * 0.38, 0.03, 0.06, o.lights ?? 'light'));
+  for (let i = -3; i <= 3; i++) out.push(circ(i * 0.38, 0.03, 0.08, 'dark'), circ(i * 0.38, 0.03, 0.055, o.lights ?? 'light'));
+  // rim band, dome base ring and a pair of landing struts
+  out.push(rect(x0 + 0.05, 0.12, x1 - 0.05, 0.15, 'dark', { flat: true }));
+  out.push(rr(-0.68, -0.32, 0.68, -0.22, 0.04, 'chrome'));
+  for (const x of [x0 + 0.5, x1 - 0.5]) out.push(seg([x, 0.15], [x + Math.sign(x) * 0.15, 0.4], 0.06, 'grey'), rr(x + Math.sign(x) * 0.15 - 0.1, 0.38, x + Math.sign(x) * 0.15 + 0.1, 0.44, 0.02, 'dark'));
   return out;
 }
 
@@ -320,8 +390,13 @@ export function hover(f: Frame, o: { mat?: CarMat; glow?: CarMat; canopy?: CarMa
     rr(x0 + 0.3, 0.12, x1 - 0.4, 0.26, 0.06, o.glow ?? 'light'),
     blob([[x0, 0.14], [x0 - 0.05, -0.28], [x0 + 0.5, -0.34], [x1 - 0.7, -0.36], [x1 + 0.05, -0.04], [x1 - 0.1, 0.16]], m, {}, 1),
     blob([[-0.75, -0.32], [-0.45, -0.72], [0.2, -0.74], [0.65, -0.34]], o.canopy ?? 'glass', {}, 1),
-    rect(x0 + 0.1, -0.05, x1 - 0.3, 0.0, 'accent', { flat: true }),
-    rr(x0 - 0.12, -0.24, x0 + 0.08, 0.06, 0.04, 'grey'),
+    poly([[x0 + 0.1, -0.08], [x1 - 0.3, -0.04], [x1 - 0.3, 0.04], [x0 + 0.1, 0.02]], 'accent', { flat: true }),
+    rr(x0 - 0.12, -0.24, x0 + 0.08, 0.06, 0.04, 'grey'), ell(x0 - 0.16, -0.09, 0.05, 0.1, o.glow ?? 'light'),
+    // thruster pods under the hull and a tail fin
+    ...[x0 + 0.5, x1 - 0.7].map((x) => rr(x - 0.25, 0.08, x + 0.25, 0.24, 0.07, 'grey')),
+    ...[x0 + 0.5, x1 - 0.7].map((x) => rr(x - 0.18, 0.2, x + 0.18, 0.3, 0.04, o.glow ?? 'light')),
+    poly([[x0 + 0.05, -0.28], [x0 - 0.1, -0.62], [x0 + 0.2, -0.6], [x0 + 0.45, -0.3]], 'accent'),
+    rr(x1 - 0.2, -0.14, x1 + 0.02, -0.04, 0.03, 'light'),
   ];
 }
 
@@ -342,6 +417,10 @@ export function loco(f: Frame, o: { mat?: CarMat; boiler?: CarMat; trim?: CarMat
   out.push(poly([[x1 - 0.55, -0.62], [x1 - 0.3, -0.62], [x1 - 0.22, -1.15], [x1 - 0.63, -1.15]], 'black'));
   out.push(rr(x1 - 0.68, -1.25, x1 - 0.17, -1.12, 0.04, o.trim ?? 'gold'));
   out.push(ell(x0 + 2.0, -0.68, 0.18, 0.12, o.trim ?? 'gold'));
+  for (let x = x0 + 1.4; x < x1 - 0.3; x += 0.2) out.push(circ(x, -0.08, 0.03, 'grey'));
+  out.push(rect(x0 + 1.3, -0.5, x1 - 0.2, -0.46, 'chrome'));
+  out.push(rect(x0 + 0.15, -0.6, x0 + 0.95, -0.55, o.trim ?? 'gold', { flat: true }));
+  out.push(rr(x0 - 0.12, 0.0, x0 + 0.05, 0.2, 0.04, 'dark'), rr(x1 + 0.2, 0.0, x1 + 0.36, 0.14, 0.04, 'dark'));
   // smokebox front and lamp
   out.push(circ(x1 + 0.02, -0.32, 0.3, 'grey'), headlight(x1 + 0.1, -0.75, 0.1));
   // cowcatcher
@@ -358,29 +437,40 @@ export function tractor(f: Frame, o: { mat?: CarMat; cab?: boolean } = {}): CarP
   const m = o.mat ?? 'body';
   const rw = firstW(f), fw = lastW(f);
   const out: CarPoly[] = [];
-  out.push(blob([[-0.4, 0.2], [-0.42, -0.36], [fw.x + 0.3, -0.3], [f.nose.x, -0.1], [f.nose.x, 0.2]], m, {}, 1));
-  out.push(grilleBars(f.nose.x - 0.12, -0.2, 0.15));
-  out.push(fender(rw.x, rw.y, rw.r, 0.12, m));
+  // Tall hood with a grille and lamps, a deep fender over the big rear wheel, a step and a seat.
+  out.push(blob([[-0.4, 0.24], [-0.42, -0.44], [fw.x + 0.3, -0.42], [f.nose.x, -0.22], [f.nose.x + 0.02, 0.24]], m, {}, 1));
+  out.push(rect(-0.3, -0.06, f.nose.x - 0.1, 0.0, 'dark', { flat: true }));
+  out.push(...[0.1, 0.35, 0.6].map((x) => rect(x, -0.32, x + 0.14, -0.26, 'dark', { flat: true })));
+  out.push(rect(f.nose.x - 0.14, -0.34, f.nose.x + 0.02, 0.16, 'chrome'));
+  for (let y = -0.3; y < 0.14; y += 0.08) out.push(rect(f.nose.x - 0.12, y, f.nose.x, y + 0.035, 'black', { flat: true }));
+  out.push(arc(rw.x, rw.y, rw.r + 0.12, Math.PI * 1.02, Math.PI * 1.98, 0.16, m));
+  out.push(arc(rw.x, rw.y, rw.r + 0.19, Math.PI * 1.1, Math.PI * 1.9, 0.04, 'accent'));
   out.push(rr(-1.25, -0.3, -0.35, 0.05, 0.05, m));
   out.push(...seat(-0.78, -0.3, 0.4));
-  out.push(...stack(fw.x - 0.2, -0.3, 0.6, 0.09, 'black'));
-  out.push(seg([-0.2, -0.32], [-0.38, -0.62], 0.06, 'black'));
+  out.push(...stack(fw.x - 0.2, -0.42, 0.62, 0.1, 'black'), rect(fw.x - 0.28, -1.06, fw.x - 0.12, -1.0, 'dark'));
+  out.push(seg([-0.2, -0.36], [-0.38, -0.66], 0.07, 'black'));
   if (o.cab !== false) {
-    out.push(rect(-1.25, -1.2, -1.12, -0.3, 'dark'), rr(-1.38, -1.3, -0.22, -1.12, 0.05, 'accent'));
+    out.push(rect(-1.25, -1.2, -1.1, -0.3, 'dark'), rr(-1.4, -1.32, -0.2, -1.12, 0.05, 'accent'), circ(-0.4, -1.24, 0.06, 'orange'));
   }
-  out.push(headlight(f.nose.x - 0.05, -0.12, 0.08));
+  out.push(...frontLamp(f.nose.x - 0.12, -0.38, 0.1));
   return out;
 }
-const grilleBars = (x: number, y: number, h: number): CarPoly => rect(x, y - h, x + 0.1, y + h, 'chrome');
 
 /** Rounded animal body with legs reaching to each wheel. */
 export function beast(f: Frame, o: { mat?: CarMat; belly?: CarMat; cx?: number; cy?: number; rx?: number; ry?: number; legs?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const cx = o.cx ?? 0, cy = o.cy ?? -0.2, rx = o.rx ?? 1.05, ry = o.ry ?? 0.42;
   const out: CarPoly[] = [];
+  // A machine under the animal: chassis rail between the axles and a mudguard over each wheel.
+  const xs = f.wheels.map((w) => w.x);
+  const ay = Math.min(...f.wheels.map((w) => w.y));
+  out.push(rr(Math.min(...xs) - 0.25, ay - 0.12, Math.max(...xs) + 0.25, ay + 0.02, 0.04, 'dark'));
+  for (const w of f.wheels) out.push(arc(w.x, w.y, w.r + 0.08, Math.PI * 1.12, Math.PI * 1.88, 0.09, 'dark'));
   if (o.legs !== false) for (const w of f.wheels) out.push(blob([[w.x - 0.17, cy], [w.x + 0.17, cy], [w.x + 0.13, w.y - 0.1], [w.x - 0.13, w.y - 0.1]], m, {}, 1));
   out.push(ell(cx, cy, rx, ry, m, {}, 24));
   if (o.belly) out.push(ell(cx + 0.05, cy + ry * 0.45, rx * 0.75, ry * 0.4, o.belly, {}, 20));
+  // a saddle-blanket under the driver keeps the "vehicle" readable
+  out.push(rr(cx - 0.45, cy - ry * 0.95, cx + 0.15, cy - ry * 0.6, 0.05, 'red'), rect(cx - 0.45, cy - ry * 0.68, cx + 0.15, cy - ry * 0.62, 'gold', { flat: true }));
   return out;
 }
 
@@ -423,10 +513,44 @@ export function robot(f: Frame, o: { mat?: CarMat; face?: CarMat; arms?: boolean
     rr(-hw, top, hw, -0.1, 0.14, m),
     rr(-hw + 0.12, top + 0.18, hw - 0.12, top + 0.55, 0.08, o.face ?? 'black'),
     rect(-hw + 0.1, top + 0.7, hw - 0.1, top + 0.76, 'dark', { flat: true }),
+    // panel seams, rivets and wheel guards so the robot reads as a machine on wheels
+    rect(-0.02, top + 0.62, 0.02, -0.12, 'dark', { flat: true }),
+    ...[-hw + 0.1, hw - 0.1].flatMap((x) => [circ(x, top + 0.1, 0.035, 'chrome'), circ(x, -0.2, 0.035, 'chrome')]),
+    ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.12, Math.PI * 1.88, 0.1, 'grey')),
   ];
   if (o.arms !== false) {
     out.push(circ(-hw - 0.05, top + 0.3, 0.18, 'grey'), circ(hw + 0.05, top + 0.3, 0.18, 'grey'));
     out.push(rr(-hw - 0.35, top + 0.25, -hw - 0.05, top + 0.85, 0.1, 'chrome'), rr(hw + 0.05, top + 0.25, hw + 0.35, top + 0.85, 0.1, 'chrome'));
   }
+  return out;
+}
+
+/**
+ * Monster truck on the open monster frame: lifted tub on shocks, a cab block in front of
+ * the rider (over the frame's hump) with a raked windscreen, a roll bar behind the rider,
+ * fender flares, grille, lamps and a push bar. Themes add their livery on top.
+ */
+export function monsterTruck(f: Frame, o: { mat?: CarMat; frame?: CarMat; cab?: CarMat; bar?: CarMat; lamps?: boolean } = {}): CarPoly[] {
+  const m = o.mat ?? 'body', cm = o.cab ?? m;
+  const x0 = f.tail.x, x1 = f.nose.x, top = f.roof.y, cx0 = f.roof.x0 - 0.05, cx1 = f.roof.x1 + 0.15;
+  const out: CarPoly[] = [...monsterChassis(f, o.frame ?? 'black')];
+  // shocks from the axles up into the tub
+  for (const w of f.wheels) out.push(seg([w.x + (w.x < 0 ? 0.25 : -0.25), w.y - 0.1], [w.x + (w.x < 0 ? 0.35 : -0.35), -0.2], 0.1, 'yellow'), seg([w.x + (w.x < 0 ? 0.25 : -0.25), w.y - 0.1], [w.x + (w.x < 0 ? 0.3 : -0.3), 0.15], 0.14, 'chrome'));
+  // tub: tailgate, bed sides, hood sloping down to the grille
+  out.push(blob([[x0, 0.04], [x0, -0.62], [cx0, -0.62], [cx1 + 0.1, -0.58], [x1 - 0.15, -0.5], [x1, -0.36], [x1 + 0.02, 0.04]], m, {}, 1));
+  out.push(stripe(x0 + 0.05, x1 - 0.05, -0.12, 0.05, 'dark'));
+  // cab with a raked windscreen and a side window
+  out.push(poly([[cx0, -0.58], [cx1 + 0.12, -0.58], [cx1 - 0.08, top], [cx0, top]], cm));
+  out.push(poly([[cx1 - 0.05, top + 0.08], [cx1 + 0.04, -0.62], [cx1 - 0.18, -0.62], [cx1 - 0.18, top + 0.08]], 'glass'));
+  out.push(rr(cx0 + 0.08, top + 0.1, cx1 - 0.3, -0.66, 0.04, 'glass'));
+  out.push(rr(cx0 - 0.02, top - 0.06, cx1 - 0.05, top + 0.03, 0.03, 'dark'));
+  // roll bar behind the rider
+  out.push(...path([[x0 + 0.12, -0.6], [x0 + 0.12, top - 0.05], [cx0 - 0.02, top - 0.05]], 0.09, o.bar ?? 'chrome'));
+  // fender flares
+  for (const w of f.wheels) out.push(arc(w.x, w.y, w.r + 0.08, Math.PI * 1.15, Math.PI * 1.85, 0.12, 'dark'));
+  // grille, lamps, push bar
+  out.push(...grille(x1 - 0.14, -0.38, x1 + 0.01, -0.1, 2));
+  if (o.lamps !== false) out.push(...frontLamp(x1, -0.44, 0.1), rearLamp(x0, -0.45));
+  out.push(...path([[x1, -0.32], [x1 + 0.18, -0.26], [x1 + 0.18, 0.04], [x1, 0.08]], 0.1, 'chrome'));
   return out;
 }

@@ -1,7 +1,8 @@
 import { tailgate } from '../art';
-import { arc, blob, checkers, circ, ell, flameDecal, grille, lightbar, path, poly, rect, rr, seat, seg, stack, starShape, stripe, windows } from '../draw';
-import { bike, boxy, fenders, loco, monsterChassis, pickup, sedan, tracks } from '../skins';
+import { arc, beacon, blob, checkers, circ, ell, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, stack, starShape, stripe, windows, eyeball } from '../draw';
+import { bike, boxy, fenders, frontLamp, loco, monsterChassis, pickup, sedan, tracks } from '../skins';
 import type { CarPoly } from '../types';
+import { dims, saddle } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -28,6 +29,9 @@ export const SUMMER = group('summer', [
       ...path([[f.tail.x + 0.3, f.roof.y + 0.15], [f.tail.x + 0.2, f.roof.y - 0.5], [f.tail.x - 0.25, f.roof.y - 0.6]], 0.14, 'accent'),
       stripe(f.tail.x, f.nose.x - 0.2, -0.05, 0.08, 'accent'),
       poly([[f.nose.x - 0.2, -0.3], [f.nose.x + 0.7, -0.15], [f.nose.x + 0.75, 0.3], [f.nose.x - 0.2, 0.3]], 'yellow'),
+      ...[0, 1, 2, 3].map((i) => poly([[f.nose.x - 0.1 + i * 0.22, 0.28], [f.nose.x + 0.0 + i * 0.22, 0.28], [f.nose.x + 0.12 + i * 0.22, -0.15], [f.nose.x + 0.02 + i * 0.22, -0.15]], 'black', { flat: true })),
+      ...ladder([f.nose.x - 1.15, 0.2], [f.nose.x - 1.1, f.roof.y + 0.5], 0.12, 'grey', 5), ...beacon(f.nose.x - 0.65, f.roof.y - 0.35, 'orange', 0.14),
+      rect(f.nose.x - 1.05, f.roof.y - 0.39, f.nose.x - 0.25, f.roof.y - 0.33, 'dark', { flat: true }),
       ...[0, 1, 2, 3].map((i) => poly([[f.nose.x + 0.05 + i * 0.17, 0.3], [f.nose.x + 0.13 + i * 0.17, 0.3], [f.nose.x + 0.09 + i * 0.17, 0.45]], 'chrome')),
       ...path([[f.nose.x - 0.3, -0.5], [f.nose.x + 0.75, -0.75]], 0.12, 'dark'),
       ...stack(f.tail.x + 0.8, f.roof.y + 0.15, 0.4, 0.09, 'dark'),
@@ -35,7 +39,7 @@ export const SUMMER = group('summer', [
   }],
   ['sports-bike', 'Sports Bike', 'Шосейний спортбайк з обтічником.', 'bike', ['#e02a2a', '#ffffff'], {
     speed: 1.2, accel: 1.2,
-    skin: (f) => [...bike(f, { style: 'sport' }), stripe(-0.6, 0.8, -0.05, 0.05, 'accent'), circ(0.6, -0.08, 0.1, 'white')],
+    skin: (f) => [...bike(f, { style: 'sport' })],
   }],
   ['off-road-truck', 'Off-Road Truck', 'Експедиційний трак з ящиками спорядження в кузові.', 'pickup', ['#e0a020', '#2a2a2a'], {
     o: o({ wheel: 1.25 }), cargo: ['tire', 3],
@@ -44,6 +48,8 @@ export const SUMMER = group('summer', [
       ...pickup(f), ...fenders(f, 'dark', 0.12),
       rr(f.roof.x0, f.roof.y - 0.1, f.roof.x1, f.roof.y, 0.03, 'black'), ...[0, 1, 2].map((i) => circ(f.roof.x0 + 0.15 + i * 0.25, f.roof.y - 0.14, 0.07, 'light')),
       ...path([[f.roof.x1 + 0.3, f.nose.y0 - 0.02], [f.nose.x + 0.1, f.nose.y0 + 0.05], [f.nose.x + 0.15, f.nose.y1 - 0.05]], 0.08, 'black'),
+      rr(f.nose.x - 0.1, f.nose.y1 - 0.2, f.nose.x + 0.25, f.nose.y1 + 0.02, 0.04, 'black'), circ(f.nose.x + 0.08, f.nose.y1 - 0.09, 0.06, 'grey'),
+      ...path([[f.roof.x0 - 0.05, f.roof.y - 0.1], [f.roof.x0 - 0.1, f.roof.y - 0.28], [f.roof.x1, f.roof.y - 0.28]], 0.05, 'black'),
     ],
   }],
   ['classic-monster', 'Classic Monster', 'Оригінальний бігфут на величезних колесах.', 'monster', ['#2a6ae0', '#ffffff'], {
@@ -52,6 +58,8 @@ export const SUMMER = group('summer', [
       ...monsterChassis(f),
       ...pickup({ ...f, nose: { ...f.nose, y0: -0.5, y1: 0.06 }, tail: { ...f.tail, y0: -0.5, y1: 0.06 }, roof: f.roof }),
       starShape(0.4, -0.25, 0.16, 'white'), stripe(f.tail.x, f.nose.x, -0.08, 0.06, 'white'),
+      ...path([[f.nose.x - 0.05, -0.42], [f.nose.x + 0.2, -0.36], [f.nose.x + 0.22, 0.02], [f.nose.x, 0.08]], 0.12, 'chrome'),
+      ...stack(f.tail.x + 0.25, -0.48, 0.55, 0.1), rr(f.roof.x0, f.roof.y - 0.13, f.roof.x1, f.roof.y - 0.02, 0.04, 'black'), ...[0.12, 0.35, 0.58].map((x) => circ(f.roof.x0 + x, f.roof.y - 0.08, 0.05, 'light')),
     ],
   }],
   ['burger-bike', 'Burger Bike', 'Трицикл-бургерна. Жбурляє бургерами.', 'trike', ['#e0b060', '#7a3a1a'], {
@@ -63,6 +71,7 @@ export const SUMMER = group('summer', [
       ...[-1.0, -0.8, -0.55, -0.35].map((x) => ell(x, -0.55, 0.03, 0.02, 'white')),
       blob([[-1.32, -0.3], [-0.1, -0.3], [-0.15, -0.2], [-0.4, -0.25], [-0.7, -0.18], [-1.0, -0.25], [-1.25, -0.2]], 'leaf', {}, 1),
       rr(-1.3, -0.24, -0.12, -0.12, 0.05, 'accent'), rr(-1.25, -0.13, -0.17, -0.02, 0.04, 'body'),
+      poly([[-1.28, -0.31], [-0.12, -0.31], [-0.4, -0.22], [-0.55, -0.15], [-0.7, -0.22], [-1.0, -0.17], [-1.28, -0.24]], 'yellow'), rr(-1.26, -0.36, -0.14, -0.3, 0.02, 'red'),
     ],
   }],
   ['lowrider', 'Lowrider', 'Лоурайдер на гідравліці: підстрибує на місці.', 'sedan', ['#8a2ae0', '#ffd23f'], {
@@ -72,6 +81,7 @@ export const SUMMER = group('summer', [
       ...flameDecal(f.nose.x - 0.1, -0.6, 0.05, 0.22),
       stripe(f.tail.x, f.nose.x, 0.2, 0.05, 'gold'),
       ...f.wheels.map((w) => seg([w.x, w.y], [w.x, 0.1], 0.08, 'gold')),
+      ...path([[f.tail.x + 0.2, -0.05], [-0.6, -0.1], [-0.3, 0.0], [0.0, -0.1]], 0.03, 'gold'), poly([[f.roof.x0 + 0.05, f.roof.y + 0.02], [f.roof.x0 + 0.4, f.roof.y + 0.02], [f.roof.x0 + 0.4, f.roof.y + 0.08], [f.roof.x0 + 0.05, f.roof.y + 0.08]], 'white'),
     ],
   }],
   ['yacht', 'Yacht', 'Моторна яхта з білою надбудовою і рятувальним колом.', 'boat', ['#ffffff', '#3a6ad8'], {
@@ -82,11 +92,13 @@ export const SUMMER = group('summer', [
       blob([[-0.6, -0.45], [-0.55, -0.88], [0.6, -0.9], [0.95, -0.45]], 'white', {}, 1), ...windows(-0.4, 0.6, -0.8, -0.58, 3, 0.08),
       circ(0.1, -0.68, 0.16, 'red'), circ(0.1, -0.68, 0.08, 'white'),
       ...path([[0.3, -0.9], [0.3, -1.4]], 0.05, 'chrome'), poly([[0.33, -1.4], [0.33, -1.15], [0.75, -1.28]], 'accent'),
-      ...[-1.6, -1.3, -1.0].map((x) => circ(x, -0.15, 0.06, 'glass')),
+      ...[-1.6, -1.3, -1.0].map((x) => [circ(x, -0.15, 0.08, 'chrome'), circ(x, -0.15, 0.055, 'glass')]).flat(),
+      ...path([[f.tail.x + 0.1, -0.5], [-0.6, -0.55], [-0.6, -0.45]], 0.04, 'chrome'), ...path([[0.95, -0.48], [f.nose.x - 0.2, -0.55]], 0.04, 'chrome'),
+      rr(-0.62, -0.95, 0.62, -0.88, 0.02, 'accent'),
     ],
   }],
   ['coupe', 'Coupé', 'Компактне дводверне купе.', 'coupe', ['#3ab0b0', '#ffffff'], {
-    skin: (f) => [...sedan(f, { roof: 'coupe' }), stripe(f.tail.x, f.nose.x, 0.0, 0.05, 'white'), ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.03, 0.12, 2)],
+    skin: (f) => [...sedan(f, { roof: 'coupe', pin: null }), poly([[f.tail.x + 0.1, -0.06], [f.nose.x - 0.2, 0.0], [f.nose.x - 0.2, 0.06], [f.tail.x + 0.1, 0.02]], 'white', { flat: true }), ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.03, 0.12, 2), circ(-0.1, 0.12, 0.1, 'white'), rect(-0.13, 0.06, -0.07, 0.18, 'black', { flat: true })],
   }],
   ['speedboat', 'Speedboat', 'Швидкісний катер із номером на борту.', 'boat', ['#e02a2a', '#ffffff'], {
     arch: 'fast',
@@ -96,6 +108,8 @@ export const SUMMER = group('summer', [
       blob([[0.2, -0.45], [0.55, -0.82], [0.75, -0.48]], 'glass', {}, 1),
       circ(-0.6, -0.22, 0.14, 'white'), rect(-0.63, -0.3, -0.57, -0.14, 'black', { flat: true }),
       rr(f.tail.x - 0.35, -0.55, f.tail.x + 0.15, -0.15, 0.06, 'dark'), seg([f.tail.x - 0.25, -0.15], [f.tail.x - 0.3, 0.2], 0.08, 'grey'),
+      rect(f.tail.x - 0.3, -0.45, f.tail.x + 0.1, -0.41, 'red', { flat: true }), poly([[f.tail.x - 0.3, 0.2], [f.tail.x - 0.5, 0.25], [f.tail.x - 0.3, 0.3]], 'white'),
+      ...path([[0.15, -0.45], [0.05, -0.62], [-0.3, -0.6]], 0.04, 'chrome'), poly([[f.tail.x + 0.1, 0.02], [f.nose.x - 0.3, -0.08], [f.nose.x - 0.5, 0.04], [f.tail.x + 0.15, 0.1]], 'accent', { flat: true }),
     ],
   }],
   ['swat-van', 'Swat Van', 'Броньовик спецпризначенців. Світлошумова глушить суперника поруч.', 'van', ['#2a2a3a', '#ffffff'], {
@@ -108,6 +122,7 @@ export const SUMMER = group('summer', [
       rect(f.nose.x - 0.12, f.nose.y0 + 0.1, f.nose.x + 0.25, f.nose.y1 - 0.05, 'black'),
       ...[0, 1, 2].map((i) => rect(f.nose.x + 0.05, f.nose.y0 + 0.15 + i * 0.15, f.nose.x + 0.25, f.nose.y0 + 0.2 + i * 0.15, 'grey', { flat: true })),
       ...[-0.9, -0.5, -0.1, 0.3].map((x) => circ(x, 0.2, 0.04, 'chrome')),
+      circ(-0.4, -0.3, 0.13, 'gold'), starShape(-0.4, -0.3, 0.09, 'body'), rect(f.tail.x + 0.06, f.roof.y + 0.08, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }),
     ],
   }],
   ['dune-buggy', 'Dune Buggy', 'Легкий багі для дюн із прапорцем на щоглі.', 'buggy', ['#ff8a1a', '#2a2a2a'], {
@@ -117,7 +132,9 @@ export const SUMMER = group('summer', [
       ...seat(f.head.x + 0.05, -0.12, 0.42),
       rr(f.tail.x - 0.1, -0.35, f.tail.x + 0.35, -0.05, 0.06, 'grey'), ...stack(f.tail.x + 0.05, -0.3, 0.25, 0.07),
       ...path([[f.tail.x + 0.2, -0.08], [f.tail.x + 0.1, -1.4]], 0.04, 'chrome'), poly([[f.tail.x + 0.1, -1.4], [f.tail.x + 0.1, -1.18], [f.tail.x + 0.45, -1.3]], 'red'),
-      ...fenders(f, 'body', 0.08),
+      ...fenders(f, 'body', 0.1),
+      ...frontLamp(f.nose.x + 0.02, -0.06, 0.1), circ(0.0, 0.05, 0.1, 'white'), rect(-0.03, -0.02, 0.03, 0.12, 'black', { flat: true }),
+      ...[-0.45, -0.15].map((x) => circ(x, -1.02, 0.06, 'light')),
     ],
   }],
   ['taxi', 'Taxi', 'Жовте міське таксі з шашечками.', 'sedan', ['#ffd020', '#1a1a1a'], {
@@ -126,6 +143,7 @@ export const SUMMER = group('summer', [
       ...sedan(f),
       ...checkers(f.tail.x + 0.1, -0.02, f.nose.x - 0.1, 0.1, 16),
       rr(-0.45, f.roof.y - 0.2, 0.05, f.roof.y, 0.04, 'white'), rect(-0.4, f.roof.y - 0.15, 0.0, f.roof.y - 0.05, 'black', { flat: true }),
+      rr(0.3, -0.12, 0.6, 0.0, 0.03, 'white'), rect(0.35, -0.09, 0.55, -0.05, 'black', { flat: true }),
     ],
   }],
   ['asphalt-paver', 'Asphalt Paver', 'Асфальтоукладач: важкий, низький, гарячий.', 'box', ['#f0a020', '#2a2a2a'], {
@@ -139,6 +157,7 @@ export const SUMMER = group('summer', [
       ...stack(f.nose.x - 0.5, -0.35, 0.55, 0.1, 'black'),
       poly([[f.nose.x - 0.1, -0.3], [f.nose.x + 0.55, -0.4], [f.nose.x + 0.55, 0.15], [f.nose.x - 0.1, 0.25]], 'grey'), rect(f.nose.x, -0.2, f.nose.x + 0.45, 0.0, 'black', { flat: true }),
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.1 + i * 0.5, 0.2], [f.tail.x + 0.3 + i * 0.5, 0.2], [f.tail.x + 0.45 + i * 0.5, 0.0], [f.tail.x + 0.25 + i * 0.5, 0.0]], 'black', { flat: true })),
+      ...beacon(0.3, f.roof.y - 0.33, 'orange', 0.14), ...[f.tail.x - 0.4, f.tail.x - 0.2].map((x) => ell(x, -0.15, 0.08, 0.12, 'white', { flat: true })),
     ],
   }],
   ['bulldozer', 'Bulldozer', 'Бульдозер із масивним відвалом.', 'tracked', ['#f0b020', '#2a2a2a'], {
@@ -152,23 +171,33 @@ export const SUMMER = group('summer', [
       ...path([[0.9, -0.15], [f.nose.x + 0.2, -0.05]], 0.12, 'dark'),
       blob([[f.nose.x + 0.25, -1.2], [f.nose.x + 0.62, -1.05], [f.nose.x + 0.68, 0.42], [f.nose.x + 0.25, 0.42], [f.nose.x + 0.4, -0.35]], 'body', {}, 1),
       ...path([[f.nose.x + 0.3, 0.42], [f.nose.x + 0.6, 0.42]], 0.06, 'chrome'),
+      ...[0, 1, 2, 3].map((i) => poly([[f.nose.x + 0.3, -0.9 + i * 0.32], [f.nose.x + 0.6, -0.8 + i * 0.32], [f.nose.x + 0.6, -0.7 + i * 0.32], [f.nose.x + 0.3, -0.8 + i * 0.32]], 'black', { flat: true })),
+      ...beacon(f.roof.x0 - 0.1, f.roof.y - 0.1, 'orange', 0.14), stripe(-1.55, 0.6, -0.2, 0.06, 'black'),
     ],
   }],
   ['locomotive', 'Locomotive', 'Паровоз із тендером вугілля: вугілля сиплеться на ходу.', 'loco', ['#2a2a2a', '#e02a2a'], {
     cargo: ['coal', 5],
     skin: (f) => [...loco(f, { mat: 'accent', boiler: 'black', trim: 'gold' })],
   }],
-  ['turtle', 'Turtle', 'Бойова черепаха: ховає голову в панцир.', 'creature', ['#4a8a3a', '#c0a060'], {
-    s: 0.9, o: o({ neck: 'raptor' }), parts: ['hump'], noLights: true, hideParts: true,
-    skin: (f) => [
-      ...f.wheels.map((w) => blob([[w.x - 0.18, -0.1], [w.x + 0.18, -0.1], [w.x + 0.16, w.y], [w.x - 0.16, w.y]], 'body', {}, 1)),
-      ...path([[0.7, -0.3], [1.15, -0.55]], 0.32, 'body'), blob([[1.05, -0.75], [1.5, -0.8], [1.75, -0.6], [1.6, -0.42], [1.1, -0.42]], 'body', {}, 1),
-      circ(1.5, -0.66, 0.05, 'black'),
-      blob([[-1.15, -0.05], [-0.95, -0.7], [0.0, -0.95], [0.95, -0.7], [1.15, -0.05]], 'accent', {}, 2),
-      ...[-0.5, 0.0, 0.5].map((x) => poly([[x - 0.2, -0.45], [x, -0.72 + Math.abs(x) * 0.15], [x + 0.2, -0.45], [x, -0.25]], 'brown')),
-      rr(-1.15, -0.12, 1.15, 0.02, 0.05, 'yellow'),
-      poly([[-1.1, -0.1], [-1.4, 0.05], [-1.1, 0.05]], 'body'),
-    ],
+  ['turtle', 'Turtle', 'Черепаха. Ховається в панцир: не їде, але її не зрушити й не вибити.', 'creature', ['#5a9a4a', '#a07a3a'], {
+    s: 0.9, o: o({ neck: 'raptor', tall: 1.2, wheel: 0.8 }), parts: ['hump'], noLights: true, hideParts: true,
+    skin: (f) => {
+      const { rear, front } = dims(f);
+      return [
+        // stubby legs onto the wheels, little tail
+        ...[rear, front].map((x) => blob([[x - 0.2, -0.2], [x + 0.2, -0.2], [x + 0.17, 0.3], [x - 0.17, 0.3]], 'body', { ring: true }, 1)),
+        poly([[-1.05, -0.15], [-1.4, -0.05], [-1.05, 0.0]], 'body'),
+        // neck and head poking out, a friendly face
+        ...path([[0.7, -0.35], [1.15, -0.55]], 0.3, 'body'),
+        blob([[1.0, -0.82], [1.4, -0.88], [1.72, -0.68], [1.68, -0.45], [1.1, -0.42]], 'body', {}, 1),
+        ...eyeball(1.38, -0.7, 0.07), arc(1.5, -0.6, 0.12, Math.PI * 0.15, Math.PI * 0.75, 0.03, 'dark'),
+        // high domed shell: hexagon scutes, rim band, belly plate
+        blob([[-1.2, 0.0], [-1.1, -0.6], [-0.5, -1.05], [0.5, -1.05], [1.05, -0.6], [1.15, 0.0]], 'accent', {}, 2),
+        ...[[-0.55, -0.7], [0.0, -0.82], [0.55, -0.7], [-0.75, -0.3], [-0.25, -0.38], [0.3, -0.38], [0.78, -0.3]].map(([x, y]) => poly([[x - 0.18, y], [x - 0.09, y - 0.15], [x + 0.09, y - 0.15], [x + 0.18, y], [x + 0.09, y + 0.15], [x - 0.09, y + 0.15]], 'brown')),
+        rr(-1.22, -0.1, 1.18, 0.05, 0.05, 'yellow'), ...[-0.8, -0.3, 0.2, 0.7].map((x) => rect(x, -0.1, x + 0.05, 0.05, 'brown', { flat: true })),
+        ...saddle(f.head.x, f.head.y + 0.2, 'red'),
+      ];
+    },
   }],
   ['gyrocar', 'Gyrocar', 'Самобалансуючий гіромобіль із маховиком усередині.', 'blob', ['#e0e0e0', '#3a6ad8'], {
     s: 0.9, o: o({ shape: 'egg' }),
@@ -177,7 +206,7 @@ export const SUMMER = group('summer', [
       circ(-0.1, -0.35, 0.36, 'accent'), circ(-0.1, -0.35, 0.26, 'chrome'), circ(-0.1, -0.35, 0.1, 'accent'),
       ...[0, 1, 2, 3].map((i) => seg([-0.1, -0.35], [-0.1 + Math.cos(i * 0.8) * 0.26, -0.35 + Math.sin(i * 0.8) * 0.26], 0.04, 'dark')),
       blob([[0.2, -1.0], [0.7, -0.75], [0.75, -0.55], [0.3, -0.7]], 'glass', {}, 1),
-      circ(0.82, -0.3, 0.07, 'light'),
+      circ(0.82, -0.3, 0.07, 'light'), stripe(-0.9, 0.9, 0.0, 0.06, 'accent'), rr(-0.8, 0.12, 0.8, 0.28, 0.05, 'dark'),
     ],
   }],
   ['personal-transporter', 'Personal Transporter', 'Сегвей: платформа, стійка й кермо.', 'cart', ['#2a2a2a', '#5ef0ff'], {
@@ -185,7 +214,8 @@ export const SUMMER = group('summer', [
     skin: (f) => [
       rr(f.tail.x, f.deck.y, f.nose.x, f.deck.y + 0.18, 0.06, 'body'), stripe(f.tail.x + 0.1, f.nose.x - 0.1, f.deck.y + 0.12, 0.04, 'accent'),
       ...path([[0.45, f.deck.y], [0.62, f.deck.y - 0.95]], 0.09, 'grey'), rr(0.45, f.deck.y - 1.02, 0.9, f.deck.y - 0.92, 0.04, 'black'),
-      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.08, 'accent')),
+      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.12, 'accent')),
+      ...[0.45, 0.9].map((x) => circ(x, f.deck.y - 0.97, 0.05, 'accent')), circ(f.nose.x - 0.05, f.deck.y + 0.08, 0.05, 'light'),
     ],
   }],
 ]);
