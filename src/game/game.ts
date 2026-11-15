@@ -70,6 +70,8 @@ export interface Item {
   dead?: boolean;
   /** Cargo still inside its car's bed: drawn behind the car body until it spills out. */
   stowed?: Car;
+  /** Speed just before it struck a driver's head (the impact itself slows it, so the check can't use the speed afterwards). */
+  headHitSpeed?: number;
 }
 
 /** A lightning strike on its way down. */
@@ -151,7 +153,7 @@ export class Game {
   /** Lava or water, at random, for a rising sudden death. */
   private riseLiquid(): 'lava' | 'flood' {
     // One swimmer keeps its edge in a flood; water can't end a round between two of them, so then it's lava.
-    if (this.cars.every((c) => c.hasTrait('swim'))) return 'lava';
+    if (this.cars.every((c) => c.canSwim)) return 'lava';
     return this.rand() < 0.5 ? 'lava' : 'flood';
   }
 
@@ -356,10 +358,10 @@ export class Game {
       } else if (b.kind === 'item' && b.owner !== a.player) {
         const it = this.items.find((x) => x.id === b.id);
         if (it?.fx === 'explode') this.explode(it);
-        else if (it && it.body.getLinearVelocity().length() > 4.5) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
+        else if (it && Math.max(it.body.getLinearVelocity().length(), it.headHitSpeed ?? 0) > 4.5) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
       }
       else if (b.kind === 'hazard') {
-        if (!(b.type === 'water' && car.hasTrait('swim'))) this.kill(a.player, 'hazard');
+        if (!(b.type === 'water' && car.canSwim)) this.kill(a.player, 'hazard');
       }
       // Head touching the ground (usually after a flip) loses the round.
       else if (b.kind === 'terrain' || b.kind === 'platform') this.kill(a.player, 'ground');
@@ -385,6 +387,7 @@ export class Game {
       if (b.kind === 'car' && b.player !== a.player) this.carTouch(a.player, b.player);
       if (b.kind === 'pad') {
         const car = this.cars[a.player];
+        if (b.topOnly && !this.landingOn(fb.getBody(), _fa.getBody())) return;
         const last = this.padCooldown.get(a.player) ?? -999;
         if (this.stepCount - last < 20) return;
         this.padCooldown.set(a.player, this.stepCount);
@@ -412,10 +415,24 @@ export class Game {
         if (it?.fx === 'oil' && y.player !== it.owner) c.setFriction(0.01);
         else if (it?.fx === 'tar' && y.player !== it.owner) this.cars[y.player].slowT = Math.max(this.cars[y.player].slowT, 0.3);
       }
+      // A thrown cow, log or crate hitting a head: note how fast it came in, before the impact slows it.
+      if (x.kind === 'item' && y.kind === 'head' && x.owner !== y.player) {
+        const it = this.items.find((i) => i.id === x.id);
+        if (it) {
+          // Speed of the item itself, or of the closing between it and the head when it was already moving (a cow kicked into a head).
+          const vi = it.body.getLinearVelocity(), speed = vi.length();
+          const rel = Vec2.sub(vi, fy.getBody().getLinearVelocity()).length();
+          it.headHitSpeed = speed > 1.5 ? Math.max(speed, rel) : speed;
+        }
+      }
       if (x.kind === 'loop' && (y.kind === 'car' || y.kind === 'head')) {
         if (!this.arena.loopRiding(y.player)) c.setEnabled(false);
       }
       if (x.kind === 'loop' && y.kind !== 'car' && y.kind !== 'head') c.setEnabled(false);
+      // Beach umbrellas: the canopy is only there for a car coming down on it; driving past or under it is free.
+      if (x.kind === 'pad' && x.topOnly && (y.kind === 'car' || y.kind === 'head')) {
+        if (!this.landingOn((x === ta ? fa : fb).getBody(), fy.getBody())) c.setEnabled(false);
+      }
       // Ledges (gate roof, goal crossbar) only hold cars from above.
       if (x.kind === 'ledge' && (y.kind === 'car' || y.kind === 'head')) {
         const ledge = (x === ta ? fa : fb).getBody();
@@ -423,6 +440,11 @@ export class Game {
         if (other.getWorldCenter().y > ledge.getPosition().y - 0.15 || other.getLinearVelocity().y < -2) c.setEnabled(false);
       }
     }
+  }
+
+  /** True when `other` is above the canopy `pad` and moving down onto it (not driving into its side or rising through it). */
+  private landingOn(pad: Body, other: Body): boolean {
+    return other.getWorldCenter().y < pad.getPosition().y - 0.1 && other.getLinearVelocity().y > 0.5;
   }
 
   /** Two cars touched: strikes in flight and passive quills / shock. */
@@ -1267,7 +1289,7 @@ export class Game {
     if (surf.length) {
       const g = this.map.gravity ?? DEFAULT_GRAVITY;
       for (const car of this.cars) {
-        if (!car.hasTrait('swim')) continue;
+        if (!car.canSwim) continue;
         for (const b of car.bodies) {
           const q = b.getWorldCenter();
           for (const [x0, x1, top] of surf) {
@@ -1325,6 +1347,11 @@ export class Game {
     // A few points along each tyre's lower arc, so a step beside the contact point counts too.
     for (const w of def.wheels) for (const k of [-0.75, -0.4, 0, 0.4, 0.75]) feet.push([(w.x + k * w.r) * f, w.y + w.r * Math.sqrt(1 - k * k)]);
     for (const p of def.body) if (!p.deco) for (const [px, py] of p.pts) feet.push([px * f, py]);
+    // Trailers and booms hang off the car too: their wheels and corners must also start above the ground.
+    for (const ld of def.links ?? []) {
+      for (const w of ld.wheels ?? []) for (const k of [-0.75, -0.4, 0, 0.4, 0.75]) feet.push([(w.x + k * w.r) * f, w.y + w.r * Math.sqrt(1 - k * k)]);
+      if (!ld.trim) for (const p of ld.polys) if (!p.deco) for (const [px, py] of p.pts) feet.push([px * f, py]);
+    }
     let best = Infinity;
     for (const [fx, fy] of feet) {
       let g = Infinity;

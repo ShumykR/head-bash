@@ -281,6 +281,11 @@ export class Car {
     return !!this.def.traits?.some((t) => t.kind === kind);
   }
 
+  /** Floats on water: a swimmer hull or the amphibian trait. */
+  get canSwim(): boolean {
+    return !!this.def.swims || this.hasTrait('swim');
+  }
+
   /** Tyre friction including the grip trait. */
   get tireGrip(): number {
     return this.def.tireFriction * (this.hasTrait('grip') ? 1.8 : 1);
