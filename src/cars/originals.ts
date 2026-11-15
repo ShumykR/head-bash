@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarDef, CarPoly } from './types';
-import { blob, checkers, circ, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spikesAlong, stack, starShape, stripe, tank } from './draw';
+import { blob, circ, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spikesAlong, stack, starShape, stripe, tank } from './draw';
 import { fenders, monsterChassis, pickup, sedan, tracks, tractor } from './skins';
 
 /*
@@ -174,8 +174,10 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     ];
   },
   bumper: () => [
-    rr(-1.3, -0.25, 1.3, 0.28, 0.2, 'rubber'),
-    blob([[-1.0, -0.2], [-0.95, -0.5], [-0.4, -0.55], [0.3, -0.3], [0.95, -0.35], [1.0, -0.1]], 'body', {}, 2),
+    rr(-1.3, -0.25, 1.3, 0.34, 0.22, 'rubber'),
+    rr(-1.22, -0.12, 1.22, -0.02, 0.04, 'grey', { flat: true }),
+    blob([[-1.05, -0.12], [-1.0, -0.62], [-0.4, -0.68], [0.3, -0.4], [1.0, -0.42], [1.08, -0.12]], 'body', {}, 2),
+    poly([[-0.95, -0.3], [1.0, -0.26], [1.0, -0.2], [-0.95, -0.22]], 'accent', { flat: true }),
     ...seat(-0.1, -0.3, 0.3, 'accent'),
     ...path([[-0.83, -0.4], [-0.83, -1.15]], 0.07, 'chrome'), circ(-0.83, -1.2, 0.08, 'yellow'),
     starShape(0.55, -0.15, 0.12, 'gold'),
@@ -210,11 +212,19 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     ];
   },
   wedge: () => [
-    blob([[-1.52, 0.28], [-1.55, -0.55], [-0.9, -0.57], [1.92, 0.12], [1.92, 0.28]], 'body', {}, 1),
-    poly([[0.6, -0.18], [1.92, 0.15], [1.92, 0.24], [0.6, -0.1]], 'chrome'),
+    // Doorstop ram: a steep wedge that wraps the wheel tops, a red diagonal livery,
+    // a race number, a tall rear wing and a chrome splitter on the nose.
+    blob([[-1.52, 0.42], [-1.56, -0.55], [-0.9, -0.58], [1.92, 0.1], [1.95, 0.3], [1.8, 0.42]], 'body', {}, 1),
+    poly([[-1.5, -0.1], [-1.0, -0.42], [1.9, 0.12], [1.9, 0.22]], 'accent', { flat: true }),
+    poly([[-1.5, 0.12], [-1.5, 0.02], [1.9, 0.24], [1.9, 0.28]], 'accent', { flat: true }),
+    poly([[0.6, -0.12], [1.95, 0.2], [1.95, 0.3], [0.6, -0.04]], 'chrome'),
+    circ(0.0, -0.06, 0.15, 'white'), rect(-0.03, -0.15, 0.04, 0.03, 'black', { flat: true }),
     ...seat(-0.95, -0.52, 0.35, 'black'),
-    poly([[-0.75, -0.52], [-0.45, -0.45], [-0.62, -0.75]], 'glass'),
-    stripe(-1.5, 1.2, 0.0, 0.08, 'accent'), ...checkers(-1.45, -0.38, -1.1, -0.22, 3),
+    poly([[-0.75, -0.52], [-0.4, -0.44], [-0.62, -0.78]], 'glass'),
+    seg([-1.4, -0.55], [-1.45, -0.85], 0.07, 'dark'),
+    rr(-1.68, -0.98, -1.12, -0.84, 0.03, 'accent'),
+    rr(1.72, 0.06, 1.92, 0.16, 0.03, 'light'), rr(-1.6, -0.3, -1.48, -0.12, 0.03, 'red'),
+    rr(-1.3, 0.3, 1.5, 0.42, 0.04, 'dark'),
   ],
 };
 
