@@ -513,6 +513,10 @@ export function robot(f: Frame, o: { mat?: CarMat; face?: CarMat; arms?: boolean
     rr(-hw, top, hw, -0.1, 0.14, m),
     rr(-hw + 0.12, top + 0.18, hw - 0.12, top + 0.55, 0.08, o.face ?? 'black'),
     rect(-hw + 0.1, top + 0.7, hw - 0.1, top + 0.76, 'dark', { flat: true }),
+    // panel seams, rivets and wheel guards so the robot reads as a machine on wheels
+    rect(-0.02, top + 0.62, 0.02, -0.12, 'dark', { flat: true }),
+    ...[-hw + 0.1, hw - 0.1].flatMap((x) => [circ(x, top + 0.1, 0.035, 'chrome'), circ(x, -0.2, 0.035, 'chrome')]),
+    ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.12, Math.PI * 1.88, 0.1, 'grey')),
   ];
   if (o.arms !== false) {
     out.push(circ(-hw - 0.05, top + 0.3, 0.18, 'grey'), circ(hw + 0.05, top + 0.3, 0.18, 'grey'));
