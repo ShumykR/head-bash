@@ -1,5 +1,6 @@
-import { blob, circ, ell, eyeball, fangs, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
+import { blob, circ, ell, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
 import { arc, bike, boxy, frontLamp, rearLamp, truckCab } from '../skins';
+import { fishCar } from '../critters';
 import { group, o } from './util';
 
 export const DOME = group('dome', [
@@ -41,15 +42,11 @@ export const DOME = group('dome', [
   ['lucky-shark', 'Lucky Shark Mobile', 'Машина-акула з плавником і зубатою пащею.', 'sports', ['#6a8ab0', '#ffffff'], {
     parts: ['fin'], noLights: true, hideParts: true,
     skin: (f) => [
-      poly([[-0.6, -0.3], [-0.3, -1.0], [0.0, -0.95], [0.3, -0.3]], 'body'),
-      poly([[f.tail.x + 0.2, -0.1], [f.tail.x - 0.35, -0.6], [f.tail.x - 0.25, 0.0], [f.tail.x - 0.35, 0.35], [f.tail.x + 0.2, 0.15]], 'body'),
-      blob([[f.tail.x, 0.24], [f.tail.x, -0.12], [-0.6, -0.32], [0.6, -0.32], [f.nose.x + 0.05, -0.05], [f.nose.x, 0.2], [f.nose.x - 0.2, 0.26]], 'body', {}, 1),
-      blob([[f.tail.x + 0.05, 0.1], [f.nose.x, 0.08], [f.nose.x - 0.1, 0.26], [f.tail.x + 0.05, 0.26]], 'white', {}, 1),
-      poly([[f.nose.x - 0.7, 0.05], [f.nose.x + 0.02, -0.02], [f.nose.x - 0.05, 0.16], [f.nose.x - 0.7, 0.16]], 'black'),
-      ...fangs(f.nose.x - 0.68, f.nose.x - 0.05, 0.03, 5, 0.1), ...fangs(f.nose.x - 0.65, f.nose.x - 0.1, 0.16, 4, 0.08, true),
-      ...eyeball(f.nose.x - 0.55, -0.12, 0.07),
-      ...[0.25, 0.4, 0.55].map((x) => path([[x, -0.12], [x - 0.04, 0.0], [x, 0.08]], 0.035, 'dark')).flat(),
-      ...[[-1.2, -0.05], [-0.9, -0.15], [-0.5, -0.05]].map(([x, y]) => circ(x, y, 0.04, 'white')), stripe(f.tail.x + 0.1, f.nose.x - 0.8, -0.22, 0.03, 'white'),
+      ...fishCar(f, { top: -0.68 }),
+      // lucky charms: a four-leaf clover on the flank and a horseshoe on the fin
+      ...[[0, -0.08], [0.08, 0], [0, 0.08], [-0.08, 0]].map(([dx, dy]) => circ(0.35 + dx, -0.28 + dy, 0.07, 'green')), seg([0.35, -0.28], [0.3, -0.12], 0.04, 'green'),
+      arc(f.head.x - 0.5, -0.82, 0.1, Math.PI * 1.0, Math.PI * 2.0, 0.05, 'gold'),
+      stripe(f.tail.x + 0.3, f.nose.x - 0.9, -0.1, 0.05, 'accent'),
     ],
   }],
   ['prison-van', 'Prison Van', 'Броньований автозак із ґратами на вікнах і тараном.', 'van', ['#e0e0e0', '#3a3a6a'], {

@@ -1,7 +1,8 @@
 import { tailgate } from '../art';
-import { arc, beacon, blob, checkers, circ, ell, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, stack, starShape, stripe, windows } from '../draw';
+import { arc, beacon, blob, checkers, circ, ell, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, stack, starShape, stripe, windows, eyeball } from '../draw';
 import { bike, boxy, fenders, frontLamp, loco, monsterChassis, pickup, sedan, tracks } from '../skins';
 import type { CarPoly } from '../types';
+import { dims, saddle } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -178,18 +179,25 @@ export const SUMMER = group('summer', [
     cargo: ['coal', 5],
     skin: (f) => [...loco(f, { mat: 'accent', boiler: 'black', trim: 'gold' })],
   }],
-  ['turtle', 'Turtle', 'Бойова черепаха: ховає голову в панцир.', 'creature', ['#4a8a3a', '#c0a060'], {
-    s: 0.9, o: o({ neck: 'raptor' }), parts: ['hump'], noLights: true, hideParts: true,
-    skin: (f) => [
-      ...f.wheels.map((w) => blob([[w.x - 0.18, -0.1], [w.x + 0.18, -0.1], [w.x + 0.16, w.y], [w.x - 0.16, w.y]], 'body', {}, 1)),
-      ...path([[0.7, -0.3], [1.15, -0.55]], 0.32, 'body'), blob([[1.05, -0.75], [1.5, -0.8], [1.75, -0.6], [1.6, -0.42], [1.1, -0.42]], 'body', {}, 1),
-      circ(1.5, -0.66, 0.05, 'black'),
-      blob([[-1.15, -0.05], [-0.95, -0.7], [0.0, -0.95], [0.95, -0.7], [1.15, -0.05]], 'accent', {}, 2),
-      ...[-0.5, 0.0, 0.5].map((x) => poly([[x - 0.2, -0.45], [x, -0.72 + Math.abs(x) * 0.15], [x + 0.2, -0.45], [x, -0.25]], 'brown')),
-      rr(-1.15, -0.12, 1.15, 0.02, 0.05, 'yellow'), ...[-0.8, -0.3, 0.2, 0.7].map((x) => rect(x, -0.12, x + 0.05, 0.02, 'brown', { flat: true })),
-      rr(-1.0, 0.0, 1.0, 0.14, 0.04, 'dark'), poly([[1.25, -0.6], [1.6, -0.62], [1.62, -0.55], [1.3, -0.52]], 'red'),
-      poly([[-1.1, -0.1], [-1.4, 0.05], [-1.1, 0.05]], 'body'),
-    ],
+  ['turtle', 'Turtle', 'Черепаха. Ховається в панцир: не їде, але її не зрушити й не вибити.', 'creature', ['#5a9a4a', '#a07a3a'], {
+    s: 0.9, o: o({ neck: 'raptor', tall: 1.2, wheel: 0.8 }), parts: ['hump'], noLights: true, hideParts: true,
+    skin: (f) => {
+      const { rear, front } = dims(f);
+      return [
+        // stubby legs onto the wheels, little tail
+        ...[rear, front].map((x) => blob([[x - 0.2, -0.2], [x + 0.2, -0.2], [x + 0.17, 0.3], [x - 0.17, 0.3]], 'body', { ring: true }, 1)),
+        poly([[-1.05, -0.15], [-1.4, -0.05], [-1.05, 0.0]], 'body'),
+        // neck and head poking out, a friendly face
+        ...path([[0.7, -0.35], [1.15, -0.55]], 0.3, 'body'),
+        blob([[1.0, -0.82], [1.4, -0.88], [1.72, -0.68], [1.68, -0.45], [1.1, -0.42]], 'body', {}, 1),
+        ...eyeball(1.38, -0.7, 0.07), arc(1.5, -0.6, 0.12, Math.PI * 0.15, Math.PI * 0.75, 0.03, 'dark'),
+        // high domed shell: hexagon scutes, rim band, belly plate
+        blob([[-1.2, 0.0], [-1.1, -0.6], [-0.5, -1.05], [0.5, -1.05], [1.05, -0.6], [1.15, 0.0]], 'accent', {}, 2),
+        ...[[-0.55, -0.7], [0.0, -0.82], [0.55, -0.7], [-0.75, -0.3], [-0.25, -0.38], [0.3, -0.38], [0.78, -0.3]].map(([x, y]) => poly([[x - 0.18, y], [x - 0.09, y - 0.15], [x + 0.09, y - 0.15], [x + 0.18, y], [x + 0.09, y + 0.15], [x - 0.09, y + 0.15]], 'brown')),
+        rr(-1.22, -0.1, 1.18, 0.05, 0.05, 'yellow'), ...[-0.8, -0.3, 0.2, 0.7].map((x) => rect(x, -0.1, x + 0.05, 0.05, 'brown', { flat: true })),
+        ...saddle(f.head.x, f.head.y + 0.2, 'red'),
+      ];
+    },
   }],
   ['gyrocar', 'Gyrocar', 'Самобалансуючий гіромобіль із маховиком усередині.', 'blob', ['#e0e0e0', '#3a6ad8'], {
     s: 0.9, o: o({ shape: 'egg' }),

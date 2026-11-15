@@ -1,6 +1,6 @@
-import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows } from '../draw';
-import { beast, bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
-import { browEye, saddle } from '../critters';
+import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc } from '../draw';
+import { bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
+import { browEye, saddle, dims, quadruped } from '../critters';
 import type { CarPoly } from '../types';
 import { group, o } from './util';
 
@@ -38,22 +38,28 @@ export const HALLOWEEN = group('halloween', [
       ];
     },
   }],
-  ['rocking-horse', 'Horse', 'Іграшковий кінь-гойдалка на коліщатках. Стає дибки й стрибає.', 'creature', ['#8a5a3a', '#f0e0c0'], {
-    parts: ['tail'], noLights: true, hideParts: true,
-    skin: (f) => [
-      ...path([[-1.15, 0.5], [-0.6, 0.6], [0.6, 0.6], [1.15, 0.5]], 0.12, 'red'),
-      ...beast(f, { mat: 'tan', rx: 0.95, ry: 0.36 }),
-      ...[-0.75, -0.4, 0.3, 0.65].map((x, i) => circ(x, -0.25 + (i % 2) * 0.12, 0.08, 'brown')),
-      ...path([[0.7, -0.35], [1.15, -0.85]], 0.3, 'tan'),
-      blob([[1.0, -1.0], [1.3, -1.12], [1.85, -0.9], [1.8, -0.72], [1.1, -0.78]], 'tan', {}, 1),
-      ...[0.75, 0.9, 1.05, 1.2].map((x, i) => poly([[x - 0.12, -0.45 - i * 0.12], [x + 0.08, -0.58 - i * 0.12], [x - 0.18, -0.85 - i * 0.12]], 'brown')),
-      poly([[1.22, -1.08], [1.34, -1.1], [1.27, -1.3]], 'tan'),
-      circ(1.5, -0.95, 0.05, 'black'), circ(1.82, -0.82, 0.04, 'black'),
-      blob([[-0.5, -0.6], [0.3, -0.6], [0.25, -0.18], [-0.45, -0.18]], 'red', {}, 1), rect(-0.5, -0.24, 0.27, -0.18, 'gold', { flat: true }), rect(-0.12, -0.18, -0.05, 0.15, 'gold'),
-      ...path([[1.45, -0.9], [1.1, -0.65], [0.3, -0.62]], 0.04, 'black'), rect(1.35, -1.0, 1.42, -0.78, 'black'),
-      rr(-1.2, 0.3, 1.2, 0.42, 0.05, 'wood'),
-      ...path([[-0.95, -0.3], [-1.35, -0.1], [-1.4, 0.2]], 0.14, 'brown'),
-    ],
+  ['rocking-horse', 'Horse', 'Кінь-гойдалка. Стає дибки й б\'є передніми копитами.', 'creature', ['#d09050', '#f4e8d0'], {
+    o: o({ tall: 1.25, wheel: 0.75 }), parts: ['tail'], noLights: true, hideParts: true,
+    skin: (f) => {
+      const { rear, front } = dims(f);
+      return [
+        // the wooden rocker bow the legs stand on, running through both wheel hubs
+        arc(0, -2.6, 3.1, Math.PI * 0.36, Math.PI * 0.64, 0.12, 'wood'),
+        ...quadruped(f, { hump: -0.05, tail: 0.0, leg: 0.24, belly: null, saddle: 'red', chest: 0.95 }),
+        // painted dapples, yarn tail
+        ...[[-0.7, -0.5], [-0.35, -0.3], [0.3, -0.45], [0.6, -0.25], [-0.85, -0.2]].map(([x, y]) => ell(x, y, 0.08, 0.06, 'cream')),
+        ...path([[-1.05, -0.6], [-1.35, -0.45], [-1.45, -0.1]], 0.16, 'brown'),
+        ...[rear, front].map((x) => rr(x - 0.14, 0.22, x + 0.14, 0.3, 0.03, 'dark')),
+        // neck and long head with a yarn mane, ears, red bridle and a wooden handle peg
+        ...path([[0.65, -0.6], [0.95, -1.05]], 0.34, 'body'),
+        blob([[0.85, -1.35], [1.15, -1.42], [1.75, -1.1], [1.85, -0.92], [1.6, -0.82], [0.95, -1.0]], 'body', {}, 1),
+        ...[0.6, 0.75, 0.9, 1.0].map((x, i) => poly([[x - 0.14, -0.55 - i * 0.2], [x + 0.06, -0.7 - i * 0.2], [x - 0.22, -0.82 - i * 0.2]], 'brown')),
+        poly([[1.02, -1.38], [1.08, -1.6], [1.18, -1.4]], 'body'),
+        ...path([[1.0, -1.15], [1.0, -1.32]], 0.12, 'wood'), rr(0.88, -1.32, 1.12, -1.24, 0.03, 'wood'),
+        ...path([[1.42, -1.12], [1.5, -0.9]], 0.05, 'red'), circ(1.5, -0.92, 0.04, 'gold'),
+        ...eyeball(1.3, -1.18, 0.06), circ(1.78, -0.98, 0.03, 'black'),
+      ];
+    },
   }],
   ['chariot', 'Chariot', 'Антична бойова колісниця з шипами на осях. Атакує ривком.', 'cart', ['#c8a040', '#e02a2a'], {
     o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'],

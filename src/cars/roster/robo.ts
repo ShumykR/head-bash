@@ -2,6 +2,7 @@ import { blob, circ, ell, path, poly, rect, rr, seg, spikesAlong, stack, stripe 
 import { arc, bike, hover, robot, rocket, tracks } from '../skins';
 import type { CarPoly } from '../types';
 import type { Frame } from '../factory';
+import { saddle, pincer } from '../critters';
 import { group, o } from './util';
 
 const visor = (x0: number, x1: number, y: number, mat: 'red' | 'accent' | 'light' = 'red'): CarPoly[] => [rr(x0, y - 0.08, x1, y + 0.08, 0.06, mat), rect(x0 + 0.05, y - 0.04, x1 - 0.05, y - 0.01, 'white', { flat: true })];
@@ -87,16 +88,26 @@ export const ROBO = group('robo', [
     ],
   }],
   ['steel-crab', 'Steel Crab', 'Металевий краб із клешнею і очима на ніжках.', 'blob', ['#c0c8d0', '#e02a2a'], {
-    o: o({ shape: 'flat', mat: 'metal' }), parts: ['claw'], noLights: true,
-    skin: (f) => [
-      ...[-1.0, -0.6, -0.2].map((x) => path([[x, 0.0], [x - 0.15, -0.2], [x - 0.3, 0.42]], 0.07, 'dark')).flat(),
-      ell(0, -0.15, f.nose.x, 0.42, 'metal', {}, 28),
-      blob([[-1.1, -0.2], [-0.6, -0.5], [0.6, -0.5], [1.1, -0.2], [0.0, -0.3]], 'accent', {}, 1),
-      ...bolts([-0.8, -0.4, 0.0, 0.4, 0.8], 0.05),
-      ...path([[0.3, -0.5], [0.4, -0.85]], 0.05, 'chrome'), ...path([[0.7, -0.45], [0.8, -0.8]], 0.05, 'chrome'),
-      circ(0.4, -0.9, 0.09, 'red'), circ(0.8, -0.85, 0.09, 'red'), circ(0.42, -0.92, 0.035, 'white'), circ(0.82, -0.87, 0.035, 'white'),
-      rr(-1.0, 0.18, 1.0, 0.32, 0.05, 'dark'), ...[-0.9, -0.5, -0.1, 0.3, 0.7].map((x) => rect(x, -0.12, x + 0.12, -0.06, 'dark', { flat: true })),
-    ],
+    o: o({ shape: 'flat', mat: 'metal' }), parts: ['claw'], noLights: true, hideParts: true,
+    skin: (f) => {
+      const n = f.nose.x;
+      return [
+        ...pincer(f, (f.nose.y0 + f.nose.y1) / 2, 'metal', 'accent'),
+        // three jointed legs a side, splayed down to the ground
+        ...[-1.15, -0.8, -0.45].flatMap((x) => path([[x + 0.3, -0.15], [x - 0.05, -0.5], [x - 0.2, 0.45]], 0.09, 'grey')),
+        ...[0.55, 0.85].flatMap((x) => path([[x - 0.25, -0.15], [x + 0.1, -0.5], [x + 0.25, 0.45]], 0.09, 'grey')),
+        // eyes on stalks
+        ...[0.45, 0.8].flatMap((x) => [...path([[x - 0.05, -0.45], [x, -0.95]], 0.06, 'chrome'), circ(x, -1.0, 0.1, 'red'), circ(x + 0.03, -1.02, 0.04, 'white')]),
+        // wide armoured carapace: red rim, riveted plates, serrated front edge
+        blob([[-1.25, 0.05], [-1.2, -0.35], [-0.7, -0.62], [0.6, -0.62], [1.15, -0.35], [n, 0.05], [0.8, 0.22], [-0.8, 0.22]], 'body', {}, 2),
+        ...[[-0.85, -0.45, -0.3, -0.05], [-0.25, -0.5, 0.3, -0.05], [0.35, -0.45, 0.85, -0.05]].map(([a, b, c, d]) => rr(a, b, c, d, 0.06, 'metal', { ring: true })),
+        ...[-0.6, 0.0, 0.6].map((x) => circ(x, -0.25, 0.04, 'dark')),
+        ...path([[-1.2, 0.05], [-0.8, 0.2], [0.8, 0.2], [n, 0.05]], 0.08, 'accent'),
+        ...spikesAlong(0.7, n, -0.45, 3, 0.12, 'accent'),
+        rr(n - 0.25, -0.05, n + 0.02, 0.08, 0.03, 'dark'),
+        ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
+      ];
+    },
   }],
   ['sawbot', 'Sawbot', 'Робот-тесля з дисковою пилкою на руці.', 'robot', ['#5a5a6a', '#ffd23f'], {
     parts: ['saw'],

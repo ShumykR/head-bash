@@ -1,7 +1,8 @@
 import { blob, checkers, stack, circ, ell, eyeball, fangs, flameDecal, grille, lightbar, ladder, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, tank } from '../draw';
-import { arc, beast, boxy, dragsterBody, dinoHead, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, rocket, sedan, tracks, monsterTruck } from '../skins';
+import { arc, boxy, dragsterBody, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, rocket, sedan, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
+import { fishCar, arm, browEye, maw, quadruped } from '../critters';
 import { group, o } from './util';
 
 // Toy-track racers: original designs inspired by die-cast toy-car concepts.
@@ -83,14 +84,26 @@ export const TOYS = group('toys', [
   }],
   ['rex-dragster', 'Rex Dragster', 'Гібрид тиранозавра й дрегстера: ракета ззаду, паща спереду.', 'dragster', ['#3a8a3a', '#e0e0c0'], {
     parts: ['teeth', 'booster'], hideParts: true,
-    skin: (f) => [
-      rr(f.tail.x - 0.35, -0.12, f.tail.x + 0.1, 0.12, 0.05, 'grey'), rr(f.tail.x - 0.45, -0.08, f.tail.x - 0.3, 0.08, 0.03, 'red'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.18], [f.nose.x - 0.5, -0.15], [f.nose.x, 0.0], [f.nose.x, 0.18], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
-      ...seat(-0.95, -0.15, 0.45),
-      ...spikesAlong(-0.5, 1.2, -0.18, 7, 0.14, 'accent'),
-      ...angry(f.nose.x - 0.55, -0.02, 0.1, 'yellow'),
-      rect(f.nose.x - 0.5, 0.08, f.nose.x, 0.12, 'black'), ...fangs(f.nose.x - 0.5, f.nose.x, 0.08, 4, 0.08),
-    ],
+    skin: (f) => {
+      const n = f.nose.x, t = f.tail.x;
+      return [
+        // rocket in the tail, the tail itself swept up as the wing strut
+        rr(t - 0.35, -0.14, t + 0.15, 0.14, 0.05, 'grey'), rr(t - 0.48, -0.09, t - 0.3, 0.09, 0.03, 'orange'),
+        blob([[t + 0.2, -0.1], [t - 0.1, -0.75], [t + 0.2, -0.8], [t + 0.6, -0.2]], 'body', {}, 1),
+        // long scaly body
+        blob([[t + 0.1, 0.2], [t + 0.15, -0.2], [-0.6, -0.32], [0.2, -0.28], [n - 0.9, -0.3], [n - 0.8, 0.22]], 'body', {}, 1),
+        ...spikesAlong(t + 0.3, n - 1.0, -0.26, 8, 0.14, 'accent'),
+        path([[t + 0.3, 0.12], [n - 0.9, 0.12]], 0.08, 'accent')[0],
+        ...seat(-0.95, -0.2, 0.45),
+        // the T-rex head is the nose: heavy skull, open jaws full of teeth, tiny arm
+        blob([[n - 1.15, -0.45], [n - 0.95, -0.85], [n - 0.4, -0.88], [n - 0.02, -0.6], [n + 0.1, -0.15], [n - 0.6, -0.1], [n - 1.1, -0.15]], 'body', {}, 1),
+        poly([[n - 0.72, -0.12], [n + 0.08, -0.16], [n, 0.05], [n - 0.68, 0.04]], 'black', { flat: true }),
+        ...fangs(n - 0.66, n + 0.04, -0.14, 5, 0.09), ...fangs(n - 0.6, n - 0.04, 0.03, 4, 0.08, true),
+        blob([[n - 0.75, 0.02], [n, 0.04], [n - 0.12, 0.2], [n - 0.7, 0.18]], 'body', {}, 1),
+        ...browEye(n - 0.6, -0.6, 0.08, 'red'), circ(n - 0.05, -0.45, 0.03, 'black'),
+        ...arm(n - 1.05, -0.05),
+      ];
+    },
   }],
   ['horned-pickup', 'Horned Pickup', 'Пікап із головою трицератопса.', 'pickup', ['#e08a1a', '#e0d0a0'], {
     parts: ['horns'], hideParts: true,
@@ -108,14 +121,18 @@ export const TOYS = group('toys', [
   ['dino-trike', 'Dino Trike', 'Трицикл-динозавр із зубатою мордою.', 'trike', ['#4a8a3a', '#ffd23f'], {
     parts: ['teeth'], noLights: true, hideParts: true,
     skin: (f) => [
-      blob([[-1.35, 0.22], [-1.3, -0.3], [-0.2, -0.42], [0.5, -0.52], [1.0, -0.32], [1.0, 0.04], [0.4, 0.1], [-0.2, 0.26]], 'body', {}, 1),
-      blob([[-1.1, 0.12], [-0.2, 0.02], [0.4, -0.02], [0.3, 0.12], [-0.6, 0.2]], 'cream', {}, 1),
-      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'dark')), rr(-0.7, -0.5, -0.1, -0.38, 0.04, 'black'),
-      ...[-0.9, -0.6, -0.3].map((x) => poly([[x - 0.12, -0.24], [x + 0.12, -0.26], [x, -0.5]], 'accent')),
-      ...eyeball(0.6, -0.25, 0.08, 'yellow'),
-      rect(0.5, -0.06, 0.95, -0.02, 'black'), ...fangs(0.5, 0.95, -0.06, 4, 0.08),
-      ...path([[-1.3, -0.1], [-1.7, -0.3]], 0.12, 'body'),
-      ...path([[f.wheels[f.wheels.length - 1].x, 0.32], [0.65, -0.35]], 0.07, 'chrome'),
+      // long tail out the back, body over the rear axle, toothy head on a neck at the front
+      blob([[-1.2, -0.15], [-1.9, -0.45], [-1.2, -0.38]], 'body', {}, 1),
+      blob([[-1.35, 0.22], [-1.3, -0.3], [-0.6, -0.48], [0.3, -0.35], [0.6, -0.05], [0.3, 0.18], [-0.2, 0.26]], 'body', {}, 1),
+      blob([[-1.1, 0.14], [-0.2, 0.04], [0.35, 0.02], [0.2, 0.15], [-0.6, 0.2]], 'cream', {}, 1),
+      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'dark')),
+      ...[-1.05, -0.75, -0.45, -0.15].map((x) => poly([[x - 0.12, -0.36 - (x + 0.6) * 0.05], [x + 0.12, -0.38 - (x + 0.6) * 0.05], [x, -0.62 - (x + 0.6) * 0.05]], 'accent')),
+      ...path([[0.3, -0.3], [0.6, -0.65]], 0.26, 'body'),
+      blob([[0.45, -0.9], [0.85, -0.98], [1.25, -0.8], [1.28, -0.55], [0.7, -0.5], [0.45, -0.62]], 'body', {}, 1),
+      ...maw(0.7, 1.28, -0.6, 0.1, 3),
+      ...browEye(0.8, -0.78, 0.07, 'black', 'accent'),
+      ...arm(0.4, -0.25),
+      ...path([[f.wheels[f.wheels.length - 1].x, 0.32], [0.62, -0.2]], 0.07, 'chrome'),
     ],
   }],
   ['stinger-buggy', 'Stinger Buggy', 'Стелс-багі з ракетним двигуном.', 'buggy', ['#2a2a2a', '#e02a2a'], {
@@ -203,18 +220,13 @@ export const TOYS = group('toys', [
       tank(f.tail.x + 0.1, f.tail.x + 0.9, f.roof.y - 0.1, 0.1, 'pink'),
     ],
   }],
-  ['chomp-shark', 'Chomp Shark', 'Авто з клацаючою пащею акули.', 'sports', ['#6a8ab0', '#ffffff'], {
+  ['chomp-shark', 'Chomp Shark', 'Авто з клацаючою пащею акули.', 'sports', ['#3a6ad0', '#ffffff'], {
     parts: ['fin'], noLights: true, hideParts: true,
     skin: (f) => [
-      poly([[-0.6, -0.25], [-0.25, -0.95], [0.05, -0.9], [0.3, -0.25]], 'body'),
-      poly([[f.tail.x + 0.2, -0.05], [f.tail.x - 0.35, -0.55], [f.tail.x - 0.25, 0.0], [f.tail.x - 0.35, 0.35], [f.tail.x + 0.2, 0.15]], 'body'),
-      blob([[f.tail.x, 0.24], [f.tail.x, -0.12], [-0.6, -0.28], [0.6, -0.28], [f.nose.x + 0.05, -0.05], [f.nose.x, 0.2], [f.nose.x - 0.2, 0.26]], 'body', {}, 1),
-      blob([[f.tail.x + 0.05, 0.1], [f.nose.x, 0.08], [f.nose.x - 0.1, 0.26], [f.tail.x + 0.05, 0.26]], 'white', {}, 1),
-      poly([[f.nose.x - 0.8, 0.0], [f.nose.x + 0.02, -0.08], [f.nose.x - 0.05, 0.2], [f.nose.x - 0.8, 0.2]], 'black'),
-      ...fangs(f.nose.x - 0.78, f.nose.x - 0.02, -0.02, 6, 0.1), ...fangs(f.nose.x - 0.75, f.nose.x - 0.1, 0.2, 5, 0.08, true),
-      ...eyeball(f.nose.x - 0.65, -0.14, 0.07),
-      ...[0.1, 0.25, 0.4].map((x) => path([[x, -0.14], [x - 0.04, -0.04], [x, 0.04]], 0.035, 'dark')).flat(),
-      ...fenders(f, 'body', 0.09), stripe(f.tail.x + 0.1, f.nose.x - 0.8, -0.18, 0.03, 'white'),
+      ...fishCar(f, { top: -0.72 }),
+      // racing number on the flank, scars on the snout
+      circ(0.25, -0.25, 0.16, 'white'), rect(0.22, -0.35, 0.28, -0.15, 'black', { flat: true }),
+      ...[0, 1].map((i) => seg([f.nose.x - 0.45 + i * 0.1, -0.42], [f.nose.x - 0.35 + i * 0.1, -0.3], 0.03, 'dark')),
     ],
   }],
   ['rocket-board', 'Rocket Board', 'Скейт-ракета: дошка, двигун і ніякого здорового глузду.', 'rocket', ['#ff8a1a', '#2a2a2a'], {
@@ -238,12 +250,11 @@ export const TOYS = group('toys', [
     ],
   }],
   ['piranha-racer', 'Piranha Racer', 'Хижа риба-болід із гострим плавником.', 'sports', ['#e04a2a', '#ffd23f'], {
-    parts: ['teeth', 'fin'], noLights: true,
+    parts: ['teeth', 'fin'], noLights: true, hideParts: true,
     skin: (f) => [
-      poly([[f.tail.x + 0.1, -0.05], [f.tail.x - 0.4, -0.45], [f.tail.x - 0.3, 0.05], [f.tail.x - 0.4, 0.3]], 'accent'),
-      ...wedge(f, 'body', 'dark'),
-      ...angry(f.nose.x - 0.45, -0.1, 0.1, 'black'),
-      ...[0, 1, 2, 3].map((i) => poly([[-1.2 + i * 0.4, -0.1], [-1.05 + i * 0.4, -0.1], [-1.15 + i * 0.4, 0.2], [-1.3 + i * 0.4, 0.2]], 'accent', { flat: true })),
+      ...fishCar(f, { top: -0.48, jaw: 'piranha', belly: 'orange', fin: 'accent' }),
+      ...[[-0.6, -0.25], [-0.2, -0.3], [0.2, -0.25], [-0.4, -0.05], [0.0, -0.08]].map(([x, y]) => arc(x, y, 0.08, Math.PI * 0.1, Math.PI * 0.9, 0.04, 'dark')),
+      ...spikesAlong(f.head.x + 0.4, f.nose.x - 0.6, -0.48, 3, 0.12, 'accent'),
     ],
   }],
   ['soda-popper', 'Soda Popper', 'Пляшка газованки на колесах. Стріляє корком.', 'rocket', ['#3a8a3a', '#e02a2a'], {
@@ -333,26 +344,44 @@ export const TOYS = group('toys', [
       poly([[f.nose.x - 0.25, 0.14], [f.nose.x - 0.15, 0.14], [f.nose.x - 0.2, 0.28]], 'white'),
     ],
   }],
-  ['scorpion-gt', 'Scorpion GT', 'Спорткар-скорпіон: хвіст із жалом над дахом і клешні.', 'sports', ['#3a3a3a', '#ffd23f'], {
+  ['scorpion-gt', 'Scorpion GT', 'Спорткар-скорпіон: хвіст із жалом над дахом і клешні.', 'sports', ['#c88a2a', '#2a2a2a'], {
     noLights: true,
-    skin: (f) => [
-      ...wedge(f, 'body', 'dark'),
-      ...path([[f.tail.x + 0.1, -0.1], [f.tail.x + 0.0, -0.6], [f.tail.x + 0.3, -0.95], [f.tail.x + 0.75, -1.0]], 0.14, 'body'),
-      ...[0.15, 0.4, 0.6].map((d) => circ(f.tail.x + d * 0.7, -0.6 - d * 0.5, 0.05, 'accent')),
-      poly([[f.tail.x + 0.7, -1.08], [f.tail.x + 0.8, -0.9], [f.tail.x + 1.05, -0.88]], 'accent'),
-      blob([[f.nose.x - 0.25, 0.05], [f.nose.x + 0.3, -0.15], [f.nose.x + 0.45, -0.05], [f.nose.x + 0.2, 0.0], [f.nose.x + 0.4, 0.08], [f.nose.x + 0.15, 0.18]], 'body', {}, 1),
-      ...[0, 1, 2, 3].map((i) => rect(-1.2 + i * 0.45, -0.1, -1.1 + i * 0.45, 0.2, 'accent', { flat: true })),
-    ],
+    skin: (f) => {
+      const n = f.nose.x, t = f.tail.x;
+      const tail: [number, number][] = [[t + 0.25, -0.1], [t + 0.0, -0.55], [t + 0.15, -0.95], [t + 0.55, -1.15], [t + 0.95, -1.05]];
+      return [
+        // legs out under the body
+        ...[-1.0, -0.6, -0.2, 0.2].map((x) => path([[x, 0.0], [x - 0.15, 0.15], [x - 0.08, 0.3]], 0.06, 'dark')).flat(),
+        ...wedge(f, 'body', 'dark'),
+        ...[0, 1, 2, 3].map((i) => rect(-1.2 + i * 0.45, -0.1, -1.1 + i * 0.45, 0.2, 'accent', { flat: true })),
+        // segmented tail curling over the roof to a yellow stinger
+        ...path(tail, 0.2, 'body'), ...tail.map(([x, y], i) => circ(x, y, 0.13 - i * 0.012, 'body', { ring: true })),
+        poly([[t + 1.0, -1.15], [t + 1.3, -0.92], [t + 1.0, -0.95]], 'accent'),
+        // two pincers reaching forward from the nose
+        ...[[-0.04, 'body'], [0.12, 'dark']].flatMap(([dy, m]) => [
+          ...path([[n - 0.3, (dy as number) + 0.0], [n + 0.15, (dy as number) - 0.05]], 0.1, m as 'body'),
+          blob([[n + 0.1, (dy as number) - 0.18], [n + 0.5, (dy as number) - 0.2], [n + 0.55, (dy as number) - 0.05], [n + 0.25, (dy as number) - 0.02], [n + 0.5, (dy as number) + 0.08], [n + 0.1, (dy as number) + 0.08]], m as 'body', {}, 1),
+        ]),
+        ...[0, 1].map((i) => circ(n - 0.45 + i * 0.14, -0.15, 0.045, 'accent')),
+      ];
+    },
   }],
   ['spider-speedster', 'Spider Speedster', 'Концепт-павук: вісім очей і вісім лап.', 'sports', ['#7a3ae0', '#7aff3a'], {
     noLights: true,
-    skin: (f) => [
-      ...[-1.3, -0.9, -0.5, -0.1].map((x) => path([[x + 0.2, 0.0], [x, -0.35], [x - 0.3, 0.4]], 0.06, 'black')).flat(),
-      ...wedge(f, 'body', 'dark'),
-      ...[0, 1, 2, 3].map((i) => circ(f.nose.x - 0.5 + i * 0.12, -0.08 + (i % 2) * 0.08, 0.05, 'accent')),
-      poly([[-0.7, -0.1], [-0.55, 0.0], [-0.7, 0.1], [-0.85, 0.0]], 'red'),
-      ...fangs(f.nose.x - 0.15, f.nose.x, 0.18, 1, 0.12),
-    ],
+    skin: (f) => {
+      const n = f.nose.x, t = f.tail.x;
+      return [
+        // four legs a side arching high over the car, feet down at the road
+        ...[[-1.35, -0.55], [-0.85, -0.25], [0.25, 0.1], [0.75, 0.4]].flatMap(([x, k]) => path([[x + 0.25, -0.1], [x + 0.1 + k * 0.4, -0.85 + Math.abs(k) * 0.1], [x + 0.35 + k * 0.9, 0.25]], 0.07, 'black')),
+        ...wedge(f, 'body', 'dark'),
+        // the abdomen bulging at the back with a red hourglass
+        blob([[t - 0.1, 0.0], [t - 0.05, -0.55], [t + 0.5, -0.7], [t + 0.95, -0.45], [t + 0.9, -0.05]], 'body', {}, 2),
+        poly([[t + 0.35, -0.55], [t + 0.55, -0.55], [t + 0.45, -0.38]], 'red'), poly([[t + 0.45, -0.38], [t + 0.55, -0.2], [t + 0.35, -0.2]], 'red'),
+        // eight eyes in two rows and the fangs at the nose
+        ...[0, 1, 2, 3].flatMap((i) => [circ(n - 0.62 + i * 0.13, -0.12, 0.055, 'accent'), circ(n - 0.56 + i * 0.13, 0.0, 0.04, 'accent')]),
+        ...fangs(n - 0.2, n + 0.02, 0.16, 2, 0.14),
+      ];
+    },
   }],
   ['mini-tank', 'Mini Tank', 'Мініатюрний танк із короткою гарматою.', 'tracked', ['#3a8a3a', '#ffd23f'], {
     gun: () => ({ at: [[1.3, -0.76]], aim: 12 }),
@@ -409,20 +438,21 @@ export const TOYS = group('toys', [
       blob([[-0.45, -0.18], [0.1, -0.18], [0.05, 0.22], [-0.15, 0.34], [-0.35, 0.22]], 'accent', {}, 1), rect(-0.18, -0.15, -0.12, 0.25, 'white', { flat: true }), rect(-0.35, 0.0, 0.05, 0.05, 'white', { flat: true }),
     ],
   }],
-  ['rotty-racer', 'Rotty Racer', 'Машина-ротвейлер із шипованим нашийником.', 'creature', ['#3a2a1a', '#c08a4a'], {
-    parts: ['ears', 'snout'], noLights: true, hideParts: true,
-    skin: (f) => {
-      const h = dinoHead('short');
-      return [
-        ...path([[f.tail.x + 0.1, -0.35], [f.tail.x - 0.25, -0.65]], 0.14, 'body'),
-        ...beast(f, { belly: 'accent' }), ...h.polys,
-        blob([[1.45, -0.95], [1.95, -0.85], [1.95, -0.65], [1.45, -0.62]], 'accent', {}, 1), ell(1.95, -0.85, 0.08, 0.06, 'black'),
-        poly([[1.05, -1.05], [0.95, -1.35], [1.3, -1.1]], 'body'), ...eyeball(1.4, -1.0, 0.07),
-        ...[-0.2, 0.0, 0.2].map((d) => circ(1.25 + d * 0.3, -1.0, 0.04, 'accent')),
-        rr(0.6, -0.65, 0.95, -0.5, 0.04, 'red'), ...spikesAlong(0.62, 0.94, -0.64, 3, 0.1, 'chrome'),
-        ...[[1.25, -0.82], [1.6, -0.75]].map(([x, y]) => ell(x, y, 0.1, 0.06, 'accent')), circ(1.4, -1.02, 0.03, 'white'),
-      ];
-    },
+  ['rotty-racer', 'Rotty Racer', 'Машина-ротвейлер із шипованим нашийником.', 'creature', ['#2a2220', '#c07a3a'], {
+    o: o({ tall: 1.15, wheel: 0.8 }), parts: ['ears', 'snout'], noLights: true, hideParts: true,
+    skin: (f) => [
+      ...quadruped(f, { tail: 0.25, tailUp: 0.3, leg: 0.3, belly: 'accent', saddle: 'red', chest: 0.95 }),
+      ...[[-0.95, -0.15], [0.62, -0.15]].map(([x, y]) => ell(x, y, 0.12, 0.08, 'accent')),
+      // spiked collar
+      rr(0.62, -0.88, 0.92, -0.38, 0.05, 'red'), ...[-0.75, -0.6, -0.45].map((y) => poly([[0.88, y - 0.05], [0.88, y + 0.05], [1.0, y]], 'chrome')),
+      // blocky rottweiler head: tan muzzle and brows, drooping ear, heavy jaw
+      ...path([[0.7, -0.6], [1.0, -0.88]], 0.32, 'body'),
+      blob([[0.9, -1.2], [1.3, -1.28], [1.6, -1.15], [1.65, -0.9], [1.95, -0.88], [1.95, -0.62], [1.3, -0.6], [0.95, -0.8]], 'body', {}, 1),
+      blob([[1.4, -0.92], [1.95, -0.88], [1.95, -0.62], [1.4, -0.6]], 'accent', {}, 1),
+      ell(1.25, -1.0, 0.06, 0.04, 'accent'), ...eyeball(1.32, -1.06, 0.06),
+      blob([[0.95, -1.15], [1.18, -1.2], [1.12, -0.85], [0.98, -0.88]], 'body', { ring: true }, 1),
+      circ(1.95, -0.85, 0.065, 'black'), poly([[1.5, -0.66], [1.92, -0.66], [1.88, -0.6], [1.52, -0.6]], 'black', { flat: true }),
+    ],
   }],
   ['six-wheel-mauler', 'Six-Wheel Mauler', 'Шестиколісний гірський всюдихід із лебідкою.', 'tracked', ['#e02a2a', '#2a2a2a'], {
     o: o({ wheels: 3, wheel: 1.6, cab: true }),

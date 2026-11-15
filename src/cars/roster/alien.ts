@@ -1,8 +1,9 @@
 import { tailgate } from '../art';
 import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank } from '../draw';
-import { arc, beast, bike, frontLamp, hover, monsterChassis, pickup, saucer, tracks, truckCab } from '../skins';
+import { arc, bike, frontLamp, hover, monsterChassis, pickup, saucer, tracks, truckCab } from '../skins';
 import type { CarPoly } from '../types';
 import type { Frame } from '../factory';
+import { dims } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -53,22 +54,30 @@ export const ALIEN = group('alien', [
     noLights: true,
     skin: (f) => [...saucer(f, { lights: 'accent' }), poly([[-0.35, 0.28], [0.35, 0.28], [0.5, 0.7], [-0.5, 0.7]], 'accent', { flat: true })],
   }],
-  ['skater-cow', 'Skater Cow', 'Корова на скейті. Робить олі — і стрибає.', 'creature', ['#f4f4f4', '#2a2a2a'], {
-    o: o({ wheel: 0.75 }), noLights: true,
-    skin: (f) => [
-      blob([[-1.2, 0.36], [-1.05, 0.46], [1.05, 0.46], [1.2, 0.36], [1.12, 0.31], [-1.12, 0.31]], 'red', {}, 1),
-      ...[-0.6, 0.0, 0.6].map((x) => poly([[x - 0.15, 0.33], [x + 0.05, 0.33], [x + 0.15, 0.45], [x - 0.05, 0.45]], 'yellow', { flat: true })),
-      ...[-0.75, 0.75].map((x) => rr(x - 0.15, 0.44, x + 0.15, 0.5, 0.02, 'grey')),
-      ...beast(f, { mat: 'white' }),
-      ...[[-0.5, -0.35, 0.24], [0.25, -0.15, 0.2], [-0.05, -0.5, 0.13], [0.6, -0.4, 0.12]].map(([x, y, r]) => ell(x, y, r, r * 0.8, 'black')),
-      ...path([[0.75, -0.4], [1.2, -0.75]], 0.3, 'white'),
-      blob([[1.0, -0.95], [1.4, -1.05], [1.75, -0.95], [1.78, -0.7], [1.1, -0.68]], 'white', {}, 1),
-      ell(1.65, -0.78, 0.17, 0.13, 'pink'), circ(1.6, -0.78, 0.03, 'black'), circ(1.72, -0.78, 0.03, 'black'),
-      circ(1.32, -0.92, 0.05, 'black'), poly([[1.08, -1.0], [0.85, -1.7], [1.3, -1.04]], 'cream'), poly([[1.3, -1.04], [1.62, -1.65], [1.5, -1.02]], 'cream'), ell(1.2, -0.95, 0.12, 0.05, 'black'),
-      ...path([[-1.0, -0.35], [-1.25, -0.2], [-1.3, 0.05]], 0.06, 'white'), circ(-1.3, 0.08, 0.06, 'black'),
-      circ(0.0, 0.0, 0.1, 'pink'),
-      rr(0.8, -0.55, 1.0, -0.42, 0.03, 'red'), circ(0.95, -0.38, 0.07, 'gold'),
-    ],
+  ['skater-cow', 'Skater Cow', 'Корова на скейті. Швидкі низькі стрибки майже без перезарядки.', 'creature', ['#f4f4f4', '#3a8ad8'], {
+    o: o({ wheel: 0.6, tall: 1.15 }), noLights: true,
+    skin: (f) => {
+      const { rear, front, wy, wr } = dims(f);
+      const deck = wy - wr - 0.1;
+      return [
+        // skateboard: kicked-up deck with grip tape and trucks over the little wheels
+        ...path([[rear - 0.45, deck - 0.2], [rear - 0.3, deck], [front + 0.3, deck], [front + 0.45, deck - 0.2]], 0.12, 'accent'),
+        ...path([[rear - 0.3, deck - 0.06], [front + 0.3, deck - 0.06]], 0.04, 'black'),
+        ...[rear, front].map((x) => rr(x - 0.12, deck + 0.04, x + 0.12, wy - 0.05, 0.03, 'grey')),
+        // cow standing on it: four legs with hooves, a spotty barrel body, swishing tail
+        ...[rear - 0.12, rear + 0.15, front - 0.15, front + 0.12].map((x, i) => rr(x - 0.08, -0.25, x + 0.08, deck - 0.06, 0.03, i % 2 ? 'body' : 'grey', { ring: true })),
+        ...[rear - 0.12, rear + 0.15, front - 0.15, front + 0.12].map((x) => rect(x - 0.08, deck - 0.16, x + 0.08, deck - 0.06, 'black')),
+        ...path([[-1.0, -0.6], [-1.25, -0.3], [-1.3, 0.0]], 0.07, 'body'), circ(-1.3, 0.02, 0.08, 'black'),
+        blob([[-1.05, -0.2], [-1.05, -0.6], [-0.6, -0.78], [0.5, -0.78], [0.95, -0.55], [0.95, -0.2], [0.5, -0.05], [-0.6, -0.05]], 'body', {}, 2),
+        ...[[-0.7, -0.5, 0.2, 0.14], [0.2, -0.4, 0.24, 0.16], [-0.2, -0.15, 0.14, 0.09], [0.65, -0.62, 0.12, 0.1]].map(([x, y, a, b]) => ell(x, y, a, b, 'black', { flat: true })),
+        // head: horns, ear, big pink muzzle
+        blob([[0.75, -0.95], [1.1, -1.05], [1.42, -0.85], [1.45, -0.55], [1.1, -0.45], [0.8, -0.6]], 'body', {}, 1),
+        poly([[0.92, -1.0], [0.82, -1.25], [1.0, -1.02]], 'bone'), poly([[1.12, -1.02], [1.15, -1.28], [1.25, -1.0]], 'bone'),
+        ell(0.78, -0.85, 0.12, 0.06, 'black'),
+        blob([[1.22, -0.72], [1.55, -0.72], [1.58, -0.45], [1.25, -0.42]], 'pink', {}, 1), circ(1.45, -0.62, 0.03, 'dark'),
+        ...eyeball(1.1, -0.82, 0.07),
+      ];
+    },
   }],
   ['gun-truck', 'Gun Truck', 'Пікап із гарматою в кузові.', 'pickup', ['#5a8a34', '#3a3a3a'], {
     gun: (f) => ({ at: [[(f.deck.x0 + f.deck.x1) / 2 + 1.1, f.deck.y - 0.74]], aim: 24 }),

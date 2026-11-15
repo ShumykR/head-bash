@@ -137,3 +137,55 @@ export const maw = (x0: number, x1: number, y: number, h = 0.1, n = 4): CarPoly[
   ...fangs(x0 + 0.12, x1 - 0.08, y + h * 0.45, n - 1, h * 0.8, true),
 ];
 export { circ };
+
+export interface FishOpts {
+  belly?: CarMat;
+  fin?: CarMat;
+  /** Mouth style: a shark's toothy grin under the snout, or a piranha's underbite. */
+  jaw?: 'shark' | 'piranha';
+  /** How far the body rises over the wheels (m). */
+  top?: number;
+}
+
+/**
+ * Fish-shaped car on a low two-wheel frame: pointed snout, mouth, eye, gills, white belly,
+ * dorsal fin behind the rider and a crescent tail fin. The rider sits in an open cockpit.
+ */
+export function fishCar(f: Frame, o: FishOpts = {}): CarPoly[] {
+  const x0 = f.tail.x, x1 = f.nose.x, top = o.top ?? -0.5, bot = 0.18, fin = o.fin ?? 'body';
+  const hx = f.head.x;
+  const out: CarPoly[] = [
+    // crescent tail fin and the dorsal fin behind the rider
+    poly([[x0 + 0.25, -0.15], [x0 - 0.35, -0.85], [x0 - 0.15, -0.15], [x0 - 0.35, 0.45], [x0 + 0.25, 0.05]], fin),
+    poly([[hx - 0.75, top + 0.05], [hx - 0.55, top - 0.55], [hx - 0.35, top - 0.6], [hx - 0.25, top + 0.05]], fin),
+    // body: tapering to the tail, thick at the head, snout over the mouth
+    blob([[x0 + 0.1, -0.08], [x0 + 0.3, -0.3], [hx - 0.5, top + 0.02], [hx + 0.6, top - 0.02], [x1 - 0.5, top + 0.12], [x1, -0.08], [x1 + 0.05, 0.05], [x1 - 0.25, bot], [x0 + 0.4, bot - 0.02], [x0 + 0.1, 0.05]], 'body', {}, 2),
+    blob([[x0 + 0.3, 0.02], [hx, 0.0], [x1 - 0.5, 0.0], [x1 - 0.25, bot - 0.02], [x0 + 0.4, bot]], o.belly ?? 'white', {}, 1),
+    // pectoral fin and gill slits
+    poly([[hx + 0.35, 0.02], [hx + 0.75, 0.05], [hx + 0.25, 0.32]], fin),
+    ...[0, 1, 2].map((i) => rect(x1 - 0.95 + i * 0.1, top + 0.25, x1 - 0.92 + i * 0.1, top + 0.45, 'dark', { flat: true })),
+    // cockpit rim around the rider
+    rr(hx - 0.35, top - 0.04, hx + 0.35, top + 0.06, 0.03, 'dark'),
+  ];
+  if ((o.jaw ?? 'shark') === 'shark') {
+    out.push(poly([[x1 - 0.75, -0.12], [x1 - 0.05, -0.2], [x1 - 0.12, 0.02], [x1 - 0.7, -0.0]], 'black', { flat: true }));
+    out.push(...fangs(x1 - 0.72, x1 - 0.08, -0.15, 5, 0.1), ...fangs(x1 - 0.66, x1 - 0.16, -0.0, 4, 0.09, true));
+  } else {
+    out.push(poly([[x1 - 0.6, -0.12], [x1 + 0.08, -0.15], [x1 + 0.05, 0.12], [x1 - 0.55, 0.06]], 'black', { flat: true }));
+    out.push(...fangs(x1 - 0.55, x1 + 0.0, -0.13, 4, 0.1), ...fangs(x1 - 0.5, x1 + 0.04, 0.1, 4, 0.12, true));
+  }
+  out.push(...browEye(x1 - 0.55, top + 0.25, 0.07));
+  return out;
+}
+
+/** A crab-style pincer drawn over the 'claw' part (same footprint): domed upper finger, hooked lower one, teeth. */
+export function pincer(f: Frame, ny: number, mat: CarMat = 'body', tip: CarMat = 'accent'): CarPoly[] {
+  const n = f.nose;
+  return [
+    ...path([[n.x - 0.15, (n.y0 + ny) / 2], [n.x + 0.15, (n.y0 + ny) / 2 - 0.1]], 0.22, mat),
+    blob([[n.x + 0.05, n.y0 - 0.05], [n.x + 0.45, n.y0 - 0.72], [n.x + 1.1, n.y0 - 0.72], [n.x + 1.45, n.y0 - 0.32], [n.x + 1.0, ny - 0.15], [n.x + 0.2, ny]], mat, {}, 2),
+    blob([[n.x, ny - 0.04], [n.x + 1.3, ny - 0.04], [n.x + 0.95, ny + 0.2], [n.x, ny + 0.14]], tip, {}, 1),
+    ...fangs(n.x + 0.35, n.x + 1.15, ny - 0.12, 4, 0.08),
+    ell(n.x + 0.7, n.y0 - 0.5, 0.18, 0.06, 'white', { flat: true }),
+  ];
+}

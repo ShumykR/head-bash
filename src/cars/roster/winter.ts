@@ -391,29 +391,49 @@ export const WINTER = group('winter', [
       rr(f.nose.x - 0.12, f.deck.y + 0.08, f.nose.x + 0.04, f.deck.y + 0.2, 0.03, 'light'),
     ],
   }],
-  ['penguin-slider', 'Penguin Slider', 'Пінгвін ковзає на череві й таранить суперника.', 'creature', ['#1a1a2a', '#ffa020'], {
-    o: o({ neck: 'none', len: 0.9 }), parts: ['snout'], noLights: true, hideParts: true,
-    skin: (f) => [
-      blob([[f.tail.x - 0.2, 0.0], [-0.6, -0.55], [0.3, -0.62], [0.9, -0.45], [f.nose.x + 0.05, -0.2], [0.8, 0.12], [-0.6, 0.12]], 'body', {}, 2),
-      blob([[-0.6, 0.1], [0.0, -0.1], [0.8, -0.2], [f.nose.x - 0.05, -0.1], [0.75, 0.1]], 'white', {}, 2),
-      ...eyeball(0.72, -0.4, 0.08),
-      poly([[f.nose.x - 0.05, -0.32], [f.nose.x + 0.35, -0.24], [f.nose.x - 0.05, -0.16]], 'orange'),
-      poly([[-0.5, -0.4], [-0.1, -0.2], [-0.7, -0.05]], 'body'),
-      poly([[f.tail.x - 0.1, -0.05], [f.tail.x - 0.45, -0.2], [f.tail.x - 0.4, 0.1]], 'orange'),
-      rr(0.3, -0.58, 0.62, -0.42, 0.06, 'red'), poly([[0.3, -0.52], [0.05, -0.45], [0.1, -0.35], [0.32, -0.44]], 'red'),
-      rr(-0.9, 0.08, 0.9, 0.22, 0.05, 'dark'),
-    ],
+  ['penguin-slider', 'Penguin Slider', 'Пінгвін, що мчить на череві: кілька секунд ковзає без тертя.', 'creature', ['#1a1a2a', '#ffa020'], {
+    o: o({ neck: 'none', len: 0.9 }), parts: ['snout'], noLights: true, hideParts: true, glide: 0.82,
+    // The rider sits on the back of a penguin tobogganing on its belly: no wheels show.
+    skin: (f) => {
+      const n = f.nose.x, t = f.tail.x;
+      return [
+        // orange feet trailing behind, flipper swept back
+        ...[[t - 0.35, 0.45], [t - 0.3, 0.62]].map(([x, y]) => poly([[t + 0.15, y - 0.12], [x, y - 0.06], [x - 0.05, y + 0.06], [t + 0.15, y + 0.04]], 'accent')),
+        // torpedo body lying on its white belly, belly down to the snow
+        blob([[t, 0.55], [t - 0.05, 0.1], [-0.5, -0.38], [0.4, -0.45], [n - 0.15, -0.2], [n + 0.05, 0.3], [n - 0.2, 0.72], [-0.5, 0.82], [t + 0.2, 0.75]], 'body', {}, 2),
+        blob([[t + 0.15, 0.62], [-0.3, 0.38], [0.5, 0.3], [n - 0.05, 0.38], [n - 0.25, 0.7], [-0.4, 0.8]], 'white', {}, 2),
+        poly([[-0.15, 0.05], [0.3, 0.12], [-0.6, 0.45], [-0.75, 0.35]], 'dark'),
+        // head at the front: white cheek, eye, orange beak, a red scarf
+        blob([[n - 0.25, -0.38], [n + 0.1, -0.3], [n + 0.25, 0.0], [n + 0.1, 0.28], [n - 0.35, 0.2]], 'body', {}, 1),
+        ell(n - 0.02, -0.05, 0.12, 0.1, 'white'), circ(n + 0.03, -0.07, 0.05, 'black'),
+        poly([[n + 0.18, -0.08], [n + 0.55, 0.02], [n + 0.2, 0.1]], 'accent'),
+        rr(n - 0.45, -0.38, n - 0.25, 0.22, 0.05, 'red'), poly([[n - 0.42, -0.2], [n - 0.8, -0.35], [n - 0.75, -0.18], [n - 0.4, -0.08]], 'red'),
+        // ice spray at the belly
+        ...[[t - 0.1, 0.78], [t - 0.3, 0.7]].map(([x, y]) => circ(x, y, 0.06, 'sky')),
+      ];
+    },
   }],
-  ['penguin-minions', 'Penguin Minions', 'Пінгвін-солдат у касці зі сніжкометом.', 'blob', ['#1a1a2a', '#ffa020'], {
-    o: o({ shape: 'egg' }), parts: ['gun'], noLights: true, hideParts: true,
-    skin: () => [
-      blob([[-0.75, 0.2], [-0.95, -0.35], [-0.6, -1.05], [0.0, -1.3], [0.6, -1.05], [0.95, -0.35], [0.75, 0.2]], 'body', {}, 2),
-      ell(0.25, -0.35, 0.55, 0.6, 'white'), ...eyeball(0.45, -0.95, 0.1),
-      poly([[0.75, -0.85], [0.75, -0.72], [1.1, -0.78]], 'orange'),
-      blob([[-0.65, -1.05], [0.65, -1.05], [0.45, -1.38], [-0.45, -1.38]], 'leaf', {}, 1), rr(-0.75, -1.1, 0.75, -1.0, 0.04, 'leaf'),
-      rr(-0.2, -0.55, 0.25, -0.35, 0.04, 'dark'), ...path([[0.2, -0.45], [1.05, -0.55]], 0.14, 'grey'), rr(0.95, -0.62, 1.12, -0.46, 0.03, 'black'), circ(-0.3, -0.42, 0.12, 'white'),
-      starShape(-0.05, -1.22, 0.1, 'yellow'), rr(-0.8, 0.12, 0.8, 0.28, 0.05, 'dark'),
-    ],
+  ['penguin-minions', 'Penguin Minions', 'Візок пінгвінів. Запускає пінгвіна, що ковзає по землі на суперника.', 'cart', ['#3a8ad8', '#ffa020'], {
+    o: o({ len: 1.05 }), wheelie: 0.6, noLights: true,
+    gun: (f) => ({ at: [[f.nose.x + 0.25, -0.35]], aim: 5 }),
+    skin: (f) => {
+      const x0 = f.tail.x, x1 = f.nose.x, top = f.deck.y;
+      const peng = (x: number, y: number, s: number): CarPoly[] => [
+        blob([[x - 0.2 * s, y + 0.3], [x - 0.22 * s, y - 0.1], [x, y - 0.32 * s], [x + 0.22 * s, y - 0.1], [x + 0.2 * s, y + 0.3]], 'black', {}, 1),
+        ell(x + 0.05 * s, y, 0.13 * s, 0.17 * s, 'white'), circ(x + 0.08 * s, y - 0.12 * s, 0.04, 'black'),
+        poly([[x + 0.16 * s, y - 0.1 * s], [x + 0.34 * s, y - 0.05 * s], [x + 0.16 * s, y - 0.0 * s]], 'accent'),
+      ];
+      return [
+        // penguins crowding the wagon, one in front ready to launch
+        ...peng(x0 + 0.28, top - 0.28, 1.15), ...peng(x1 - 0.55, top - 0.3, 1.15), ...peng(x1 - 0.2, top - 0.22, 1.05),
+        // wooden wagon tub with planks and a pull handle
+        blob([[x0, top + 0.05], [x1, top + 0.05], [x1 - 0.15, 0.2], [x0 + 0.15, 0.2]], 'body', {}, 1),
+        ...[x0 + 0.35, 0, x1 - 0.35].map((x) => rect(x - 0.02, top + 0.08, x + 0.02, 0.15, 'dark', { flat: true })),
+        rr(x0 - 0.05, top - 0.02, x1 + 0.05, top + 0.08, 0.03, 'accent'),
+        ...path([[x1 - 0.05, top + 0.3], [x1 + 0.35, top + 0.1], [x1 + 0.42, top + 0.18]], 0.06, 'dark'),
+        starShape(0, top + 0.32, 0.12, 'accent'),
+      ];
+    },
   }],
   ['snowball-tank', 'Snowball Tank', 'Білий броньовик для снігових баталій.', 'tracked', ['#e0e8f0', '#3a8ad8'], {
     gun: () => ({ at: [[1.38, -0.89]], aim: 21 }),

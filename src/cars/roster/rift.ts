@@ -1,7 +1,8 @@
 import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe, tank } from '../draw';
-import { arc, beast, boxy, carriage, dinoHead, hover, pickup, tail, tracks, monsterTruck } from '../skins';
+import { arc, boxy, carriage, hover, pickup, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
+import { dims, saddle, theropod, arm, pincer, maw } from '../critters';
 import { group, o } from './util';
 
 function base(f: Frame, mat: CarMat = 'body', h = 0.38): CarPoly[] {
@@ -145,15 +146,20 @@ export const RIFT = group('rift', [
     o: o({ neck: 'raptor', len: 1.3, tall: 0.7 }), parts: ['tail'], noLights: true, hideParts: true,
     skin: (f) => {
       const L = 1.3;
+      const spine: [number, number][] = [[f.tail.x - 1.0, -0.55], [f.tail.x - 0.4, -0.2], [-0.7, -0.45], [0.0, -0.22], [0.7, -0.42], [1.05 * L, -0.55]];
       return [
-        ...path([[f.tail.x + 0.2, -0.25], [f.tail.x - 0.3, -0.45], [f.tail.x - 0.7, -0.2], [f.tail.x - 1.0, -0.35]], 0.22, 'body'),
-        ...beast(f, { rx: 1.35, ry: 0.3, belly: 'teal' }),
-        ...path([[0.9 * L, -0.25], [1.2 * L, -0.55]], 0.3, 'body'),
-        blob([[1.05 * L, -0.8], [1.5 * L, -0.85], [1.8 * L, -0.65], [1.75 * L, -0.45], [1.15 * L, -0.42]], 'body', {}, 1),
-        ...[[-0.9, -0.3], [-0.4, -0.35], [0.1, -0.35], [0.6, -0.3]].map(([x, y]) => circ(x, y, 0.07, 'accent')),
-        circ(1.5 * L, -0.68, 0.08, 'accent'), rect(1.35 * L, -0.55, 1.78 * L, -0.5, 'black'), ...fangs(1.38 * L, 1.75 * L, -0.55, 4, 0.07),
-        ...path([[1.3 * L, -0.85], [1.25 * L, -1.15], [1.45 * L, -1.3]], 0.04, 'grey'), circ(1.47 * L, -1.32, 0.07, 'light'),
-        ...spikesAlong(-1.0, 0.8, -0.3, 8, 0.12, 'teal'), circ(1.52 * L, -0.7, 0.03, 'white'),
+        // undulating eel body riding low over the wheels, ribbon fin along the back
+        ...path(spine.map(([x, y]) => [x, y - 0.18] as [number, number]), 0.12, 'teal'),
+        ...path(spine, 0.42, 'body'),
+        ...path(spine.slice(1).map(([x, y]) => [x, y + 0.14] as [number, number]), 0.1, 'grey'),
+        ...spine.slice(1, -1).map(([x, y]) => circ(x, y - 0.03, 0.07, 'accent')),
+        rr(f.wheels[0].x - 0.2, -0.05, f.wheels[1].x + 0.2, 0.1, 0.04, 'dark'),
+        // angler head: wide jaw of needle teeth, glowing lure on a stalk, pale eye
+        blob([[1.0 * L, -0.85], [1.45 * L, -0.92], [1.85 * L, -0.7], [1.85 * L, -0.38], [1.1 * L, -0.3], [0.95 * L, -0.5]], 'body', {}, 1),
+        ...maw(1.25 * L, 1.85 * L, -0.5, 0.14, 5),
+        ...path([[1.3 * L, -0.9], [1.25 * L, -1.2], [1.48 * L, -1.32]], 0.04, 'grey'), circ(1.5 * L, -1.32, 0.08, 'accent'),
+        circ(1.42 * L, -0.72, 0.08, 'sky'), circ(1.44 * L, -0.72, 0.035, 'black'),
+        ...saddle(f.head.x, f.head.y + 0.2, 'teal'),
       ];
     },
   }],
@@ -283,16 +289,24 @@ export const RIFT = group('rift', [
     ],
   }],
   ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол: найсильніший удар клешнею у світі.', 'creature', ['#e04a3a', '#5ad0f0'], {
-    o: o({ neck: 'raptor' }), parts: ['claw'], noLights: true,
+    o: o({ neck: 'raptor' }), parts: ['claw'], noLights: true, hideParts: true,
     skin: (f) => {
-      const h = dinoHead('raptor');
+      const { rear, front } = dims(f);
       return [
-        poly([[f.tail.x + 0.1, -0.3], [f.tail.x - 0.45, -0.55], [f.tail.x - 0.35, -0.2], [f.tail.x - 0.45, 0.1]], 'accent'),
-        ...beast(f, { ry: 0.38 }),
-        ...[-0.8, -0.5, -0.2, 0.1, 0.4, 0.7].map((x, i) => rect(x, -0.58, x + 0.1, 0.15, i % 2 ? 'accent' : 'orange', { flat: true })),
-        ...h.polys,
-        ...path([[1.3, -0.85], [1.4, -1.15]], 0.05, 'accent'), circ(1.42, -1.2, 0.09, 'yellow'), circ(1.45, -1.2, 0.04, 'black'),
-        ...path([[1.55, -0.85], [1.75, -1.15]], 0.04, 'accent'), ...path([[1.7, -0.72], [2.05, -1.0]], 0.04, 'accent'),
+        ...pincer(f, (f.nose.y0 + f.nose.y1) / 2, 'body', 'accent'),
+        // fan tail
+        ...[-0.35, 0, 0.35].map((a) => poly([[f.tail.x + 0.15, -0.3], [f.tail.x - 0.5, -0.3 + a * 1.2 - 0.12], [f.tail.x - 0.5, -0.3 + a * 1.2 + 0.12]], 'accent')),
+        // walking legs onto the wheels
+        ...[rear, front].flatMap((x) => [-0.12, 0.12].flatMap((d) => path([[x + d, -0.2], [x + d + 0.1, 0.05], [x + d, 0.25]], 0.06, 'orange'))),
+        // segmented armoured body in rainbow bands
+        blob([[f.tail.x + 0.1, -0.05], [f.tail.x + 0.15, -0.5], [-0.5, -0.72], [0.6, -0.72], [1.1, -0.5], [1.15, -0.1], [0.5, 0.05], [-0.6, 0.05]], 'body', {}, 2),
+        ...[-0.85, -0.5, -0.15, 0.2, 0.55].map((x, i) => rect(x, -0.68, x + 0.1, 0.0, (['accent', 'green', 'yellow', 'accent', 'green'] as const)[i], { flat: true })),
+        ...spikesAlong(-0.9, 0.9, -0.66, 6, 0.1, 'orange'),
+        // head with stalked eyes and long feelers
+        blob([[0.95, -0.75], [1.45, -0.72], [1.7, -0.45], [1.45, -0.25], [1.0, -0.25]], 'body', {}, 1),
+        ...[[1.25, -1.2], [1.5, -1.12]].flatMap(([x, y]) => [...path([[x - 0.05, -0.7], [x, y]], 0.06, 'accent'), circ(x, y, 0.1, 'green'), circ(x + 0.03, y, 0.045, 'black')]),
+        ...path([[1.6, -0.7], [1.9, -1.15], [2.15, -1.25]], 0.04, 'accent'), ...path([[1.65, -0.55], [2.05, -0.85]], 0.04, 'accent'),
+        ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
   }],
@@ -310,7 +324,7 @@ export const RIFT = group('rift', [
       ...[-0.8, -0.4, 0.2, 0.5].map((x) => circ(x, -0.15, 0.04, 'dark')), rr(-1.0, 0.1, 0.9, 0.26, 0.05, 'dark'),
     ],
   }],
-  ['rift-spider', 'Rift Spider', 'Кіберпавук розлому: стріляє павутиною, що зупиняє суперника.', 'tracked', ['#2a2a3a', '#e02a2a'], {
+  ['rift-spider', 'Rift Spider', 'Кіберпавук розлому: стріляє павутиною, що зупиняє суперника.', 'tracked', ['#5a3a8a', '#ff3a6a'], {
     s: 0.9,
     skin: () => [
       ...[-1.4, -0.9, -0.4, 0.4, 0.9, 1.4].map((x) => path([[x * 0.4, -0.35], [x * 0.95, -1.0], [x * 1.25, 0.25]], 0.12, 'black')).flat(),
@@ -323,15 +337,15 @@ export const RIFT = group('rift', [
   }],
   ['mini-dino', 'Mini Dino', 'Малий допоміжний юніт порталу — крихітний динозаврик.', 'creature', ['#6aa04a', '#ffd23f'], {
     s: 0.75, o: o({ neck: 'raptor' }), parts: ['tail'], noLights: true, hideParts: true,
-    skin: (f) => {
-      const h = dinoHead('raptor');
-      return [
-        tail(f.tail.x, -0.3, 0.7), ...beast(f, { belly: 'cream' }), ...h.polys,
-        ...[[-0.4, -0.35, 0.12], [0.2, -0.45, 0.1]].map(([x, y, r]) => circ(x, y, r, 'accent')),
-        ...eyeball(h.eye[0], h.eye[1], 0.11),
-        ...spikesAlong(-0.8, 0.6, -0.58, 5, 0.12, 'accent'),
-      ];
-    },
+    skin: (f) => [
+      ...theropod(f, { bulk: 0.85, tail: 0.6, tailUp: 0.15, stripes: 'accent', belly: 'cream' }),
+      // big cute head with a wide grin
+      blob([[0.62, -0.75], [1.0, -0.98], [1.12, -0.6], [0.85, -0.42]], 'body', {}, 1),
+      blob([[0.95, -1.05], [1.35, -1.12], [1.78, -0.88], [1.8, -0.6], [1.15, -0.55], [0.95, -0.72]], 'body', {}, 1),
+      arc(1.5, -0.78, 0.22, Math.PI * 0.2, Math.PI * 0.75, 0.05, 'dark'),
+      ...eyeball(1.3, -0.88, 0.11),
+      ...arm(0.85, -0.42),
+    ],
   }],
   ['mini-tentacle', 'Mini Tentacle', 'Малий щупальцевий юніт з одним оком.', 'blob', ['#7a3ae0', '#5ef0ff'], {
     s: 0.8, parts: ['tentacles'], noLights: true, hideParts: true,
