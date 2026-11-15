@@ -1,6 +1,6 @@
 import { tailgate } from '../art';
 import { beacon, blob, bumper, checkers, circ, door, ell, fender, flameDecal, grille, headlight, ladder, lightbar, pane, path, plus, poly, rect, rr, seat, seg, spare, stack, starShape, stripe, taillight, tank, truss, windows } from '../draw';
-import { bike, boxy, carriage, fenders, formula, kart, monsterChassis, pickup, sedan, tracks, tractor, truckCab } from '../skins';
+import { dragsterBody, bike, boxy, carriage, fenders, formula, kart, monsterChassis, pickup, sedan, tracks, tractor, truckCab } from '../skins';
 import type { CarPoly } from '../types';
 import type { Frame, LinkSpec } from '../factory';
 import { group, o } from './util';
@@ -46,7 +46,7 @@ export const RETRO = group('retro', [
       seg([f.tail.x + 0.3, -0.15], [f.tail.x + 0.25, -0.75], 0.08, 'black'), seg([f.tail.x + 0.55, -0.15], [f.tail.x + 0.4, -0.75], 0.08, 'black'),
       rr(f.tail.x - 0.05, -0.92, f.tail.x + 0.65, -0.72, 0.04, 'accent'), ...checkers(f.tail.x + 0.0, -0.88, f.tail.x + 0.6, -0.76, 6),
       rr(f.tail.x - 0.35, -0.12, f.tail.x + 0.1, 0.12, 0.05, 'grey'), rr(f.tail.x - 0.45, -0.08, f.tail.x - 0.3, 0.08, 0.03, 'red'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.16], [f.nose.x - 0.3, 0.02], [f.nose.x, 0.08], [f.nose.x, 0.16], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
+      ...dragsterBody(f),
       ...seat(-0.95, -0.15, 0.45),
       rr(-0.5, -0.5, -0.15, -0.28, 0.05, 'chrome'), rect(-0.45, -0.58, -0.2, -0.5, 'black'),
       stripe(-0.6, f.nose.x - 0.3, -0.02, 0.07, 'accent'),
@@ -575,7 +575,7 @@ export const RETRO = group('retro', [
     skin: (f) => [
       poly([[f.tail.x + 0.4, -0.15], [f.tail.x - 0.1, -1.0], [f.tail.x + 0.35, -0.95], [f.tail.x + 1.0, -0.15]], 'accent'),
       rr(f.tail.x - 0.35, -0.12, f.tail.x + 0.1, 0.12, 0.05, 'grey'), rr(f.tail.x - 0.45, -0.08, f.tail.x - 0.3, 0.08, 0.03, 'red'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.16], [f.nose.x - 0.3, 0.02], [f.nose.x, 0.08], [f.nose.x, 0.16], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
+      ...dragsterBody(f),
       ...seat(-0.95, -0.15, 0.45, 'accent'),
       starShape(0.4, 0.02, 0.16), starShape(1.3, 0.08, 0.1), starShape(f.tail.x + 0.4, -0.6, 0.14, 'white'),
     ],

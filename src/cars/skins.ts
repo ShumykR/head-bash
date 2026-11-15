@@ -235,18 +235,32 @@ export function formula(f: Frame, o: { mat?: CarMat; wing?: CarMat; num?: boolea
   // rear wing on struts
   out.push(seg([x0 + 0.3, -0.05], [x0 + 0.25, -0.55], 0.08, 'dark'));
   out.push(rr(x0 - 0.05, -0.68, x0 + 0.55, -0.5, 0.04, wg));
-  // body: engine cover rising behind the head, long nose
-  out.push(blob([[x0 + 0.1, 0.18], [x0 + 0.1, -0.06], [hx - 0.55, -0.12], [hx - 0.3, -0.38], [hx - 0.05, -0.2], [hx + 0.55, -0.16], [x1 - 0.2, -0.02], [x1, 0.06], [x1 - 0.05, 0.12], [hx + 0.4, 0.2]], m, {}, 1));
-  out.push(blob([[hx - 0.6, 0.18], [hx - 0.55, -0.02], [hx + 0.45, -0.04], [hx + 0.55, 0.18]], m, {}, 1));
-  out.push(rect(hx - 0.5, -0.05, hx + 0.4, 0.0, 'dark', { flat: true }));
+  // body: tall engine cover behind the head, chunky sidepods, long nose
+  out.push(blob([[x0 + 0.1, 0.24], [x0 + 0.05, -0.12], [hx - 0.6, -0.22], [hx - 0.32, -0.48], [hx - 0.05, -0.28], [hx + 0.55, -0.2], [x1 - 0.2, -0.04], [x1 + 0.02, 0.06], [x1 - 0.05, 0.16], [hx + 0.4, 0.26]], m, {}, 1));
+  out.push(blob([[hx - 0.7, 0.3], [hx - 0.62, -0.08], [hx + 0.5, -0.1], [hx + 0.62, 0.3]], m, {}, 1));
+  // livery band and a side intake
+  out.push(poly([[x0 + 0.1, -0.02], [hx + 0.6, 0.02], [x1 - 0.1, 0.04], [x1 - 0.1, 0.1], [hx + 0.6, 0.1], [x0 + 0.1, 0.1]], wg, { flat: true }));
+  out.push(rr(hx - 0.55, 0.12, hx - 0.15, 0.24, 0.04, 'black'));
   // intake above the helmet's back and cockpit rim
-  out.push(rr(hx - 0.42, -0.42, hx - 0.18, -0.26, 0.05, 'dark'));
-  out.push(pane(hx + 0.15, -0.36, hx + 0.38, -0.14, 0.12, 0));
+  out.push(rr(hx - 0.45, -0.55, hx - 0.15, -0.36, 0.05, 'dark'));
+  out.push(pane(hx + 0.15, -0.38, hx + 0.4, -0.16, 0.12, 0));
   // front wing
-  out.push(rr(x1 - 0.5, 0.12, x1 + 0.08, 0.2, 0.03, wg));
-  out.push(rect(x1 - 0.06, 0.04, x1 + 0.06, 0.2, wg));
-  if (o.num) out.push(circ(hx + 0.85, 0.02, 0.1, 'white'));
+  out.push(rr(x1 - 0.5, 0.12, x1 + 0.08, 0.22, 0.03, wg));
+  out.push(rect(x1 - 0.06, 0.02, x1 + 0.08, 0.22, wg));
+  out.push(rr(x0 - 0.06, -0.08, x0 + 0.06, 0.06, 0.03, 'red'));
+  if (o.num) out.push(circ(hx + 0.2, -0.04, 0.12, 'white'));
   return out;
+}
+
+/** Dragster hull: a deep tub around the driver tapering into a long nose, with a livery band. */
+export function dragsterBody(f: Frame, mat: CarMat = 'body', band: CarMat = 'accent'): CarPoly[] {
+  const x0 = f.tail.x, x1 = f.nose.x;
+  return [
+    blob([[x0 + 0.3, 0.34], [x0 + 0.25, -0.24], [-0.62, -0.38], [-0.3, -0.22], [x1 - 0.6, -0.06], [x1, 0.04], [x1 + 0.02, 0.2], [x0 + 0.4, 0.36]], mat, {}, 1),
+    poly([[-0.4, 0.04], [x1 - 0.1, 0.08], [x1 - 0.1, 0.14], [-0.4, 0.16]], band, { flat: true }),
+    rr(x0 + 0.35, 0.18, -0.6, 0.3, 0.04, 'dark'),
+    rr(x1 - 0.14, 0.02, x1 + 0.02, 0.1, 0.03, 'light'),
+  ];
 }
 
 /** Go-kart: low tray, bumper, steering column, seat. */

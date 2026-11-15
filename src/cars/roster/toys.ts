@@ -1,5 +1,5 @@
 import { blob, checkers, circ, ell, eyeball, fangs, flameDecal, grille, lightbar, ladder, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, tank } from '../draw';
-import { beast, boxy, dinoHead, fenders, formula, hover, monsterChassis, pickup, rocket, sedan, tracks } from '../skins';
+import { beast, boxy, dragsterBody, dinoHead, fenders, formula, hover, monsterChassis, pickup, rocket, sedan, tracks } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { group, o } from './util';
@@ -8,13 +8,25 @@ import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
 
-/** Low wedge sports body used by most toy racers. */
-function wedge(f: Frame, mat: CarMat = 'body', canopy: CarMat = 'glass'): CarPoly[] {
+/**
+ * Low wedge sports body used by most toy racers: a chunky hull that wraps the wheel tops,
+ * a two-tone swoosh down the flank, a side intake, a ducktail spoiler and corner lamps.
+ */
+function wedge(f: Frame, mat: CarMat = 'body', canopy: CarMat = 'glass', swoosh: CarMat = 'accent'): CarPoly[] {
   const x0 = f.tail.x, x1 = f.nose.x;
+  const bot = 0.42;
   return [
-    blob([[x0, 0.24], [x0 - 0.04, -0.14], [x0 + 0.5, -0.2], [-0.55, -0.24], [0.6, -0.24], [x1 - 0.2, -0.04], [x1 + 0.02, 0.1], [x1 - 0.1, 0.26]], mat, {}, 1),
-    blob([[-0.55, -0.22], [-0.3, -0.48], [0.05, -0.5], [0.5, -0.22]], canopy, {}, 1),
-    ...fenders(f, mat, 0.09),
+    blob([[x0 + 0.04, bot], [x0 - 0.04, -0.1], [x0 + 0.1, -0.36], [x0 + 0.45, -0.36], [-0.7, -0.34], [0.45, -0.3], [x1 - 0.3, -0.08], [x1 + 0.03, 0.08], [x1 + 0.02, 0.3], [x1 - 0.12, bot]], mat, {}, 1),
+    // flank swoosh: thin at the nose, widening toward the tail
+    poly([[x1 - 0.3, 0.1], [x1 - 0.05, 0.12], [x0 + 0.3, 0.08], [x0 + 0.12, -0.14], [x0 + 0.55, -0.16]], swoosh, { flat: true }),
+    rr(-0.25, 0.14, 0.35, 0.26, 0.04, 'black'),
+    ...[0, 1, 2].map((i) => rect(-0.2 + i * 0.18, 0.17, -0.12 + i * 0.18, 0.23, 'dark', { flat: true })),
+    blob([[-0.66, -0.32], [-0.4, -0.58], [0.0, -0.6], [0.5, -0.3]], canopy, {}, 1),
+    // ducktail spoiler
+    poly([[x0 + 0.02, -0.34], [x0 - 0.08, -0.54], [x0 + 0.38, -0.52], [x0 + 0.45, -0.34]], mat),
+    rect(x0 - 0.08, -0.56, x0 + 0.4, -0.5, swoosh, { flat: true }),
+    rr(x1 - 0.14, 0.02, x1 + 0.03, 0.12, 0.03, 'light'), rr(x0 - 0.06, -0.12, x0 + 0.06, 0.02, 0.03, 'red'),
+    rr(x1 - 0.4, bot - 0.08, x1 + 0.06, bot + 0.02, 0.04, 'dark'),
   ];
 }
 const skull = (x: number, y: number, r: number): CarPoly[] => [
@@ -157,7 +169,7 @@ export const TOYS = group('toys', [
     parts: ['booster'], hideParts: true,
     skin: (f) => [
       rr(f.tail.x - 0.35, -0.12, f.tail.x + 0.1, 0.12, 0.05, 'grey'), rr(f.tail.x - 0.45, -0.08, f.tail.x - 0.3, 0.08, 0.03, 'red'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.16], [f.nose.x - 0.3, 0.02], [f.nose.x, 0.08], [f.nose.x, 0.16], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
+      ...dragsterBody(f),
       ...seat(-0.95, -0.15, 0.45, 'accent'),
       starShape(0.6, 0.05, 0.15, 'accent'),
       ...[-1.2, -0.8].map((x) => poly([[x - 0.15, -0.15], [x + 0.15, -0.15], [x, -0.42]], 'gold')),
@@ -340,7 +352,7 @@ export const TOYS = group('toys', [
     parts: ['horns', 'booster'], hideParts: true,
     skin: (f) => [
       rr(f.tail.x - 0.35, -0.12, f.tail.x + 0.1, 0.12, 0.05, 'grey'), rr(f.tail.x - 0.45, -0.08, f.tail.x - 0.3, 0.08, 0.03, 'red'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.16], [f.nose.x - 0.3, 0.02], [f.nose.x, 0.08], [f.nose.x, 0.16], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
+      ...dragsterBody(f),
       ...seat(-0.95, -0.15, 0.45, 'black'),
       ...[-0.55, -0.2].map((x) => [rr(x, -0.52, x + 0.28, -0.18, 0.05, 'chrome'), ...[0, 1, 2].map((i) => rect(x + 0.02 + i * 0.09, -0.66, x + 0.08 + i * 0.09, -0.52, 'chrome'))]).flat(),
       
@@ -361,7 +373,7 @@ export const TOYS = group('toys', [
     parts: [['spikes', 0.55]],
     skin: (f) => [
       rr(f.tail.x - 0.1, -0.1, f.tail.x + 0.2, 0.12, 0.05, 'grey'),
-      blob([[f.tail.x + 0.3, 0.22], [f.tail.x + 0.35, -0.22], [-0.6, -0.3], [-0.2, -0.16], [f.nose.x - 0.3, 0.02], [f.nose.x, 0.08], [f.nose.x, 0.16], [f.tail.x + 0.4, 0.26]], 'body', {}, 1),
+      ...dragsterBody(f),
       ...[-1.6, -1.2, -0.8].map((x) => rect(x, -0.2, x + 0.3, 0.2, 'body', { ring: true })),
       ...path([[0.0, -0.32], [2.6, -0.36]], 0.07, 'wood'), poly([[2.5, -0.44], [2.5, -0.28], [2.95, -0.36]], 'spike'),
       blob([[-0.45, -0.18], [0.1, -0.18], [0.05, 0.22], [-0.15, 0.34], [-0.35, 0.22]], 'accent', {}, 1), rect(-0.18, -0.15, -0.12, 0.25, 'white', { flat: true }), rect(-0.35, 0.0, 0.05, 0.05, 'white', { flat: true }),
