@@ -1,5 +1,5 @@
-import { blob, bumper, circ, ell, eyeball, fangs, headlight, path, poly, rect, rr, seat, seg, spikesAlong, stripe, taillight, windows } from '../draw';
-import { beast, bike, carriage, fenders, hover, loco, pickup } from '../skins';
+import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows } from '../draw';
+import { beast, bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
 import type { CarPoly } from '../types';
 import { group, o } from './util';
 
@@ -22,7 +22,7 @@ export const HALLOWEEN = group('halloween', [
     // Physically an open bed (the coffin lies in it); the skin closes it into a hearse body.
     o: o({ len: 1.15 }), cargo: ['coffin', 1],
     skin: (f) => {
-      const x0 = f.tail.x, x1 = f.nose.x, top = f.roof.y, bot = f.nose.y1;
+      const x0 = f.tail.x, x1 = f.nose.x, top = f.roof.y, bot = skirt(f, f.nose.y1);
       return [
         blob([[x0, bot], [x0, top + 0.15], [x0 + 0.15, top], [f.roof.x1 + 0.05, top], [0.95, -0.3], [x1 - 0.1, -0.22], [x1, -0.05], [x1, bot]], 'body', {}, 1),
         poly([[f.roof.x1 + 0.05, top + 0.08], [0.88, -0.32], [f.roof.x1 + 0.05, -0.32]], 'glass'),
@@ -31,7 +31,8 @@ export const HALLOWEEN = group('halloween', [
         ...path([[x0 + 1.3, top + 0.15], [x0 + 1.55, top + 0.35], [x0 + 1.3, top + 0.55]], 0.05, 'chrome'),
         stripe(x0, x1, 0.02, 0.05, 'chrome'),
         rr(x0 + 0.1, top - 0.06, f.roof.x1 - 0.1, top + 0.02, 0.03, 'chrome'),
-        headlight(x1 - 0.06, 0.08, 0.09), taillight(x0, 0.06, 0.09),
+        ...frontLamp(x1, 0.04), rearLamp(x0, 0.04), stripe(x0 + 0.1, x1 - 0.2, -0.08, 0.04, 'accent'),
+        ...grille(x1 - 0.1, 0.08, x1 + 0.02, 0.3, 2), poly([[x0 + 0.62, top + 0.62], [x0 + 0.74, top + 0.62], [x0 + 0.74, top + 0.95], [x0 + 0.62, top + 0.95]], 'gold'), rect(x0 + 0.54, top + 0.7, x0 + 0.82, top + 0.76, 'gold'),
         bumper(x1 - 0.2, x1 + 0.06, bot - 0.04, 0.12), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.12),
       ];
     },
@@ -47,7 +48,9 @@ export const HALLOWEEN = group('halloween', [
       ...[0.75, 0.9, 1.05, 1.2].map((x, i) => poly([[x - 0.12, -0.45 - i * 0.12], [x + 0.08, -0.58 - i * 0.12], [x - 0.18, -0.85 - i * 0.12]], 'brown')),
       poly([[1.22, -1.08], [1.34, -1.1], [1.27, -1.3]], 'tan'),
       circ(1.5, -0.95, 0.05, 'black'), circ(1.82, -0.82, 0.04, 'black'),
-      blob([[-0.45, -0.58], [0.25, -0.58], [0.2, -0.3], [-0.4, -0.3]], 'red', {}, 1), rect(-0.12, -0.3, -0.05, 0.15, 'gold'),
+      blob([[-0.5, -0.6], [0.3, -0.6], [0.25, -0.18], [-0.45, -0.18]], 'red', {}, 1), rect(-0.5, -0.24, 0.27, -0.18, 'gold', { flat: true }), rect(-0.12, -0.18, -0.05, 0.15, 'gold'),
+      ...path([[1.45, -0.9], [1.1, -0.65], [0.3, -0.62]], 0.04, 'black'), rect(1.35, -1.0, 1.42, -0.78, 'black'),
+      rr(-1.2, 0.3, 1.2, 0.42, 0.05, 'wood'),
       ...path([[-0.95, -0.3], [-1.35, -0.1], [-1.4, 0.2]], 0.14, 'brown'),
     ],
   }],
@@ -55,7 +58,8 @@ export const HALLOWEEN = group('halloween', [
     o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'],
     skin: (f) => [
       blob([[f.tail.x + 0.1, f.deck.y + 0.15], [f.tail.x, f.deck.y - 0.35], [f.tail.x + 0.3, f.deck.y - 0.1], [f.nose.x - 0.2, f.deck.y - 0.15], [f.nose.x, f.deck.y - 0.6], [f.nose.x + 0.05, f.deck.y + 0.1], [f.nose.x - 0.2, 0.18], [f.tail.x + 0.2, 0.18]], 'gold', {}, 1),
-      circ(0.05, -0.2, 0.26, 'accent'), circ(0.05, -0.2, 0.1, 'gold'),
+      stripe(f.tail.x + 0.15, f.nose.x - 0.1, f.deck.y - 0.02, 0.06, 'accent'), stripe(f.tail.x + 0.15, f.nose.x - 0.1, 0.12, 0.06, 'accent'),
+      circ(0.05, -0.2, 0.3, 'dark'), circ(0.05, -0.2, 0.26, 'accent'), starShape(0.05, -0.2, 0.16, 'gold'),
       ...path([[f.nose.x - 0.1, f.deck.y], [f.nose.x + 0.55, f.deck.y - 0.25]], 0.06, 'wood'),
       ...path([[f.tail.x + 0.2, f.deck.y - 0.1], [f.tail.x + 0.15, f.deck.y - 0.7]], 0.05, 'wood'), poly([[f.tail.x + 0.18, f.deck.y - 0.7], [f.tail.x + 0.6, f.deck.y - 0.6], [f.tail.x + 0.18, f.deck.y - 0.45]], 'accent'),
     ],
@@ -65,6 +69,7 @@ export const HALLOWEEN = group('halloween', [
     skin: (f) => [
       ...pickup(f),
       ...[[-1.2, 0.0], [-0.2, 0.1], [0.9, -0.05]].map(([x, y]) => ell(x, y, 0.16, 0.1, 'orange')),
+      ...[-1.3, -0.8, -0.3, 0.2, 0.7, 1.2].map((x) => circ(x, 0.22, 0.03, 'grey')), rect(f.tail.x + 0.05, -0.12, f.nose.x - 0.1, -0.08, 'black', { flat: true }),
       ...[-1.4, -0.95, -0.5].flatMap((x) => [rect(x, f.deck.y - 0.25, x + 0.06, f.deck.y, 'grey')]),
       rect(f.roof.x0 + 0.1, f.roof.y + 0.08, f.roof.x1 - 0.05, f.roof.y + 0.2, 'grey'), ...[0, 1, 2, 3].map((i) => rect(f.roof.x0 + 0.15 + i * 0.16, f.roof.y + 0.2, f.roof.x0 + 0.2 + i * 0.16, f.nose.y0 - 0.06, 'grey', { flat: true })),
     ],
@@ -77,6 +82,8 @@ export const HALLOWEEN = group('halloween', [
       ...path([[0.05, f.roof.y], [0.25, f.roof.y - 0.3], [0.45, f.roof.y - 0.35]], 0.07, 'leaf'), ell(0.35, f.roof.y - 0.12, 0.18, 0.08, 'leaf'),
       ...path([[-0.6, f.roof.y + 0.1], [-0.9, f.roof.y - 0.2], [-1.0, f.roof.y - 0.05]], 0.04, 'leaf'),
       ...[-1.0, 1.0].map((x) => path([[x, 0.12], [x * 1.1, 0.4]], 0.05, 'gold')).flat(),
+      rr(-0.3, f.roof.y + 0.3, 0.3, f.roof.y + 0.75, 0.15, 'gold'), rr(-0.24, f.roof.y + 0.36, 0.24, f.roof.y + 0.69, 0.12, 'glass'),
+      ...[-0.9, 0.9].map((x) => path([[x, 0.15], [x + 0.15 * Math.sign(x), 0.0], [x + 0.05 * Math.sign(x), -0.1]], 0.05, 'gold')).flat(),
     ],
   }],
   ['ghost-train', 'Ghost Train', 'Примарний паротяг: проходить крізь суперника, як туман.', 'loco', ['#d0d8e4', '#8a7ab0'], {
@@ -90,27 +97,29 @@ export const HALLOWEEN = group('halloween', [
   ['broom-bike', 'Broom Bike', 'Відьмина мітла з моторчиком. Злітає й ширяє над ареною.', 'bike', ['#a0703a', '#e0c060'], {
     o: o({ mat: 'wood' }), float: 0.7, noLights: true,
     skin: (f) => [
-      ...path([[-0.65, -0.1], [f.nose.x + 0.2, -0.25]], 0.1, 'wood'),
-      ...[-0.15, -0.05, 0.05, 0.15].map((d) => poly([[-0.6, -0.12 + d * 0.5], [-0.6, -0.04 + d * 0.5], [-1.4, d * 2.5]], 'tan')),
-      rr(-0.72, -0.22, -0.58, 0.05, 0.03, 'red'),
-      rr(-0.1, -0.12, 0.35, 0.15, 0.05, 'grey'), ...path([[0.0, 0.15], [-0.4, 0.22]], 0.06, 'chrome'),
+      ...path([[-0.65, -0.1], [f.nose.x + 0.2, -0.25]], 0.14, 'wood'),
+      ...[-0.2, -0.1, 0.0, 0.1, 0.2].map((d) => poly([[-0.6, -0.14 + d * 0.5], [-0.6, -0.02 + d * 0.5], [-1.5, d * 2.6]], d === 0 ? 'yellow' : 'tan')),
+      rr(-0.74, -0.26, -0.56, 0.08, 0.03, 'red'),
+      ell(0.12, 0.02, 0.32, 0.2, 'black'), rr(-0.22, -0.2, 0.46, -0.12, 0.03, 'grey'), ...path([[-0.1, 0.15], [-0.5, 0.24]], 0.07, 'chrome'),
+      circ(0.12, 0.04, 0.08, 'green'),
       seg([-0.4, -0.1], [-0.6, 0.3], 0.05, 'wood'), seg([0.6, -0.2], [0.85, 0.3], 0.05, 'wood'),
       poly([[-0.42, -0.95], [0.12, -0.95], [-0.05, -1.5], [-0.25, -1.3]], 'black'), rr(-0.55, -1.0, 0.25, -0.92, 0.03, 'black'), rect(-0.4, -1.06, 0.1, -1.0, 'purple', { flat: true }),
     ],
   }],
   ['invisible-car', 'Invisible Car', 'Прозорий парящий кузов. На мить зникає зовсім.', 'hover', ['#c0e8ff', '#ffffff'], {
     o: o({ mat: 'glass' }),
-    skin: (f) => [...hover(f, { mat: 'glass', glow: 'white', canopy: 'white' }), stripe(f.tail.x + 0.1, f.nose.x - 0.2, -0.05, 0.05, 'white')],
+    skin: (f) => [...hover(f, { mat: 'glass', glow: 'sky', canopy: 'white' }), stripe(f.tail.x + 0.1, f.nose.x - 0.2, -0.05, 0.05, 'white'), ...[[-1.0, -0.5], [0.3, -0.6], [0.9, -0.2]].map(([x, y]) => starShape(x, y, 0.08, 'white'))],
   }],
   ['skeletal-ride', 'Skeletal Ride', 'Багі з кісток із черепом спереду. Кидається кістками.', 'buggy', ['#e8dcc0', '#2a2a2a'], {
     o: o({ mat: 'bone' }), parts: ['skull'], hideParts: true,
     skin: (f) => [
-      ...path([[f.tail.x, 0.1], [f.nose.x - 0.2, 0.05]], 0.14, 'bone'),
-      ...[-1.0, -0.7, -0.4, -0.1, 0.2].map((x) => path([[x, 0.05], [x + 0.05, -0.25], [x + 0.15, -0.3]], 0.07, 'bone')).flat(),
-      ...path([[-0.8, 0.05], [-0.65, -0.95], [0.3, -0.95]], 0.09, 'bone'), seg([0.62, -0.05], [0.48, -0.42], 0.09, 'bone'),
+      ...path([[f.tail.x, 0.1], [f.nose.x - 0.2, 0.05]], 0.18, 'bone'), ...[-1.2, -0.8, -0.4, 0.0, 0.4].map((x) => circ(x, 0.08, 0.1, 'bone')),
+      ...[-1.0, -0.7, -0.4, -0.1, 0.2].map((x) => path([[x, 0.05], [x + 0.05, -0.28], [x + 0.18, -0.34]], 0.1, 'bone')).flat(),
+      ...path([[-0.8, 0.05], [-0.65, -0.95], [0.3, -0.95]], 0.12, 'bone'), seg([0.62, -0.05], [0.48, -0.42], 0.12, 'bone'),
+      ...[[-0.65, -0.95], [0.3, -0.95]].map(([x, y]) => circ(x, y, 0.09, 'bone')),
       ...seat(f.head.x + 0.05, -0.1, 0.4, 'black'),
       circ(f.nose.x - 0.25, -0.18, 0.3, 'bone'), rr(f.nose.x - 0.42, -0.02, f.nose.x - 0.08, 0.15, 0.04, 'bone'),
-      circ(f.nose.x - 0.32, -0.2, 0.08, 'black'), circ(f.nose.x - 0.12, -0.2, 0.07, 'black'),
+      circ(f.nose.x - 0.32, -0.2, 0.08, 'black'), circ(f.nose.x - 0.12, -0.2, 0.07, 'black'), circ(f.nose.x - 0.32, -0.2, 0.035, 'green'), circ(f.nose.x - 0.12, -0.2, 0.03, 'green'),
       ...[0, 1, 2].map((i) => rect(f.nose.x - 0.38 + i * 0.1, 0.04, f.nose.x - 0.34 + i * 0.1, 0.15, 'black', { flat: true })),
     ],
   }],
@@ -124,6 +133,9 @@ export const HALLOWEEN = group('halloween', [
       
       poly([[f.nose.x - 0.75, -0.55], [f.nose.x - 0.35, -0.42], [f.nose.x - 0.4, -0.32], [f.nose.x - 0.72, -0.4]], 'yellow'),
       circ(f.nose.x - 0.5, -0.4, 0.04, 'black'),
+      ...[[-1.1, -0.35, 0.12], [-0.6, -0.55, 0.1], [-0.2, -0.3, 0.14], [0.3, -0.65, 0.09], [-0.9, -0.05, 0.08]].map(([x, y, r]) => ell(x, y, r, r * 0.7, 'purple')),
+      ...[0.95, 1.1].map((x) => ell(f.nose.x - 0.2 + x - 1.0, -0.28, 0.03, 0.02, 'black')),
+      ...f.wheels.map((w) => poly([[w.x - 0.25, w.y - w.r - 0.02], [w.x + 0.25, w.y - w.r - 0.02], [w.x, w.y - w.r - 0.2]], 'dark')),
       poly([[f.nose.x - 0.9, -0.15], [f.nose.x + 0.05, -0.2], [f.nose.x - 0.05, 0.05], [f.nose.x - 0.85, 0.05]], 'black'),
       ...fangs(f.nose.x - 0.85, f.nose.x - 0.05, -0.17, 5, 0.14), ...fangs(f.nose.x - 0.8, f.nose.x - 0.1, 0.05, 4, 0.1, true),
     ],
@@ -133,7 +145,7 @@ export const HALLOWEEN = group('halloween', [
     skin: (f) => [
       blob([[-0.6, -0.15], [-1.0, -0.5], [-1.5, -0.4], [-1.25, -0.1], [-1.6, 0.1], [-1.2, 0.2], [-0.6, 0.2]], 'white', {}, 1),
       ...bike(f, { mat: 'accent' }),
-      ell(0.42, -0.15, 0.06, 0.08, 'black'), ell(0.57, -0.15, 0.06, 0.08, 'black'),
+      ell(0.42, -0.25, 0.06, 0.08, 'black'), ell(0.57, -0.25, 0.06, 0.08, 'black'), ell(0.5, -0.1, 0.05, 0.04, 'black'),
     ],
   }],
   ['pumpkin-car', 'Pumpkin Car', 'Гарбуз-ліхтар на колесах із вирізаною усмішкою.', 'blob', ['#ff7a1a', '#2a8a3a'], {
@@ -141,6 +153,8 @@ export const HALLOWEEN = group('halloween', [
     skin: () => [
       ...jackOLantern(0, -0.38, 0.98, 0.72),
       ...path([[-0.05, -1.08], [0.05, -1.4], [0.25, -1.45]], 0.1, 'leaf'), ell(0.25, -1.12, 0.2, 0.08, 'leaf'),
+      ...path([[-0.3, -1.05], [-0.6, -1.2], [-0.8, -1.05], [-0.75, -0.9]], 0.04, 'leaf'),
+      rr(-0.85, 0.12, 0.85, 0.28, 0.06, 'dark'), bumper(0.6, 1.0, 0.24, 0.1), bumper(-1.0, -0.6, 0.24, 0.1),
     ],
   }],
   ['dracula-carriage', 'Dracula\'s Carriage', 'Готична карета вампіра. Розкриває кажанячі крила й летить.', 'carriage', ['#2a1a2a', '#c02a3a'], {
@@ -153,6 +167,7 @@ export const HALLOWEEN = group('halloween', [
       ...fenders(f, 'black', 0.08),
       ...path([[f.nose.x - 0.3, -0.2], [f.nose.x - 0.3, -0.75]], 0.05, 'black'), ell(f.nose.x - 0.3, -0.85, 0.12, 0.15, 'red'), rect(f.nose.x - 0.42, -1.04, f.nose.x - 0.18, -0.98, 'gold'),
       ...eyeball(-0.25, f.roof.y + 0.35, 0.05, 'red'), ...eyeball(0.0, f.roof.y + 0.35, 0.05, 'red'),
+      poly([[-0.3, f.roof.y + 0.85], [0.0, f.roof.y + 0.75], [0.3, f.roof.y + 0.85], [0.15, f.roof.y + 0.9], [0.0, f.roof.y + 0.83], [-0.15, f.roof.y + 0.9]], 'accent'),
     ],
   }],
 ]);

@@ -338,6 +338,12 @@ export function carriage(f: Frame, o: { mat?: CarMat; top?: number; trim?: CarMa
   out.push(rr(f.tail.x + 0.05, 0.06, f.nose.x - 0.05, 0.18, 0.04, 'dark'));
   out.push(blob([[x0 + 0.1, 0.18], [x0 - 0.05, top + 0.25], [x0 + 0.25, top], [x1 - 0.25, top], [x1 + 0.05, top + 0.25], [x1 - 0.1, 0.18]], m, {}, 1));
   out.push(rr(x0 - 0.12, top - 0.08, x1 + 0.12, top + 0.04, 0.03, o.trim ?? 'gold'));
+  // gilded belt and base, a door with a window, coach lamps at both corners
+  const tr = o.trim ?? 'gold', mid = (x0 + x1) / 2;
+  out.push(rect(x0, (top + 0.18) / 2 + 0.05, x1, (top + 0.18) / 2 + 0.09, tr, { flat: true }));
+  out.push(rr(x0 + 0.02, 0.1, x1 - 0.02, 0.18, 0.03, tr));
+  out.push(rect(mid - 0.2, top + 0.18, mid + 0.2, 0.14, m, { ring: true }), rr(mid - 0.13, top + 0.25, mid + 0.13, top + 0.48, 0.05, 'glass'));
+  for (const x of [x0 - 0.08, x1 + 0.08]) out.push(rect(x - 0.03, top + 0.3, x + 0.03, top + 0.45, 'black'), rr(x - 0.07, top + 0.12, x + 0.07, top + 0.3, 0.03, tr), rect(x - 0.04, top + 0.16, x + 0.04, top + 0.26, 'light'));
   return out;
 }
 
@@ -380,8 +386,13 @@ export function hover(f: Frame, o: { mat?: CarMat; glow?: CarMat; canopy?: CarMa
     rr(x0 + 0.3, 0.12, x1 - 0.4, 0.26, 0.06, o.glow ?? 'light'),
     blob([[x0, 0.14], [x0 - 0.05, -0.28], [x0 + 0.5, -0.34], [x1 - 0.7, -0.36], [x1 + 0.05, -0.04], [x1 - 0.1, 0.16]], m, {}, 1),
     blob([[-0.75, -0.32], [-0.45, -0.72], [0.2, -0.74], [0.65, -0.34]], o.canopy ?? 'glass', {}, 1),
-    rect(x0 + 0.1, -0.05, x1 - 0.3, 0.0, 'accent', { flat: true }),
-    rr(x0 - 0.12, -0.24, x0 + 0.08, 0.06, 0.04, 'grey'),
+    poly([[x0 + 0.1, -0.08], [x1 - 0.3, -0.04], [x1 - 0.3, 0.04], [x0 + 0.1, 0.02]], 'accent', { flat: true }),
+    rr(x0 - 0.12, -0.24, x0 + 0.08, 0.06, 0.04, 'grey'), ell(x0 - 0.16, -0.09, 0.05, 0.1, o.glow ?? 'light'),
+    // thruster pods under the hull and a tail fin
+    ...[x0 + 0.5, x1 - 0.7].map((x) => rr(x - 0.25, 0.08, x + 0.25, 0.24, 0.07, 'grey')),
+    ...[x0 + 0.5, x1 - 0.7].map((x) => rr(x - 0.18, 0.2, x + 0.18, 0.3, 0.04, o.glow ?? 'light')),
+    poly([[x0 + 0.05, -0.28], [x0 - 0.1, -0.62], [x0 + 0.2, -0.6], [x0 + 0.45, -0.3]], 'accent'),
+    rr(x1 - 0.2, -0.14, x1 + 0.02, -0.04, 0.03, 'light'),
   ];
 }
 
@@ -402,6 +413,10 @@ export function loco(f: Frame, o: { mat?: CarMat; boiler?: CarMat; trim?: CarMat
   out.push(poly([[x1 - 0.55, -0.62], [x1 - 0.3, -0.62], [x1 - 0.22, -1.15], [x1 - 0.63, -1.15]], 'black'));
   out.push(rr(x1 - 0.68, -1.25, x1 - 0.17, -1.12, 0.04, o.trim ?? 'gold'));
   out.push(ell(x0 + 2.0, -0.68, 0.18, 0.12, o.trim ?? 'gold'));
+  for (let x = x0 + 1.4; x < x1 - 0.3; x += 0.2) out.push(circ(x, -0.08, 0.03, 'grey'));
+  out.push(rect(x0 + 1.3, -0.5, x1 - 0.2, -0.46, 'chrome'));
+  out.push(rect(x0 + 0.15, -0.6, x0 + 0.95, -0.55, o.trim ?? 'gold', { flat: true }));
+  out.push(rr(x0 - 0.12, 0.0, x0 + 0.05, 0.2, 0.04, 'dark'), rr(x1 + 0.2, 0.0, x1 + 0.36, 0.14, 0.04, 'dark'));
   // smokebox front and lamp
   out.push(circ(x1 + 0.02, -0.32, 0.3, 'grey'), headlight(x1 + 0.1, -0.75, 0.1));
   // cowcatcher
