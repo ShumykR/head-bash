@@ -1359,7 +1359,7 @@ export class Game {
       // anything higher is a beam overhead.
       this.world.rayCast(new Vec2(x + fx, y + fy - 1.5), new Vec2(x + fx, y + fy + 4), (fix, point) => {
         const k = tagOf(fix)?.kind;
-        if (fix.isSensor() || (k !== 'terrain' && k !== 'platform' && k !== 'field')) return -1;
+        if (fix.isSensor() || (k !== 'terrain' && k !== 'field')) return -1;
         g = Math.min(g, point.y);
         return -1;
       });

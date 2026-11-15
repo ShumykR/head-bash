@@ -131,3 +131,52 @@ export function dropTest(def: CarDef, h = 4.5) {
   }
   return { minT, maxT, bottomed, bounces, angle: car.angle };
 }
+
+/** A bowl for climbing tests: flat bottom `hw` m each side of centre, filleted into straight slopes of angle θ, flat rim. */
+function bowl(theta: number, friction: number, hw: number, depth = 2.2) {
+  const world = new World({ gravity: new Vec2(0, DEFAULT_GRAVITY) });
+  const t = Math.tan(theta), run = depth / t;
+  const pts: Vec2[] = [];
+  // top-left rim → left slope → bottom → right slope → rim, with a soft fillet at each corner
+  const raw: [number, number][] = [[-30, 0], [-hw - run, 0], [-hw, depth], [hw, depth], [hw + run, 0], [30, 0]];
+  const fillet = (a: [number, number], b: [number, number], c: [number, number], r: number) => {
+    const out: [number, number][] = [];
+    const v1 = [a[0] - b[0], a[1] - b[1]], v2 = [c[0] - b[0], c[1] - b[1]];
+    const l1 = Math.hypot(v1[0], v1[1]), l2 = Math.hypot(v2[0], v2[1]);
+    const p1 = [b[0] + (v1[0] / l1) * r, b[1] + (v1[1] / l1) * r], p2 = [b[0] + (v2[0] / l2) * r, b[1] + (v2[1] / l2) * r];
+    for (let i = 0; i <= 6; i++) {
+      const s = i / 6, q0x = p1[0] + (b[0] - p1[0]) * s, q0y = p1[1] + (b[1] - p1[1]) * s, q1x = b[0] + (p2[0] - b[0]) * s, q1y = b[1] + (p2[1] - b[1]) * s;
+      out.push([q0x + (q1x - q0x) * s, q0y + (q1y - q0y) * s]);
+    }
+    return out;
+  };
+  pts.push(new Vec2(raw[0][0], raw[0][1]));
+  for (let i = 1; i < raw.length - 1; i++) for (const p of fillet(raw[i - 1], raw[i], raw[i + 1], 1.5)) pts.push(new Vec2(p[0], p[1]));
+  pts.push(new Vec2(raw[raw.length - 1][0], raw[raw.length - 1][1]), new Vec2(30, 20), new Vec2(-30, 20));
+  const g = world.createBody({ type: 'static' });
+  g.createFixture({ shape: new Chain(pts, true), friction, filterCategoryBits: CAT.TERRAIN, filterMaskBits: MASK.TERRAIN, userData: { kind: 'terrain', mat: 'moon' } });
+  return world;
+}
+
+
+
+export interface ClimbResult { out: number; flipped: boolean }
+
+/**
+ * Starts from rest on the bottom of a pit with `deg`° walls and holds the throttle toward the right rim.
+ * `out` is the time in seconds to reach the rim (-1 = never in 12 s); `flipped` = tipped over on the slope.
+ */
+export function climbTest(def: CarDef, deg: number, hw = 0.6, friction = 0.85, depth = 2.2): ClimbResult {
+  const world = bowl((deg * Math.PI) / 180, friction, hw, depth);
+  const car = new Car(world, def, 0, 0, depth - 1.6, 1);
+  settle(world, car);
+  const run = depth / Math.tan((deg * Math.PI) / 180);
+  for (let i = 0; i < 60 * 12; i++) {
+    car.input = 1;
+    car.preStep(STEP_DT);
+    world.step(STEP_DT, VELOCITY_ITERS, POSITION_ITERS);
+    if (car.position.x > hw + run) return { out: i / 60, flipped: false };
+    if (Math.abs(car.angle) > 2.0 && car.position.x < hw + run - 1) return { out: -1, flipped: true };
+  }
+  return { out: -1, flipped: false };
+}
