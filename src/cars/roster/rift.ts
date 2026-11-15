@@ -1,5 +1,5 @@
-import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, stripe, tank } from '../draw';
-import { beast, boxy, carriage, dinoHead, hover, monsterChassis, pickup, tail, tracks } from '../skins';
+import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe, tank } from '../draw';
+import { arc, beast, boxy, carriage, dinoHead, hover, monsterChassis, pickup, tail, tracks } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { group, o } from './util';
@@ -7,9 +7,13 @@ import { group, o } from './util';
 function base(f: Frame, mat: CarMat = 'body', h = 0.38): CarPoly[] {
   const a = f.wheels[0], b = f.wheels[f.wheels.length - 1];
   const y = a.y - a.r - 0.06;
-  return [...tracks(f), blob([[a.x - a.r - 0.15, y + 0.04], [a.x - a.r - 0.05, y - h], [b.x + b.r - 0.35, y - h - 0.02], [b.x + b.r + 0.15, y - 0.06], [b.x + b.r, y + 0.04]], mat, {}, 1)];
+  return [
+    ...tracks(f), blob([[a.x - a.r - 0.15, y + 0.04], [a.x - a.r - 0.05, y - h], [b.x + b.r - 0.35, y - h - 0.02], [b.x + b.r + 0.15, y - 0.06], [b.x + b.r, y + 0.04]], mat, {}, 1),
+    rr(a.x - a.r - 0.1, y - 0.06, b.x + b.r + 0.05, y + 0.12, 0.04, mat, { ring: true }),
+    ...[0, 1, 2, 3, 4].map((i) => circ(a.x - a.r + (i * (b.x - a.x + 2 * a.r)) / 4, y + 0.03, 0.03, 'dark')),
+  ];
 }
-const crystal = (x: number, y: number, h: number, w: number, mat: CarMat = 'glass'): CarPoly => poly([[x - w / 2, y], [x - w * 0.6, y - h * 0.6], [x, y - h], [x + w * 0.6, y - h * 0.6], [x + w / 2, y]], mat);
+const crystal = (x: number, y: number, h: number, w: number, mat: CarMat = 'white'): CarPoly => poly([[x - w / 2, y], [x - w * 0.6, y - h * 0.6], [x, y - h], [x + w * 0.6, y - h * 0.6], [x + w / 2, y]], mat);
 const tentacles = (x: number, y: number, n: number, len: number, mat: CarMat = 'accent', dir = -1): CarPoly[] =>
   Array.from({ length: n }, (_, i) => path([[x, y + i * 0.12], [x + dir * len * 0.5, y + 0.15 + i * 0.2], [x + dir * len, y + 0.05 + i * 0.3], [x + dir * len * 1.1, y - 0.1 + i * 0.3]], 0.1 - i * 0.01, mat)).flat();
 const glowEyes = (x: number, y: number, n: number, mat: CarMat = 'accent'): CarPoly[] => Array.from({ length: n }, (_, i) => circ(x + i * 0.2, y - (i % 2) * 0.08, 0.07, mat));
@@ -19,8 +23,9 @@ export const RIFT = group('rift', [
     parts: ['crystals'], hideParts: true,
     skin: (f) => [
       ...base(f, 'purple'),
-      crystal(-1.45, -0.5, 0.9, 0.4, 'sky'), crystal(-1.1, -0.5, 1.6, 0.55), crystal(-0.75, -0.5, 1.1, 0.4, 'body'), crystal(0.35, -0.5, 0.5, 0.3, 'body'), crystal(0.75, -0.5, 0.95, 0.42), crystal(1.15, -0.5, 0.6, 0.32, 'sky'),
+      crystal(-1.45, -0.5, 0.9, 0.4, 'sky'), crystal(-1.1, -0.5, 1.6, 0.55, 'sky'), crystal(-0.75, -0.5, 1.1, 0.4, 'body'), crystal(0.35, -0.5, 0.5, 0.3, 'body'), crystal(0.75, -0.5, 0.95, 0.42), crystal(1.15, -0.5, 0.6, 0.32, 'sky'),
       stripe(-1.6, 1.6, -0.2, 0.06, 'white'),
+      ...[[-1.1, -1.4], [0.75, -1.0], [-0.75, -1.0]].map(([x, y]) => seg([x - 0.05, y + 0.1], [x + 0.03, y + 0.4], 0.04, 'white')),
     ],
   }],
   ['freezer', 'Freezer', 'Кріогенна машина з балоном рідкого азоту. Заморожує суперника.', 'box', ['#a8e0ff', '#ffffff'], {
@@ -33,9 +38,10 @@ export const RIFT = group('rift', [
       ...path([[-0.2, -0.85], [0.1, -1.05], [0.3, -1.05]], 0.06, 'grey'),
       ...[-1.2, -0.7, -0.2, 0.3].map((x) => poly([[x - 0.08, 0.3], [x + 0.08, 0.3], [x, 0.48]], 'white')),
       ...[0.5, 0.75].map((x) => ell(x, f.roof.y - 0.1, 0.1, 0.06, 'white')),
+      poly([[-0.4, -0.72], [-0.22, -0.42], [-0.58, -0.42]], 'yellow'), rect(-0.42, -0.62, -0.38, -0.5, 'black', { flat: true }),
     ],
   }],
-  ['harpoon', 'Harpoon', 'Платформа з гарпунною гарматою: б\'є і притягує суперника.', 'pickup', ['#5a6a7a', '#ffd23f'], {
+  ['harpoon', 'Harpoon', 'Платформа з гарпунною гарматою: б\'є і притягує суперника.', 'pickup', ['#3e6a9a', '#ffd23f'], {
     gun: (f) => ({ at: [[1.12, f.deck.y - 1.02]], aim: 20 }),
     parts: [['cannon', 1.2]], hideParts: true,
     skin: (f) => [
@@ -45,6 +51,8 @@ export const RIFT = group('rift', [
       ...path([[-0.2, f.deck.y - 0.55], [0.9, f.deck.y - 0.95]], 0.08, 'chrome'),
       poly([[0.9, f.deck.y - 1.05], [1.15, f.deck.y - 1.02], [0.95, f.deck.y - 0.85]], 'chrome'),
       stripe(f.tail.x, f.nose.x, 0.06, 0.06, 'accent'),
+      ...[0.07, 0.13].map((r) => circ(f.deck.x0 + 0.35, f.deck.y - 0.2, r, 'tan', { flat: true })).slice(0, 1), circ(f.deck.x0 + 0.35, f.deck.y - 0.2, 0.05, 'dark'),
+      rr(-0.35, f.deck.y - 0.75, -0.05, f.deck.y - 0.45, 0.04, 'grey'),
     ],
   }],
   ['mine-lander', 'Mine Lander', 'Гусеничний мінний загороджувач: закидає міни вперед.', 'tracked', ['#3a3a4a', '#ff3a3a'], {
@@ -53,7 +61,8 @@ export const RIFT = group('rift', [
       ...base(f),
       ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => poly([[-1.6 + i * 0.4, -0.18], [-1.4 + i * 0.4, -0.18], [-1.5 + i * 0.4, 0.0], [-1.7 + i * 0.4, 0.0]], 'yellow', { flat: true })),
       ...[0, 1, 2].map((i) => [circ(-0.9 + i * 0.5, -0.65, 0.2, 'dark'), circ(-0.9 + i * 0.5, -0.65, 0.07, 'red'), ...spikesAlong(-1.05 + i * 0.5, -0.75 + i * 0.5, -0.82, 2, 0.1, 'grey')]).flat(),
-      rr(0.75, -0.95, 1.4, -0.5, 0.06, 'body'), rect(0.95, -0.88, 1.32, -0.68, 'glass'),
+      rr(0.75, -0.95, 1.4, -0.5, 0.06, 'body'), rect(0.95, -0.88, 1.32, -0.68, 'glass'), rect(0.75, -0.62, 1.4, -0.58, 'accent', { flat: true }),
+      ...beacon(1.1, -0.95, 'red', 0.12),
     ],
   }],
   ['kraken-bait', 'Kraken\'s Bait', 'Бочка-приманка, з якої вже лізуть щупальця.', 'blob', ['#8a5a2a', '#3a3a3a'], {
@@ -61,7 +70,8 @@ export const RIFT = group('rift', [
     skin: () => [
       ...tentacles(-0.8, -0.5, 3, 0.7, 'pink'),
       blob([[-0.95, 0.35], [-1.0, -0.35], [-0.95, -1.05], [0.95, -1.05], [1.0, -0.35], [0.95, 0.35]], 'wood', {}, 1),
-      ...[-0.85, -0.25, 0.25].map((y) => rr(-1.0, y - 0.06, 1.0, y + 0.06, 0.03, 'dark')),
+      ...[-0.85, -0.25, 0.25].map((y) => [rr(-1.02, y - 0.06, 1.02, y + 0.06, 0.03, 'grey'), ...[-0.7, 0.0, 0.7].map((x) => circ(x, y, 0.025, 'dark'))]).flat(),
+      ...[-0.5, 0.1].map((x) => rect(x, -1.0, x + 0.03, 0.3, 'brown', { flat: true })), rr(-0.9, 0.3, 0.9, 0.44, 0.04, 'dark'),
       ...eyeball(0.5, -0.55, 0.12, 'red'),
       ...path([[0.6, -1.0], [0.75, -1.4], [0.95, -1.35]], 0.12, 'pink'), ...path([[-0.4, -1.0], [-0.5, -1.35], [-0.3, -1.45]], 0.1, 'pink'),
     ],
@@ -76,6 +86,8 @@ export const RIFT = group('rift', [
         circ(x - 0.04, f.deck.y - 0.45, 0.025, 'red'), circ(x + 0.04, f.deck.y - 0.45, 0.025, 'red'),
       ]).flat(),
       stripe(f.tail.x + 0.1, f.nose.x - 0.1, f.deck.y + 0.25, 0.06, 'accent'),
+      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'body')),
+      ...path([[f.nose.x - 0.1, f.deck.y - 0.7], [f.nose.x + 0.15, f.deck.y - 0.85]], 0.04, 'wood'), ell(f.nose.x + 0.18, f.deck.y - 0.7, 0.08, 0.11, 'light'),
     ],
   }],
   ['ghost-ship', 'Ghost Ship', 'Летючий корабель-привид із подертими вітрилами.', 'boat', ['#4a5a6a', '#a0f0d0'], {
@@ -83,7 +95,8 @@ export const RIFT = group('rift', [
     skin: (f) => [
       blob([[f.tail.x - 0.1, -0.85], [f.tail.x + 0.4, -0.55], [f.nose.x - 0.3, -0.5], [f.nose.x + 0.3, -0.6], [f.nose.x - 0.3, 0.05], [f.tail.x + 0.3, 0.1]], 'body', {}, 1),
       rr(f.tail.x - 0.1, -0.95, f.tail.x + 0.6, -0.5, 0.04, 'body'),
-      ...[-1.0, -0.5, 0.0, 0.5].map((x) => circ(x, -0.22, 0.08, 'accent')),
+      ...[-1.0, -0.5, 0.0, 0.5].map((x) => [circ(x, -0.22, 0.1, 'dark'), circ(x, -0.22, 0.07, 'accent')]).flat(),
+      ...[-0.38, 0.0].map((y) => stripe(f.tail.x + 0.4, f.nose.x - 0.4, y, 0.025, 'dark')), rr(f.tail.x + 0.3, 0.02, f.nose.x - 0.4, 0.12, 0.04, 'accent'),
       ...path([[0.1, -0.5], [0.1, -2.0]], 0.08, 'wood'),
       poly([[0.15, -1.9], [0.75, -1.85], [0.6, -1.5], [0.85, -1.3], [0.6, -1.1], [0.75, -0.75], [0.15, -0.7]], 'accent'),
       poly([[0.05, -1.75], [-0.6, -1.6], [-0.45, -1.2], [-0.65, -0.85], [0.05, -0.75]], 'accent'),
@@ -101,6 +114,8 @@ export const RIFT = group('rift', [
       blob([[f.deck.x1 + 0.12, f.deck.y - 1.12], [f.deck.x1 + 0.08, f.deck.y - 1.35], [f.deck.x1 + 0.2, f.deck.y - 1.5], [f.deck.x1 + 0.35, f.deck.y - 1.5], [f.deck.x1 + 0.45, f.deck.y - 1.35], [f.deck.x1 + 0.4, f.deck.y - 1.12]], 'accent', {}, 1),
       stripe(f.deck.x1 + 0.1, f.deck.x1 + 0.42, f.deck.y - 1.3, 0.04, 'brown'),
       circ(f.deck.x0 + 0.5, f.deck.y - 0.6, 0.08, 'dark'),
+      ...[-1.0, -0.4, 0.2].map((x) => circ(x, -0.38, 0.035, 'grey')), stripe(-1.5, 1.5, -0.2, 0.06, 'accent'),
+      ...path([[f.deck.x0 + 0.5, f.deck.y - 0.6], [f.deck.x0 + 0.2, f.deck.y - 0.1]], 0.03, 'tan'),
     ],
   }],
   ['ghost-dragon-summoner', 'Ghost Dragon Summoner', 'Платформа заклинача: кристали кличуть примарного дракона, що дихає вогнем.', 'carriage', ['#2a2a4a', '#7aff9a'], {
@@ -111,7 +126,8 @@ export const RIFT = group('rift', [
       ...path([[f.roof.x1 - 0.2, f.roof.y + 0.1], [f.roof.x1 + 0.3, f.roof.y - 0.3], [f.roof.x1 + 0.6, f.roof.y - 0.6]], 0.2, 'accent'),
       blob([[f.roof.x1 + 0.45, f.roof.y - 0.7], [f.roof.x1 + 0.85, f.roof.y - 0.78], [f.roof.x1 + 1.1, f.roof.y - 0.55], [f.roof.x1 + 0.55, f.roof.y - 0.45]], 'accent', {}, 1),
       circ(f.roof.x1 + 0.75, f.roof.y - 0.65, 0.05, 'white'), ...fangs(f.roof.x1 + 0.7, f.roof.x1 + 1.05, -0.0 + f.roof.y - 0.52, 3, 0.07),
-      ...[-0.6, 0.0, 0.6].map((x) => circ(x, f.roof.y + 0.45, 0.08, 'accent')),
+      ...[-0.6, 0.0, 0.6].map((x) => [circ(x, f.roof.y + 0.45, 0.11, 'dark'), circ(x, f.roof.y + 0.45, 0.07, 'accent')]).flat(),
+      ...[[-0.9, f.roof.y - 0.4], [0.4, f.roof.y - 0.6]].map(([x, y]) => starShape(x, y, 0.07, 'accent')),
     ],
   }],
   ['jelly-shock', 'Jelly Shock', 'Електрична медуза: б\'є струмом блискавкою.', 'blob', ['#ff7ad0', '#5ef0ff'], {
@@ -122,6 +138,7 @@ export const RIFT = group('rift', [
       ell(0, -0.75, 0.55, 0.3, 'pink'),
       ...eyeball(0.45, -0.5, 0.09), ...eyeball(0.15, -0.5, 0.08),
       ...[-0.5, 0.0].map((x) => poly([[x, -0.15], [x + 0.1, -0.15], [x + 0.04, 0.0], [x + 0.12, 0.0], [x - 0.04, 0.25], [x + 0.02, 0.05], [x - 0.06, 0.05]], 'accent', { flat: true })),
+      ell(-0.35, -0.95, 0.22, 0.08, 'white', { flat: true }), ...[[-0.6, -0.55], [-0.35, -0.3]].map(([x, y]) => circ(x, y, 0.05, 'white')), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'dark'),
     ],
   }],
   ['abyss-eel', 'Abyss Eel', 'Глибоководний вугор зі світними плямами.', 'creature', ['#2a4a6a', '#5ef0ff'], {
@@ -136,7 +153,7 @@ export const RIFT = group('rift', [
         ...[[-0.9, -0.3], [-0.4, -0.35], [0.1, -0.35], [0.6, -0.3]].map(([x, y]) => circ(x, y, 0.07, 'accent')),
         circ(1.5 * L, -0.68, 0.08, 'accent'), rect(1.35 * L, -0.55, 1.78 * L, -0.5, 'black'), ...fangs(1.38 * L, 1.75 * L, -0.55, 4, 0.07),
         ...path([[1.3 * L, -0.85], [1.25 * L, -1.15], [1.45 * L, -1.3]], 0.04, 'grey'), circ(1.47 * L, -1.32, 0.07, 'light'),
-        ...spikesAlong(-1.0, 0.8, -0.3, 8, 0.12, 'teal'),
+        ...spikesAlong(-1.0, 0.8, -0.3, 8, 0.12, 'teal'), circ(1.52 * L, -0.7, 0.03, 'white'),
       ];
     },
   }],
@@ -153,6 +170,7 @@ export const RIFT = group('rift', [
       ...eyeball(0.45, -0.55, 0.15),
       ell(0.88, -0.22, 0.09, 0.07, 'black'),
       poly([[-0.2, -0.95], [0.1, -1.25], [0.25, -0.9]], 'accent'),
+      ...[[-0.5, -0.6], [-0.3, -0.45], [-0.6, -0.3]].map(([x, y]) => circ(x, y, 0.05, 'orange')), ell(-0.3, -0.85, 0.2, 0.08, 'white', { flat: true }), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'dark'),
     ],
   }],
   ['cosmic-squid', 'Cosmic Squid', 'Космічний кальмар: пливе крізь повітря на щупальцях.', 'blob', ['#7a3ae0', '#ff7ad0'], {
@@ -163,6 +181,7 @@ export const RIFT = group('rift', [
       poly([[-0.2, -1.2], [0.1, -1.55], [0.4, -1.2]], 'accent'),
       ...eyeball(0.4, -0.45, 0.14),
       ...[[-0.3, -0.9, 0.1], [0.2, -1.05, 0.07], [-0.5, -0.4, 0.08], [0.0, -0.2, 0.06]].map(([x, y, r]) => circ(x, y, r, 'accent')),
+      ell(-0.15, -1.15, 0.15, 0.07, 'white', { flat: true }), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'dark'),
     ],
   }],
   ['space-scallop', 'Space Scallop', 'Броньований гребінець зі стулками-панцирем.', 'blob', ['#f0a0c0', '#ffffff'], {
@@ -171,7 +190,8 @@ export const RIFT = group('rift', [
       blob([[-1.25, -0.05], [-1.1, -0.55], [-0.5, -0.85], [0.5, -0.85], [1.1, -0.55], [1.25, -0.05]], 'body', {}, 2),
       ...[-0.95, -0.55, -0.15, 0.25, 0.65, 1.0].map((x) => seg([0, 0.1], [x, -0.65 + Math.abs(x) * 0.15], 0.07, 'accent')),
       rr(-1.3, -0.08, 1.3, 0.18, 0.1, 'pink'), poly([[-0.3, 0.1], [0.3, 0.1], [0.2, 0.3], [-0.2, 0.3]], 'accent'),
-      ...[-0.6, -0.2, 0.2, 0.6].map((x) => circ(x, 0.05, 0.05, 'sky')),
+      ...[-0.6, -0.2, 0.2, 0.6].map((x) => circ(x, 0.05, 0.05, 'sky')), circ(0.0, -0.05, 0.1, 'white'), circ(0.0, -0.05, 0.06, 'sky'),
+      ...[[-0.8, -0.45], [0.8, -0.45]].map(([x, y]) => ell(x, y, 0.1, 0.05, 'white', { flat: true })),
     ],
   }],
   ['atomic-ray', 'Atomic Ray', 'Гусеничний випромінювач атомних променів.', 'tracked', ['#3a3a4a', '#7aff3a'], {
@@ -182,7 +202,8 @@ export const RIFT = group('rift', [
       circ(0, -0.35, 0.22, 'yellow'), ...[0, 1, 2].map((i) => poly([[0, -0.35], [Math.cos(i * 2.1) * 0.2, -0.35 + Math.sin(i * 2.1) * 0.2], [Math.cos(i * 2.1 + 0.8) * 0.2, -0.35 + Math.sin(i * 2.1 + 0.8) * 0.2]], 'black', { flat: true })),
       rr(0.5, -0.9, 0.9, -0.45, 0.05, 'dark'), ...path([[0.7, -0.9], [1.3, -1.35]], 0.12, 'grey'),
       blob([[1.05, -1.55], [1.6, -1.35], [1.4, -1.05]], 'chrome', {}, 1), circ(1.32, -1.3, 0.08, 'accent'),
-      ...[-1.2, -0.9, -0.6].map((x) => tank(x - 0.12, x + 0.12, -0.68, 0.18, 'accent')),
+      ...[-1.2, -0.9, -0.6].map((x) => [tank(x - 0.12, x + 0.12, -0.68, 0.18, 'accent'), rect(x - 0.12, -0.72, x + 0.12, -0.66, 'dark', { flat: true })]).flat(),
+      ...[0, 1, 2].map((i) => poly([[0.5 + i * 0.14, -0.45], [0.58 + i * 0.14, -0.45], [0.64 + i * 0.14, -0.6], [0.56 + i * 0.14, -0.6]], 'yellow', { flat: true })),
     ],
   }],
   ['doom-bomber', 'Doom Bomber', 'Важкий бомбардувальник розломів: скидає бомби з ґнотом.', 'hover', ['#3a3a4a', '#e02a2a'], {
@@ -193,7 +214,7 @@ export const RIFT = group('rift', [
       ...hover(f, { glow: 'red', canopy: 'dark' }),
       ...[-0.8, -0.4, 0.0].map((x) => [circ(x, 0.28, 0.12, 'black'), seg([x, 0.16], [x + 0.06, 0.08], 0.03, 'tan')]).flat(),
       poly([[1.0, -0.2], [1.35, -0.12], [1.3, -0.05], [1.0, -0.1]], 'yellow'), circ(1.2, -0.12, 0.03, 'black'),
-      poly([[-0.6, 0.0], [0.6, 0.0], [-0.5, 0.4], [-0.9, 0.4]], 'body'),
+      poly([[-0.6, 0.0], [0.6, 0.0], [-0.5, 0.4], [-0.9, 0.4]], 'body'), ...[-0.4, 0.0].map((x) => circ(x, -0.15, 0.04, 'grey')), circ(-0.65, 0.2, 0.08, 'white'), rect(-0.67, 0.16, -0.63, 0.24, 'red', { flat: true }),
     ],
   }],
   ['specimen-x', 'Specimen X', 'Колба з мутантом на гусеницях. Мутант дивиться на тебе.', 'tracked', ['#5a6a7a', '#7aff3a'], {
@@ -203,7 +224,8 @@ export const RIFT = group('rift', [
       return [
         ...base(f),
         rr(cx - 0.75, y - 0.2, cx + 0.75, y + 0.05, 0.04, 'grey'), rr(cx - 0.75, y - 1.05, cx + 0.75, y - 0.92, 0.04, 'grey'),
-        rr(cx - 0.68, y - 0.95, cx + 0.68, y - 0.18, 0.15, 'glass'),
+        rr(cx - 0.68, y - 0.95, cx + 0.68, y - 0.18, 0.15, 'sky'), rect(cx - 0.55, y - 0.88, cx - 0.48, y - 0.3, 'white', { flat: true }),
+        ...[cx - 0.6, cx + 0.6].map((x) => circ(x, y - 0.12, 0.04, 'chrome')),
         ell(cx, y - 0.45, 0.4, 0.28, 'accent'), ...eyeball(cx + 0.05, y - 0.5, 0.15, 'red'),
         ...path([[cx - 0.3, y - 0.3], [cx - 0.5, y - 0.2]], 0.07, 'accent'), ...path([[cx + 0.3, y - 0.3], [cx + 0.5, y - 0.2]], 0.07, 'accent'),
         ...[cx - 0.45, cx + 0.15].map((x) => circ(x, y - 0.8, 0.04, 'white')),
@@ -217,6 +239,7 @@ export const RIFT = group('rift', [
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.1 + i * 0.36, f.roof.y + 0.1], [f.tail.x + 0.28 + i * 0.36, f.roof.y + 0.1], [f.tail.x + 0.12 + i * 0.36, f.roof.y + 0.4], [f.tail.x - 0.06 + i * 0.36, f.roof.y + 0.4]], 'accent', { flat: true })),
       circ(-0.4, -0.1, 0.22, 'black'), circ(-0.4, -0.1, 0.13, 'purple'), circ(-0.4, -0.1, 0.05, 'white'),
       ...[f.roof.x1 - 0.7, f.roof.x1 - 0.45].map((x) => rr(x, f.roof.y - 0.16, x + 0.2, f.roof.y, 0.05, 'red')),
+      rect(f.tail.x + 0.06, f.roof.y + 0.45, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }), poly([[0.2, -0.3], [0.38, 0.0], [0.02, 0.0]], 'yellow'),
     ],
   }],
   ['void-hopper', 'Void Hopper', 'Ровер порожнечі: стрибає крізь портали на кілька метрів.', 'buggy', ['#2a1a3a', '#c07aff'], {
@@ -227,6 +250,7 @@ export const RIFT = group('rift', [
       ell(0, 0.15, 0.35, 0.13, 'accent'), ell(0, 0.15, 0.2, 0.07, 'black'),
       ...path([[-0.85, -0.2], [-0.65, -0.95], [0.25, -0.95]], 0.08, 'accent'), seg([0.62, -0.15], [0.48, -0.42], 0.08, 'accent'),
       circ(f.nose.x - 0.15, -0.1, 0.07, 'light'),
+      ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'body')), stripe(f.tail.x + 0.2, f.nose.x - 0.2, -0.1, 0.04, 'accent'),
     ],
   }],
   ['rift-monster', 'Rift Monster', 'Істота з порталу: зникає й з\'являється ближче до тебе.', 'monster', ['#3a1a4a', '#ff3aa0'], {
@@ -239,6 +263,7 @@ export const RIFT = group('rift', [
       ...eyeball(f.nose.x - 0.6, -0.55, 0.12, 'accent'), ...eyeball(f.nose.x - 0.25, -0.55, 0.1, 'accent'), ...eyeball(f.nose.x - 0.42, -0.8, 0.07, 'accent'),
       poly([[f.nose.x - 0.85, -0.25], [f.nose.x + 0.08, -0.28], [f.nose.x, 0.05], [f.nose.x - 0.8, 0.05]], 'black'),
       ...fangs(f.nose.x - 0.83, f.nose.x + 0.05, -0.26, 6, 0.13), ...fangs(f.nose.x - 0.75, f.nose.x, 0.05, 5, 0.1, true),
+      ...spikesAlong(-1.2, 0.3, -0.9, 5, 0.18, 'accent'), ...stack(f.tail.x + 0.3, -0.5, 0.4, 0.1, 'purple'),
     ],
   }],
   ['void-engine', 'Void Engine', 'Монолітний двигун порожнечі: телепортується вперед.', 'box', ['#1a1a24', '#c07aff'], {
@@ -249,6 +274,7 @@ export const RIFT = group('rift', [
       circ(-0.3, -0.45, 0.36, 'accent'), circ(-0.3, -0.45, 0.25, 'black'), circ(-0.3, -0.45, 0.12, 'purple'), circ(-0.3, -0.45, 0.05, 'white'),
       ...[0, 1, 2, 3, 4, 5].map((i) => seg([-0.3 + Math.cos(i * 1.05) * 0.38, -0.45 + Math.sin(i * 1.05) * 0.38], [-0.3 + Math.cos(i * 1.05) * 0.48, -0.45 + Math.sin(i * 1.05) * 0.48], 0.06, 'accent')),
       stripe(f.tail.x, f.nose.x, -0.02, 0.05, 'accent'),
+      ...[f.tail.x + 0.2, f.tail.x + 0.5].map((x) => rect(x, f.roof.y + 0.15, x + 0.05, f.nose.y1 - 0.15, 'accent', { flat: true })),
     ],
   }],
   ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол: найсильніший удар клешнею у світі.', 'creature', ['#e04a3a', '#5ad0f0'], {
@@ -275,7 +301,8 @@ export const RIFT = group('rift', [
       ...path([[0.95, -0.45], [1.4, -1.1], [2.0, -1.35], [2.3, -1.1]], 0.16, 'black'),
       ...path([[f.nose.x - 0.05, -0.15], [f.nose.x + 0.7, -0.35], [f.nose.x + 1.25, -0.2]], 0.2, 'black'), ...path([[f.nose.x + 0.9, -0.33], [f.nose.x + 1.05, -0.6]], 0.1, 'black'),
       circ(1.05, -0.3, 0.05, 'red'),
-      ell(-0.5, -0.4, 0.25, 0.08, 'gold'),
+      ell(-0.5, -0.4, 0.25, 0.08, 'gold'), ell(0.3, -0.5, 0.2, 0.06, 'gold'),
+      ...[-0.8, -0.4, 0.2, 0.5].map((x) => circ(x, -0.15, 0.04, 'dark')), rr(-1.0, 0.1, 0.9, 0.26, 0.05, 'dark'),
     ],
   }],
   ['rift-spider', 'Rift Spider', 'Кіберпавук розлому: стріляє павутиною, що зупиняє суперника.', 'tracked', ['#2a2a3a', '#e02a2a'], {
@@ -286,6 +313,7 @@ export const RIFT = group('rift', [
       poly([[-0.6, -0.65], [-0.45, -0.45], [-0.6, -0.25], [-0.75, -0.45]], 'accent'), poly([[-0.6, -0.4], [-0.4, -0.2], [-0.8, -0.2]], 'accent'),
       ...glowEyes(0.7, -0.4, 3, 'red'),
       ...fangs(0.9, 1.05, -0.15, 2, 0.12),
+      ell(-0.8, -0.65, 0.2, 0.08, 'grey', { flat: true }), rr(-1.3, -0.1, 1.1, 0.06, 0.04, 'dark'), ...[-1.0, -0.4, 0.2, 0.8].map((x) => circ(x, -0.02, 0.03, 'red')),
     ],
   }],
   ['mini-dino', 'Mini Dino', 'Малий допоміжний юніт порталу — крихітний динозаврик.', 'creature', ['#6aa04a', '#ffd23f'], {
@@ -307,6 +335,7 @@ export const RIFT = group('rift', [
       ell(0, -0.35, 0.95, 0.72, 'body', {}, 28),
       ...eyeball(0.3, -0.5, 0.28, 'accent'),
       ...[[-0.5, -0.8], [-0.6, -0.2], [0.0, 0.1]].map(([x, y]) => circ(x, y, 0.07, 'accent')),
+      ell(-0.3, -0.85, 0.2, 0.08, 'white', { flat: true }), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'dark'),
     ],
   }],
   ['rift-cloud', 'Rift Cloud', 'Грозова хмара з розлому: пливе й іскрить.', 'blob', ['#c0b0e0', '#7a5ae0'], {
@@ -315,6 +344,7 @@ export const RIFT = group('rift', [
       poly([[0.1, 0.1], [0.32, 0.1], [0.18, 0.3], [0.34, 0.3], [0.0, 0.65], [0.1, 0.38], [-0.06, 0.38]], 'yellow'),
       ell(-0.6, -0.4, 0.55, 0.38, 'body'), ell(0.15, -0.55, 0.6, 0.45, 'body'), ell(0.85, -0.3, 0.45, 0.32, 'body'), ell(0, -0.1, 1.25, 0.3, 'accent'),
       ...eyeball(0.55, -0.32, 0.08, 'purple'), ...eyeball(0.85, -0.3, 0.07, 'purple'),
+      poly([[-0.6, 0.15], [-0.42, 0.15], [-0.52, 0.32], [-0.38, 0.32], [-0.68, 0.6], [-0.58, 0.38], [-0.72, 0.38]], 'yellow'), ell(-0.3, -0.75, 0.25, 0.08, 'white', { flat: true }),
       ...[[-0.8, -0.55], [0.0, -0.85]].map(([x, y]) => poly([[x, y], [x + 0.08, y - 0.12], [x + 0.04, y], [x + 0.12, y - 0.02], [x + 0.0, y + 0.15]], 'yellow', { flat: true })),
     ],
   }],
@@ -327,6 +357,7 @@ export const RIFT = group('rift', [
       poly([[-0.45, -0.95], [-0.15, -1.0], [-0.4, -1.4]], 'body'), poly([[0.15, -1.0], [0.45, -0.95], [0.35, -1.4]], 'body'),
       poly([[0.1, -0.68], [0.45, -0.58], [0.4, -0.45], [0.12, -0.52]], 'accent'), poly([[0.55, -0.6], [0.85, -0.68], [0.82, -0.52], [0.58, -0.47]], 'accent'),
       ...fangs(0.35, 0.65, -0.2, 2, 0.12),
+      ell(0.0, -0.05, 0.45, 0.25, 'purple'), ...[-0.5, -0.2].map((x) => circ(x, -0.75, 0.04, 'grey')), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'dark'),
     ],
   }],
 ]);
