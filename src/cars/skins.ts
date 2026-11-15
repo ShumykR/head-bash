@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt, WheelDef } from './types';
-import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, taillight, tank, windows } from './draw';
+import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, taillight, tank, windows } from './draw';
 
 /*
  * Skin templates: a good-looking base body per vehicle type, built around the
@@ -10,6 +10,29 @@ import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly
 
 const lastW = (f: Frame) => f.wheels.reduce((a, w) => (w.x > a.x ? w : a), f.wheels[0]);
 const firstW = (f: Frame) => f.wheels.reduce((a, w) => (w.x < a.x ? w : a), f.wheels[0]);
+
+// ---------------------------------------------------------------- shared trim
+
+/**
+ * Bottom of the drawn body: a little lower than the collision hull, so the body wraps the
+ * top of the wheels (arches) instead of floating over them as a thin slab. Render only.
+ */
+export function skirt(f: Frame, bot: number): number {
+  const wy = Math.min(...f.wheels.map((w) => w.y)), wr = Math.min(...f.wheels.map((w) => w.r));
+  return Math.max(bot, Math.min(bot + 0.16, wy + wr * 0.3));
+}
+
+/** Dark chassis showing under the body between the wheels (drawn first, behind the body). */
+export const underbody = (f: Frame, bot: number, x0?: number, x1?: number): CarPoly =>
+  rr(x0 ?? firstW(f).x - firstW(f).r * 0.6, bot - 0.12, x1 ?? lastW(f).x + lastW(f).r * 0.6, bot + 0.05, 0.04, 'black');
+/** Chunky lamp block at a body corner: yellow head lamp with an orange side marker. */
+export const frontLamp = (x1: number, y: number, h = 0.13): CarPoly[] => [
+  rr(x1 - 0.13, y - h / 2, x1 + 0.02, y + h / 2, 0.03, 'light'),
+  rect(x1 - 0.2, y - h / 2 + 0.02, x1 - 0.13, y + h / 2 - 0.02, 'orange', { flat: true }),
+];
+export const rearLamp = (x0: number, y: number, h = 0.13): CarPoly => rr(x0 - 0.02, y - h / 2, x0 + 0.1, y + h / 2, 0.03, 'red');
+/** Wing mirror at the foot of the windscreen. */
+export const mirror = (x: number, y: number): CarPoly[] => [seg([x - 0.04, y + 0.04], [x + 0.02, y - 0.04], 0.04, 'dark'), rr(x - 0.02, y - 0.1, x + 0.08, y - 0.02, 0.025, 'dark')];
 
 // ---------------------------------------------------------------- cars
 
@@ -29,13 +52,15 @@ export interface SedanOpts {
   fins?: boolean;
   /** Belt line override. */
   belt?: number;
+  /** Pinstripe colour along the belt (null = none; default accent). */
+  pin?: CarMat | null;
 }
 
 /** Saloon / coupe / hatch / wagon body with glass, doors, lights and bumpers. */
 export function sedan(f: Frame, o: SedanOpts = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const x0 = f.tail.x, x1 = f.nose.x;
-  const belt = o.belt ?? f.nose.y0, bot = f.nose.y1;
+  const belt = o.belt ?? f.nose.y0, bot = skirt(f, f.nose.y1);
   const style = o.roof ?? 'sedan';
   const top = o.top ?? f.roof.y;
   let rb = o.rx0 ?? f.roof.x0, rf = o.rx1 ?? f.roof.x1;
@@ -64,7 +89,10 @@ export function sedan(f: Frame, o: SedanOpts = {}): CarPoly[] {
   const dx0 = lowerOnly ? (x0 + x1) / 2 - 0.5 : wb + 0.1, dx1 = lowerOnly ? (x0 + x1) / 2 + 0.4 : wf - 0.1;
   const dw = (dx1 - dx0) / nd;
   for (let i = 0; i < nd; i++) out.push(...door(dx0 + i * dw + 0.02, belt + 0.02, dx0 + (i + 1) * dw - 0.02, bot - 0.08, m));
-  out.push(headlight(x1 - 0.1, belt + 0.12, 0.09), taillight(x0 + 0.0, belt + 0.12, 0.08));
+  // Pinstripe along the belt, chunky corner lamps, a wing mirror: what makes a hand-drawn car read at 18 px/m.
+  if (o.pin !== null) out.push(stripe(x0 + 0.12, x1 - 0.2, belt + 0.07, 0.045, o.pin ?? 'accent'));
+  out.push(...frontLamp(x1, belt + 0.13), rearLamp(x0, belt + 0.13));
+  if (!lowerOnly) out.push(...mirror(wf - 0.1, belt - 0.04));
   if (o.bumper !== null) {
     const bm = o.bumper ?? 'chrome';
     out.push(bumper(x1 - 0.22, x1 + 0.05, bot - 0.05, 0.11, bm), bumper(x0 - 0.05, x0 + 0.22, bot - 0.05, 0.11, bm));
@@ -99,7 +127,7 @@ export interface BoxOpts {
 export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
   const m = o.mat ?? 'body';
   const x0 = o.x0 ?? f.tail.x, x1 = o.x1 ?? f.nose.x;
-  const top = o.top ?? f.roof.y, bot = o.bot ?? f.nose.y1;
+  const top = o.top ?? f.roof.y, bot = o.bot ?? skirt(f, f.nose.y1);
   const sl = o.slope ?? 0.4, sh = o.slopeH ?? 0.5;
   const rd = o.round ?? 0.1;
   const out: CarPoly[] = [];
@@ -112,7 +140,8 @@ export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
     out.push(...windows(wx0, wx1, wy0, wy1, n, 0.08));
   }
   for (const dx of o.doors ?? []) out.push(rect(dx, top + 0.08, dx + 0.42, bot - 0.08, m, { ring: true }), rect(dx + 0.06, (top + bot) / 2, dx + 0.16, (top + bot) / 2 + 0.05, 'chrome', { flat: true }));
-  if (o.lights !== false) out.push(headlight(x1 - 0.06, bot - 0.2, 0.09), taillight(x0, bot - 0.22, 0.09));
+  if (o.lights !== false) out.push(...frontLamp(x1, bot - 0.22), rearLamp(x0, bot - 0.24, 0.16));
+  if (o.screen !== false) out.push(...mirror(x1 - sl - 0.06, top + sh + 0.06));
   if (o.bumper !== null) {
     const bm = o.bumper ?? 'chrome';
     out.push(bumper(x1 - 0.2, x1 + 0.06, bot - 0.04, 0.12, bm), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.12, bm));
@@ -123,7 +152,7 @@ export function boxy(f: Frame, o: BoxOpts = {}): CarPoly[] {
 /** Lorry cab at the front of a truck frame + chassis rails under the bed. */
 export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number; grille?: boolean; rails?: CarMat | null; stack?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
-  const x1 = f.nose.x, bot = f.nose.y1, top = o.top ?? f.roof.y;
+  const x1 = f.nose.x, bot = skirt(f, f.nose.y1), top = o.top ?? f.roof.y;
   const cx0 = o.x0 ?? f.roof.x0;
   const out: CarPoly[] = [];
   if (o.rails !== null) out.push(rr(f.tail.x, bot - 0.26, cx0 + 0.1, bot - 0.06, 0.04, o.rails ?? 'dark'));
@@ -135,7 +164,7 @@ export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number;
     out.push(rect(x1 - 0.1, top + 0.55, x1 + 0.02, bot - 0.12, 'chrome'));
     for (let y = top + 0.6; y < bot - 0.16; y += 0.1) out.push(rect(x1 - 0.08, y, x1, y + 0.04, 'black', { flat: true }));
   }
-  out.push(headlight(x1 - 0.04, bot - 0.2, 0.08), bumper(x1 - 0.25, x1 + 0.07, bot - 0.03, 0.12, 'chrome'));
+  out.push(...frontLamp(x1, bot - 0.2), bumper(x1 - 0.25, x1 + 0.07, bot - 0.03, 0.12, 'chrome'), ...mirror(x1 - 0.3, top + 0.42));
   if (o.stack) out.push(...stack(cx0 - 0.04, top + 0.5, 0.75, 0.09));
   return out;
 }
@@ -143,7 +172,7 @@ export function truckCab(f: Frame, o: { mat?: CarMat; x0?: number; top?: number;
 /** Pickup: cab + open bed. */
 export function pickup(f: Frame, o: { mat?: CarMat; open?: boolean } = {}): CarPoly[] {
   const m = o.mat ?? 'body';
-  const x0 = f.tail.x, x1 = f.nose.x, belt = f.nose.y0, bot = f.nose.y1, top = f.roof.y;
+  const x0 = f.tail.x, x1 = f.nose.x, belt = f.nose.y0, bot = skirt(f, f.nose.y1), top = f.roof.y;
   const out: CarPoly[] = [];
   const rb = f.roof.x0, rf = f.roof.x1;
   const pts: Pt[] = [[x0, bot], [x0, belt - 0.02], [rb - 0.08, belt - 0.02]];
@@ -153,7 +182,9 @@ export function pickup(f: Frame, o: { mat?: CarMat; open?: boolean } = {}): CarP
   if (!o.open) out.push(poly([[rb + 0.06, belt - 0.06], [rb + 0.06, top + 0.07], [rf - 0.02, top + 0.07], [rf + 0.2, belt - 0.06]], 'glass'));
   out.push(rect(x0 + 0.05, belt - 0.02, rb - 0.14, belt + 0.06, 'dark', { flat: true }));
   out.push(...door(rb - 0.02, belt + 0.02, rf + 0.3, bot - 0.1, m));
-  out.push(headlight(x1 - 0.08, belt + 0.14, 0.09), taillight(x0, belt + 0.14, 0.08));
+  out.push(stripe(x0 + 0.1, x1 - 0.2, belt + 0.08, 0.045, 'accent'));
+  out.push(...frontLamp(x1, belt + 0.14), rearLamp(x0, belt + 0.14));
+  if (!o.open) out.push(...mirror(rf + 0.22, belt - 0.04));
   out.push(bumper(x1 - 0.22, x1 + 0.06, bot - 0.04, 0.13), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.13));
   return out;
 }
