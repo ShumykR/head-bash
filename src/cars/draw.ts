@@ -218,3 +218,6 @@ export function flameDecal(x0: number, x1: number, y: number, h: number): CarPol
 export const spare = (x: number, y: number, r: number): CarPoly[] => [circ(x, y, r, 'rubber'), circ(x, y, r * 0.55, 'chrome'), circ(x, y, r * 0.18, 'dark')];
 /** Mirror an outline across the vertical axis x = cx. */
 export const mirrorX = (pts: Pt[], cx = 0): Pt[] => pts.map(([x, y]) => [2 * cx - x, y] as Pt).reverse();
+/** Move and scale a drawing (designed around the origin) into place; sx < 0 mirrors it. */
+export const place = (ps: CarPoly[], dx: number, dy: number, sx = 1, sy = Math.abs(sx)): CarPoly[] =>
+  ps.map((p) => ({ ...p, pts: (sx < 0 ? [...p.pts].reverse() : p.pts).map(([x, y]) => [+(x * sx + dx).toFixed(3), +(y * sy + dy).toFixed(3)] as Pt) }));

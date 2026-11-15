@@ -1,6 +1,7 @@
-import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe } from '../draw';
-import { beast, carriage, dinoHead, monsterChassis, rocket, tail, tracks } from '../skins';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, starShape, stripe } from '../draw';
+import { beast, carriage, dinoHead, rocket, tail, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
+import { browEye } from '../critters';
 import { group, o } from './util';
 
 /** Paper lantern hanging from a pole. */
@@ -76,17 +77,24 @@ export const CNY = group('cny', [
   ['dragon-monster', 'Dragon Monster', 'Монстр-трак із головою дракона. Пихкає вогнем.', 'monster', ['#e02a2a', '#ffd23f'], {
     o: o({ open: true }),
     parts: ['fangs', 'horns'], hideParts: true,
-    skin: (f) => [
-      ...monsterChassis(f),
-      blob([[f.tail.x, 0.08], [f.tail.x + 0.05, -0.6], [-0.4, -0.95], [0.5, -1.0], [f.nose.x - 0.1, -0.7], [f.nose.x + 0.15, -0.3], [f.nose.x, 0.08]], 'body', {}, 2),
-      ...scales(-1.3, 0.8, -0.3), ...spikesAlong(-1.3, 0.4, -0.85, 6, 0.2, 'gold'),
-      poly([[0.3, -0.98], [0.45, -0.95], [0.7, -1.4], [0.6, -1.42]], 'gold'), poly([[0.0, -0.98], [0.15, -1.0], [0.0, -1.4]], 'gold'),
-      ...eyeball(f.nose.x - 0.5, -0.55, 0.12, 'red'),
-      poly([[f.nose.x - 0.8, -0.2], [f.nose.x + 0.15, -0.25], [f.nose.x + 0.05, 0.0], [f.nose.x - 0.75, 0.0]], 'black'),
-      ...fangs(f.nose.x - 0.78, f.nose.x + 0.1, -0.22, 5, 0.12), ...fangs(f.nose.x - 0.7, f.nose.x, 0.0, 4, 0.1, true),
-      ...path([[f.nose.x - 0.05, -0.32], [f.nose.x + 0.35, -0.2], [f.nose.x + 0.45, -0.32]], 0.05, 'gold'),
-      ...stack(f.tail.x + 0.3, -0.5, 0.45, 0.1, 'gold'), ...path([[f.nose.x - 0.05, 0.02], [f.nose.x + 0.2, 0.06], [f.nose.x + 0.2, 0.3]], 0.12, 'gold'),
-    ],
+    skin: (f) => {
+      const x1 = f.nose.x, top = f.roof.y;
+      return [
+        ...monsterTruck(f, { lamps: false }),
+        // gold scales along the flanks, a spiny crest over the cab and down the bed
+        ...[-1.15, -0.85, -0.55, -0.25, 0.05, 0.35, 0.65].map((x) => arc(x, -0.32, 0.12, Math.PI * 0.05, Math.PI * 0.95, 0.05, 'accent')),
+        ...spikesAlong(f.roof.x0, f.roof.x1, top - 0.05, 4, 0.18, 'accent'),
+        ...spikesAlong(f.tail.x + 0.2, f.roof.x0 - 0.1, -0.62, 3, 0.15, 'accent'),
+        // the dragon head is the front end: horned brow, glowing eye, jaws with fangs, whiskers
+        blob([[x1 - 0.75, -0.55], [x1 - 0.5, -0.95], [x1 - 0.05, -0.85], [x1 + 0.22, -0.55], [x1 + 0.2, -0.38], [x1 - 0.7, -0.35]], 'body', {}, 1),
+        poly([[x1 - 0.62, -0.85], [x1 - 0.95, -1.25], [x1 - 0.4, -0.95]], 'gold'), poly([[x1 - 0.4, -0.92], [x1 - 0.55, -1.3], [x1 - 0.2, -0.9]], 'gold'),
+        ...browEye(x1 - 0.3, -0.7, 0.08, 'red'),
+        poly([[x1 - 0.55, -0.4], [x1 + 0.22, -0.42], [x1 + 0.18, -0.2], [x1 - 0.5, -0.22]], 'black', { flat: true }),
+        ...fangs(x1 - 0.45, x1 + 0.18, -0.41, 4, 0.1), ...fangs(x1 - 0.4, x1 + 0.12, -0.21, 3, 0.09, true),
+        ...path([[x1 + 0.15, -0.5], [x1 + 0.4, -0.6], [x1 + 0.5, -0.8]], 0.05, 'gold'),
+        circ(x1 + 0.12, -0.55, 0.035, 'black'),
+      ];
+    },
   }],
   ['zodiac-dog', 'Zodiacal Dog', 'Зодіакальний святковий пес у червоному шарфі.', 'creature', ['#e0a040', '#ffffff'], {
     parts: ['ears', 'tail'], noLights: true, hideParts: true,

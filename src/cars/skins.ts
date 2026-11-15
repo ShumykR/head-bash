@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt, WheelDef } from './types';
-import { arc, blob, bumper, circ, door, ell, fender, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, tank, windows } from './draw';
+import { arc, blob, bumper, circ, door, ell, fender, grille, headlight, pane, path, poly, rect, rr, seat, seg, stack, stripe, tank, windows } from './draw';
 
 /*
  * Skin templates: a good-looking base body per vehicle type, built around the
@@ -522,5 +522,35 @@ export function robot(f: Frame, o: { mat?: CarMat; face?: CarMat; arms?: boolean
     out.push(circ(-hw - 0.05, top + 0.3, 0.18, 'grey'), circ(hw + 0.05, top + 0.3, 0.18, 'grey'));
     out.push(rr(-hw - 0.35, top + 0.25, -hw - 0.05, top + 0.85, 0.1, 'chrome'), rr(hw + 0.05, top + 0.25, hw + 0.35, top + 0.85, 0.1, 'chrome'));
   }
+  return out;
+}
+
+/**
+ * Monster truck on the open monster frame: lifted tub on shocks, a cab block in front of
+ * the rider (over the frame's hump) with a raked windscreen, a roll bar behind the rider,
+ * fender flares, grille, lamps and a push bar. Themes add their livery on top.
+ */
+export function monsterTruck(f: Frame, o: { mat?: CarMat; frame?: CarMat; cab?: CarMat; bar?: CarMat; lamps?: boolean } = {}): CarPoly[] {
+  const m = o.mat ?? 'body', cm = o.cab ?? m;
+  const x0 = f.tail.x, x1 = f.nose.x, top = f.roof.y, cx0 = f.roof.x0 - 0.05, cx1 = f.roof.x1 + 0.15;
+  const out: CarPoly[] = [...monsterChassis(f, o.frame ?? 'black')];
+  // shocks from the axles up into the tub
+  for (const w of f.wheels) out.push(seg([w.x + (w.x < 0 ? 0.25 : -0.25), w.y - 0.1], [w.x + (w.x < 0 ? 0.35 : -0.35), -0.2], 0.1, 'yellow'), seg([w.x + (w.x < 0 ? 0.25 : -0.25), w.y - 0.1], [w.x + (w.x < 0 ? 0.3 : -0.3), 0.15], 0.14, 'chrome'));
+  // tub: tailgate, bed sides, hood sloping down to the grille
+  out.push(blob([[x0, 0.04], [x0, -0.62], [cx0, -0.62], [cx1 + 0.1, -0.58], [x1 - 0.15, -0.5], [x1, -0.36], [x1 + 0.02, 0.04]], m, {}, 1));
+  out.push(stripe(x0 + 0.05, x1 - 0.05, -0.12, 0.05, 'dark'));
+  // cab with a raked windscreen and a side window
+  out.push(poly([[cx0, -0.58], [cx1 + 0.12, -0.58], [cx1 - 0.08, top], [cx0, top]], cm));
+  out.push(poly([[cx1 - 0.05, top + 0.08], [cx1 + 0.04, -0.62], [cx1 - 0.18, -0.62], [cx1 - 0.18, top + 0.08]], 'glass'));
+  out.push(rr(cx0 + 0.08, top + 0.1, cx1 - 0.3, -0.66, 0.04, 'glass'));
+  out.push(rr(cx0 - 0.02, top - 0.06, cx1 - 0.05, top + 0.03, 0.03, 'dark'));
+  // roll bar behind the rider
+  out.push(...path([[x0 + 0.12, -0.6], [x0 + 0.12, top - 0.05], [cx0 - 0.02, top - 0.05]], 0.09, o.bar ?? 'chrome'));
+  // fender flares
+  for (const w of f.wheels) out.push(arc(w.x, w.y, w.r + 0.08, Math.PI * 1.15, Math.PI * 1.85, 0.12, 'dark'));
+  // grille, lamps, push bar
+  out.push(...grille(x1 - 0.14, -0.38, x1 + 0.01, -0.1, 2));
+  if (o.lamps !== false) out.push(...frontLamp(x1, -0.44, 0.1), rearLamp(x0, -0.45));
+  out.push(...path([[x1, -0.32], [x1 + 0.18, -0.26], [x1 + 0.18, 0.04], [x1, 0.08]], 0.1, 'chrome'));
   return out;
 }

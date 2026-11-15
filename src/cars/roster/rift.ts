@@ -1,5 +1,5 @@
 import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe, tank } from '../draw';
-import { arc, beast, boxy, carriage, dinoHead, hover, monsterChassis, pickup, tail, tracks } from '../skins';
+import { arc, beast, boxy, carriage, dinoHead, hover, pickup, tail, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { group, o } from './util';
@@ -256,15 +256,20 @@ export const RIFT = group('rift', [
   ['rift-monster', 'Rift Monster', 'Істота з порталу: зникає й з\'являється ближче до тебе.', 'monster', ['#3a1a4a', '#ff3aa0'], {
     o: o({ open: true }),
     parts: ['fangs'], hideParts: true,
-    skin: (f) => [
-      ...monsterChassis(f, 'purple'),
-      blob([[f.tail.x, 0.08], [f.tail.x - 0.1, -0.6], [-0.7, -1.05], [0.2, -1.15], [f.nose.x - 0.1, -0.75], [f.nose.x + 0.1, -0.2], [f.nose.x, 0.08]], 'body', {}, 2),
-      ...[[-1.0, -0.6], [-0.5, -0.8], [-0.1, -0.5]].map(([x, y]) => ell(x, y, 0.12, 0.06, 'accent')),
-      ...eyeball(f.nose.x - 0.6, -0.55, 0.12, 'accent'), ...eyeball(f.nose.x - 0.25, -0.55, 0.1, 'accent'), ...eyeball(f.nose.x - 0.42, -0.8, 0.07, 'accent'),
-      poly([[f.nose.x - 0.85, -0.25], [f.nose.x + 0.08, -0.28], [f.nose.x, 0.05], [f.nose.x - 0.8, 0.05]], 'black'),
-      ...fangs(f.nose.x - 0.83, f.nose.x + 0.05, -0.26, 6, 0.13), ...fangs(f.nose.x - 0.75, f.nose.x, 0.05, 5, 0.1, true),
-      ...spikesAlong(-1.2, 0.3, -0.9, 5, 0.18, 'accent'), ...stack(f.tail.x + 0.3, -0.5, 0.4, 0.1, 'purple'),
-    ],
+    skin: (f) => {
+      const x1 = f.nose.x, top = f.roof.y;
+      return [
+        // loose cables whipping out of the bed, glowing at the ends
+        ...[[-1.3, -1.25], [-0.95, -1.4], [-1.5, -0.95]].flatMap(([x, y]) => [...path([[-1.0, -0.6], [(x - 1.0) / 2, y + 0.25], [x, y]], 0.05, 'dark'), circ(x, y, 0.07, 'accent')]),
+        ...monsterTruck(f, { frame: 'purple', bar: 'dark' }),
+        // rift cracks glowing through the panels, crystals on the hood
+        ...path([[-1.3, -0.5], [-1.0, -0.3], [-0.7, -0.42], [-0.35, -0.2]], 0.06, 'accent'),
+        ...path([[0.55, -0.45], [0.85, -0.28], [1.15, -0.4]], 0.06, 'accent'),
+        ...[[x1 - 0.6, -0.55, 0.28], [x1 - 0.42, -0.52, 0.2]].map(([x, y, h]) => poly([[x - 0.08, y], [x + 0.08, y], [x + 0.03, y - h]], 'sky')),
+        rr(f.roof.x0 + 0.05, top - 0.14, f.roof.x1 - 0.1, top - 0.05, 0.03, 'accent'),
+        ...f.wheels.map((w) => circ(w.x, w.y, 0.12, 'accent')),
+      ];
+    },
   }],
   ['void-engine', 'Void Engine', 'Монолітний двигун порожнечі: телепортується вперед.', 'box', ['#1a1a24', '#c07aff'], {
     o: o({ tall: 1.2 }), parts: ['stack'], hideParts: true,

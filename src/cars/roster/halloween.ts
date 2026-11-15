@@ -1,5 +1,6 @@
 import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows } from '../draw';
 import { beast, bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
+import { browEye, saddle } from '../critters';
 import type { CarPoly } from '../types';
 import { group, o } from './util';
 
@@ -123,22 +124,38 @@ export const HALLOWEEN = group('halloween', [
       ...[0, 1, 2].map((i) => rect(f.nose.x - 0.38 + i * 0.1, 0.04, f.nose.x - 0.34 + i * 0.1, 0.15, 'black', { flat: true })),
     ],
   }],
-  ['beast', 'Beast', 'Ікластий монстр-кар із рогами. Ричить так, що відлітають машини.', 'monster', ['#5a2a6a', '#ff3a3a'], {
+  ['beast', 'Beast', 'Вовкулака-монстр на велетенських колесах. Від його виття в суперника плутаються ліво й право.', 'monster', ['#8a6a4a', '#ffd23f'], {
     o: o({ open: true }),
-    parts: ['fangs', 'horns'], hideParts: true,
-    skin: (f) => [
-      ...f.wheels.map((w) => seg([w.x, w.y], [w.x * 0.8, -0.1], 0.14, 'dark')),
-      blob([[f.tail.x - 0.1, 0.1], [f.tail.x, -0.6], [-0.6, -1.0], [0.4, -1.1], [f.nose.x - 0.1, -0.7], [f.nose.x + 0.1, -0.2], [f.nose.x - 0.1, 0.15]], 'body', {}, 2),
-      ...[-1.2, -0.8, -0.4].map((x) => poly([[x, -0.85 + x * 0.15], [x + 0.25, -0.95 + x * 0.12], [x + 0.05, -1.25 + x * 0.1]], 'accent')),
-      
-      poly([[f.nose.x - 0.75, -0.55], [f.nose.x - 0.35, -0.42], [f.nose.x - 0.4, -0.32], [f.nose.x - 0.72, -0.4]], 'yellow'),
-      circ(f.nose.x - 0.5, -0.4, 0.04, 'black'),
-      ...[[-1.1, -0.35, 0.12], [-0.6, -0.55, 0.1], [-0.2, -0.3, 0.14], [0.3, -0.65, 0.09], [-0.9, -0.05, 0.08]].map(([x, y, r]) => ell(x, y, r, r * 0.7, 'purple')),
-      ...[0.95, 1.1].map((x) => ell(f.nose.x - 0.2 + x - 1.0, -0.28, 0.03, 0.02, 'black')),
-      ...f.wheels.map((w) => poly([[w.x - 0.25, w.y - w.r - 0.02], [w.x + 0.25, w.y - w.r - 0.02], [w.x, w.y - w.r - 0.2]], 'dark')),
-      poly([[f.nose.x - 0.9, -0.15], [f.nose.x + 0.05, -0.2], [f.nose.x - 0.05, 0.05], [f.nose.x - 0.85, 0.05]], 'black'),
-      ...fangs(f.nose.x - 0.85, f.nose.x - 0.05, -0.17, 5, 0.14), ...fangs(f.nose.x - 0.8, f.nose.x - 0.1, 0.05, 4, 0.1, true),
-    ],
+    parts: ['fangs'], hideParts: true,
+    // A hunched werewolf on all fours: the rider clings to its back behind the shoulders.
+    skin: (f) => {
+      const x0 = f.tail.x, x1 = f.nose.x, [rw, fw] = [f.wheels[0], f.wheels[1]];
+      return [
+        // bushy tail
+        blob([[x0 + 0.3, -0.7], [x0 - 0.3, -1.0], [x0 - 0.55, -1.35], [x0 - 0.2, -1.2], [x0 + 0.35, -0.95]], 'body', {}, 1),
+        poly([[x0 - 0.55, -1.35], [x0 - 0.3, -1.25], [x0 - 0.45, -1.15]], 'grey'),
+        // hind leg and foreleg: thick haunch and arm reaching down to each wheel, claws over the tyre
+        blob([[rw.x - 0.45, -0.75], [rw.x + 0.35, -0.8], [rw.x + 0.25, rw.y - 0.3], [rw.x - 0.25, rw.y - 0.3]], 'body', { ring: true }, 1),
+        blob([[fw.x - 0.35, -0.9], [fw.x + 0.2, -0.85], [fw.x + 0.15, fw.y - 0.3], [fw.x - 0.2, fw.y - 0.3]], 'body', { ring: true }, 1),
+        ...[rw, fw].flatMap((w) => [-0.12, 0.0, 0.12].map((d) => poly([[w.x + d - 0.04, w.y - w.r - 0.05], [w.x + d + 0.04, w.y - w.r - 0.05], [w.x + d + 0.06, w.y - w.r + 0.08]], 'bone'))),
+        // hunched body, shoulders high in front of the rider, ragged fur along the spine
+        blob([[x0 + 0.1, -0.2], [x0 + 0.05, -0.75], [-0.8, -0.75], [-0.25, -1.15], [0.45, -1.2], [0.95, -0.9], [1.05, -0.4], [0.6, -0.15], [-0.6, -0.1]], 'body', {}, 2),
+        ...[-0.2, 0.1, 0.4, 0.7].map((x) => poly([[x - 0.12, -1.12 + Math.abs(x - 0.25) * 0.2], [x + 0.12, -1.12 + Math.abs(x - 0.25) * 0.2], [x - 0.05, -1.35 + Math.abs(x - 0.25) * 0.2]], 'body')),
+        blob([[-0.6, -0.15], [0.6, -0.2], [0.9, -0.45], [0.4, -0.4], [-0.4, -0.3]], 'grey', {}, 1),
+        ...[[-1.0, -0.45], [-0.3, -0.6], [0.3, -0.7]].map(([x, y]) => poly([[x - 0.1, y], [x + 0.1, y - 0.02], [x, y + 0.15]], 'dark', { flat: true })),
+        // wolf head: tall pointed ears, glowing eyes, long snout, open jaws
+        blob([[0.85, -1.05], [1.2, -1.15], [1.45, -0.9], [x1 + 0.1, -0.7], [x1 + 0.1, -0.5], [1.2, -0.4], [0.85, -0.6]], 'body', {}, 1),
+        poly([[0.9, -1.0], [0.92, -1.45], [1.12, -1.08]], 'body'), poly([[1.1, -1.1], [1.2, -1.48], [1.32, -1.02]], 'body'),
+        poly([[0.97, -1.05], [0.98, -1.3], [1.06, -1.08]], 'pink'),
+        ...browEye(1.28, -0.9, 0.075, 'accent'),
+        poly([[1.15, -0.58], [x1 + 0.12, -0.6], [x1 + 0.05, -0.35], [1.2, -0.4]], 'black', { flat: true }),
+        ...fangs(1.2, x1 + 0.08, -0.59, 4, 0.12), ...fangs(1.25, x1, -0.38, 3, 0.1, true),
+        blob([[1.22, -0.38], [x1, -0.38], [x1 - 0.1, -0.26], [1.25, -0.28]], 'body', {}, 1),
+        circ(x1 + 0.1, -0.66, 0.06, 'black'),
+        // a ripped saddle for the rider
+        ...saddle(f.head.x, f.head.y + 0.28, 'red'),
+      ];
+    },
   }],
   ['ghost-bike', 'Ghost Bike', 'Мотоцикл-привид у примарному сяйві.', 'bike', ['#d0e0f0', '#7a6ab0'], {
     float: 0.8, noLights: true,

@@ -1,8 +1,9 @@
 import { tailgate } from '../art';
 import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows } from '../draw';
-import { beast, bike, boxy, carriage, fenders, rocket, sedan, tracks, truckCab } from '../skins';
+import { bike, boxy, carriage, fenders, rocket, sedan, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
+import { quadruped } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -98,16 +99,21 @@ export const WINTER = group('winter', [
     ],
   }],
   ['kicksled', 'Kicksled', 'Фінські сани з довгою ручкою: штовхаєшся ногою і летиш.', 'sled', ['#c08a4a', '#e02a2a'], {
-    s: 0.85, o: o({ mat: 'wood' }), parts: ['seat'], noLights: true, hideParts: true,
-    skin: (f) => [
-      ...runners(f, 'chrome', 0.2, false),
-      ...path([[f.tail.x + 0.05, 0.2], [f.tail.x + 0.15, -1.2]], 0.08, 'wood'), ...path([[0.4, 0.2], [0.35, -0.45]], 0.08, 'wood'),
-      rr(f.tail.x + 0.05, -1.28, f.tail.x + 0.4, -1.16, 0.04, 'accent'),
-      rr(-0.62, -0.3, 0.52, -0.1, 0.05, 'wood'), rect(-0.6, -0.22, 0.5, -0.19, 'brown', { flat: true }),
-      rr(-0.45, -0.62, 0.5, -0.4, 0.06, 'accent'), rect(-0.4, -0.52, 0.45, -0.49, 'white', { flat: true }),
-      rr(f.tail.x - 0.05, -1.25, f.tail.x + 0.1, -1.05, 0.03, 'black'),
-      seg([0.0, -0.12], [0.0, 0.2], 0.08, 'wood'),
-    ],
+    s: 0.85, o: o({ mat: 'wood', len: 0.62 }), parts: ['seat'], noLights: true, hideParts: true,
+    // A small kick-chair: a wooden seat with a backrest on two short runners, the push bar on the back.
+    skin: (f) => {
+      const x0 = f.tail.x, x1 = f.nose.x;
+      return [
+        ...path([[x0 - 0.05, 0.12], [x0 + 0.05, 0.2], [x1 - 0.2, 0.2], [x1 - 0.02, 0.1], [x1, -0.08], [x1 - 0.12, -0.14]], 0.08, 'chrome'),
+        ...[x0 + 0.25, x1 - 0.4].map((x) => seg([x, 0.2], [x, -0.12], 0.08, 'wood')),
+        // seat and backrest with a red cushion
+        rr(x0 + 0.05, -0.2, x1 - 0.28, -0.04, 0.05, 'wood'), rr(x0 + 0.15, -0.3, x1 - 0.38, -0.18, 0.05, 'accent'),
+        rr(x0 + 0.02, -0.75, x0 + 0.18, -0.08, 0.05, 'wood'), rr(x0 + 0.06, -0.68, x0 + 0.14, -0.32, 0.03, 'accent'),
+        // push bar
+        ...path([[x0 + 0.1, -0.7], [x0 - 0.05, -1.05], [x0 - 0.25, -1.08]], 0.07, 'wood'),
+        rr(x0 - 0.35, -1.14, x0 - 0.12, -1.02, 0.04, 'black'),
+      ];
+    },
   }],
   ['snowman', 'Snowman', 'Сніговик на колесах: морквяний ніс, циліндр і сніжки напоготові.', 'blob', ['#f4f8ff', '#ff8a1a'], {
     gun: () => ({ at: [[0.98, -0.87]], aim: 25 }),
@@ -308,46 +314,57 @@ export const WINTER = group('winter', [
     ],
   }],
   ['caterdog', 'Caterdog', 'Робопес-гусениця на широких траках.', 'creature', ['#c0c8d0', '#3a8ad8'], {
-    o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true,
+    o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true, glide: 0.82,
     skin: () => [
-      rr(-1.0, 0.18, 1.0, 0.75, 0.28, 'rubber'), rr(-0.9, 0.26, 0.9, 0.67, 0.2, 'dark'),
-      rr(-1.25, -0.6, 1.0, 0.18, 0.2, 'metal'),
-      ...[-0.8, -0.3, 0.2, 0.7].map((x) => circ(x, -0.15, 0.08, 'dark')),
-      stripe(-1.2, 0.95, -0.45, 0.07, 'accent'),
-      ...path([[0.8, -0.4], [1.3, -0.85]], 0.22, 'metal'),
-      blob([[1.1, -1.0], [1.3, -1.15], [1.95, -1.05], [2.0, -0.85], [1.2, -0.78]], 'metal', {}, 1),
-      poly([[1.25, -1.12], [1.35, -1.45], [1.48, -1.1]], 'accent'),
-      circ(1.6, -0.98, 0.08, 'black'), circ(1.6, -0.98, 0.05, 'sky'), circ(2.0, -0.95, 0.06, 'black'),
-      ...[-0.75, -0.25, 0.25].map((x) => rect(x, -0.6, x + 0.04, 0.18, 'dark', { flat: true })), rr(0.75, -0.55, 0.95, -0.2, 0.04, 'accent'),
-      ...path([[-1.2, -0.4], [-1.55, -0.9], [-1.45, -1.05]], 0.08, 'metal'),
+      // track loop under a robot dog
+      rr(-1.05, 0.18, 1.05, 0.82, 0.3, 'rubber'), rr(-0.92, 0.28, 0.92, 0.72, 0.2, 'dark'),
+      ...[-0.65, -0.2, 0.25, 0.7].map((x) => circ(x, 0.5, 0.11, 'grey')),
+      // dog body: rounded steel barrel with a blue collar and back plates
+      blob([[-1.25, 0.1], [-1.2, -0.45], [-0.6, -0.65], [0.5, -0.65], [0.95, -0.45], [1.0, 0.1]], 'metal', {}, 2),
+      ...[[-0.95, -0.4], [-0.45, -0.52], [0.05, -0.52]].map(([x, y]) => rr(x, y, x + 0.4, y + 0.3, 0.05, 'grey', { ring: true })),
+      ...[-0.85, -0.35, 0.15].map((x) => circ(x, -0.02, 0.04, 'dark')),
+      rr(0.62, -0.62, 0.82, -0.05, 0.04, 'accent'), circ(0.72, 0.0, 0.06, 'gold'),
+      // wagging antenna tail
+      ...path([[-1.2, -0.3], [-1.5, -0.75], [-1.42, -1.0]], 0.08, 'metal'), circ(-1.42, -1.02, 0.06, 'accent'),
+      // head: square muzzle, floppy ear, screen eye, black nose
+      ...path([[0.8, -0.4], [1.2, -0.8]], 0.24, 'grey'),
+      blob([[1.05, -1.05], [1.4, -1.15], [1.95, -1.02], [2.0, -0.82], [1.6, -0.75], [1.15, -0.78]], 'metal', {}, 1),
+      blob([[1.1, -1.08], [1.35, -1.12], [1.32, -0.7], [1.15, -0.65]], 'accent', {}, 1),
+      rr(1.45, -1.05, 1.68, -0.9, 0.03, 'black'), rect(1.52, -1.0, 1.62, -0.95, 'sky', { flat: true }),
+      circ(2.0, -0.95, 0.07, 'black'), rect(1.62, -0.82, 1.95, -0.78, 'dark', { flat: true }),
     ],
   }],
-  ['sled-dog', 'Sled Dog', 'Хаскі в упряжі тягне за собою сани.', 'creature', ['#8a6a4a', '#f0f0f0'], {
-    parts: ['ears'], noLights: true, hideParts: true,
-    // The sled is towed on a harness: it fishtails behind the dog and bucks over bumps.
+  ['sled-dog', 'Sled Dog', 'Хаскі в упряжі тягне за собою сани.', 'creature', ['#7a8090', '#f0f0f0'], {
+    noLights: true, hideParts: true,
+    // The rider sits in the sled, towed on a harness: it fishtails behind the dog and bucks over bumps.
+    headOn: 0, head: () => [-1.95, -0.35],
     links: () => [{
       at: [-1.0, 0.1], swing: [-40, 40], density: 0.5, behind: true,
       wheels: [{ x: -2.25, y: 0.58, r: 0.22, hidden: true, drive: false }, { x: -1.6, y: 0.58, r: 0.22, hidden: true, drive: false }],
       hit: [rect(-2.5, 0.2, -1.4, 0.62)],
       art: [
-        seg([-1.0, 0.1], [-1.45, 0.45], 0.05, 'red'),
-        ...path([[-2.55, 0.62], [-2.45, 0.78], [-1.45, 0.78], [-1.3, 0.6]], 0.07, 'chrome'),
-        seg([-2.3, 0.6], [-2.3, 0.78], 0.05, 'chrome'), seg([-1.65, 0.6], [-1.65, 0.78], 0.05, 'chrome'),
-        blob([[-2.5, 0.62], [-2.58, 0.15], [-2.38, 0.1], [-2.28, 0.38], [-1.45, 0.38], [-1.4, 0.62]], 'wood', {}, 1),
-        rect(-2.2, 0.2, -1.85, 0.4, 'red', { ring: true }), rect(-2.05, 0.2, -2.0, 0.4, 'gold', { flat: true }),
+        ...path([[-1.0, 0.1], [-1.3, 0.25], [-1.4, 0.3]], 0.05, 'red'),
+        // runners with a curled nose, the basket and the musher's handlebar
+        ...path([[-2.6, 0.7], [-2.5, 0.78], [-1.5, 0.78], [-1.32, 0.66], [-1.3, 0.5], [-1.42, 0.46]], 0.07, 'chrome'),
+        ...[-2.3, -1.65].map((x) => seg([x, 0.4], [x, 0.78], 0.06, 'wood')),
+        blob([[-2.45, 0.42], [-2.42, 0.08], [-2.28, 0.1], [-2.25, 0.25], [-1.45, 0.25], [-1.38, 0.42]], 'wood', {}, 1),
+        rr(-2.3, 0.28, -1.5, 0.38, 0.03, 'red'), rect(-2.3, 0.33, -1.5, 0.35, 'gold', { flat: true }),
+        ...path([[-2.42, 0.1], [-2.5, -0.3], [-2.62, -0.34]], 0.07, 'wood'),
       ],
     }],
     skin: (f) => [
-      ...beast(f, { mat: 'grey', belly: 'white', cx: 0.1, ry: 0.36 }),
-      ...path([[0.7, -0.35], [1.25, -0.8]], 0.3, 'grey'),
-      blob([[1.05, -0.95], [1.25, -1.15], [1.6, -1.05], [1.95, -0.88], [1.9, -0.75], [1.3, -0.7]], 'grey', {}, 1),
-      poly([[1.2, -1.05], [1.25, -1.35], [1.4, -1.1]], 'grey'), poly([[1.35, -1.05], [1.45, -1.32], [1.55, -1.05]], 'grey'),
-      blob([[1.35, -0.92], [1.95, -0.88], [1.9, -0.75], [1.4, -0.75]], 'white', {}, 1),
-      circ(1.95, -0.88, 0.06, 'black'), circ(1.55, -0.95, 0.05, 'sky'),
-      rr(0.2, -0.65, 0.45, -0.05, 0.04, 'red'), seg([-0.4, 0.2], [0.3, -0.35], 0.06, 'red'), seg([-0.9, -0.2], [0.3, -0.4], 0.06, 'red'),
-      rr(1.0, -0.72, 1.22, -0.6, 0.03, 'red'), circ(1.12, -0.55, 0.05, 'gold'),
-      ...[[-0.6, -0.55], [0.0, -0.6], [-0.3, -0.5]].map(([x, y]) => poly([[x, y], [x + 0.1, y - 0.1], [x + 0.15, y]], 'white')),
-      ...path([[-1.05, -0.4], [-1.3, -0.8], [-1.15, -0.95]], 0.12, 'grey'),
+      ...quadruped(f, { hump: -0.05, peak: 0.1, tail: 0.45, tailUp: 0.4, tailMat: 'grey', belly: 'white', leg: 0.26, saddle: null, chest: 0.95 }),
+      // harness
+      rr(0.05, -0.6, 0.3, 0.0, 0.04, 'red'), seg([-0.9, -0.15], [0.1, -0.35], 0.06, 'red'),
+      // husky head: pointed ears, white mask, blue eyes, black nose
+      ...path([[0.7, -0.4], [1.08, -0.72]], 0.3, 'body'),
+      blob([[0.95, -0.92], [1.25, -1.05], [1.55, -0.95], [1.92, -0.78], [1.88, -0.62], [1.3, -0.58], [1.0, -0.65]], 'body', {}, 1),
+      poly([[1.05, -0.95], [1.1, -1.32], [1.28, -1.0]], 'body'), poly([[1.28, -1.0], [1.38, -1.3], [1.48, -0.98]], 'body'),
+      poly([[1.12, -0.98], [1.14, -1.18], [1.22, -1.0]], 'pink'),
+      blob([[1.3, -0.82], [1.88, -0.76], [1.86, -0.62], [1.3, -0.6]], 'white', {}, 1),
+      circ(1.9, -0.78, 0.06, 'black'), ...eyeball(1.42, -0.86, 0.06, 'sky'),
+      poly([[1.55, -0.62], [1.7, -0.62], [1.62, -0.5]], 'pink'),
+      rr(0.85, -0.6, 1.1, -0.48, 0.03, 'red'), circ(0.98, -0.44, 0.05, 'gold'),
     ],
   }],
   ['snow-truck', 'Snow Truck', 'Полярний вантажник, повний снігу. Висипає снігову лавину.', 'truck', ['#e06a1a', '#f0f0f0'], {
@@ -413,17 +430,21 @@ export const WINTER = group('winter', [
   ['electric-reindeer', 'Electric Reindeer', 'Механічний олень зі світним носом. Б\'є розрядом навколо.', 'creature', ['#a0a8b8', '#5ef0ff'], {
     o: o({ mat: 'metal' }), noLights: true,
     skin: (f) => [
-      ...beast(f, { mat: 'brown', belly: 'tan' }),
-      ...path([[0.75, -0.4], [1.25, -0.85]], 0.28, 'brown'),
-      blob([[1.05, -1.05], [1.4, -1.12], [1.8, -0.95], [1.75, -0.78], [1.15, -0.78]], 'brown', {}, 1),
-      ...path([[1.2, -1.05], [0.95, -1.75], [0.6, -2.15]], 0.1, 'tan'), ...path([[1.02, -1.5], [1.35, -1.95]], 0.09, 'tan'), ...path([[0.82, -1.9], [1.05, -2.25]], 0.08, 'tan'),
-      ...path([[1.38, -1.1], [1.45, -1.8], [1.8, -2.2]], 0.1, 'tan'), ...path([[1.43, -1.55], [1.85, -1.7]], 0.09, 'tan'),
-      circ(1.8, -0.88, 0.1, 'red'), circ(1.5, -0.98, 0.05, 'black'),
-      ...[-0.6, 0.0, 0.6].map((x) => poly([[x, -0.45], [x + 0.14, -0.28], [x + 0.03, -0.24], [x + 0.12, -0.04], [x - 0.08, -0.25], [x + 0.03, -0.28]], 'accent', { flat: true })),
-      ...path([[-1.0, -0.4], [-1.2, -0.6]], 0.1, 'tan'),
-      rr(-0.6, -0.68, 0.2, -0.55, 0.04, 'red'), ...[-0.45, -0.2, 0.05].map((x) => circ(x, -0.5, 0.05, 'gold')),
-      ...[-0.85, -0.35, 0.15, 0.6].map((x) => circ(x, -0.25, 0.04, 'grey')), rect(-0.95, -0.12, 0.8, -0.08, 'dark', { flat: true }),
-      circ(1.8, -0.88, 0.16, 'red', {}), circ(1.76, -0.92, 0.05, 'white'),
+      ...quadruped(f, { mat: 'metal', hump: 0.0, peak: 0.1, tail: 0.25, tailUp: 0.3, belly: 'grey', leg: 0.26, chest: 0.95 }),
+      // riveted panels and a glowing power cell
+      ...[[-0.85, -0.55, -0.35, -0.12], [0.15, -0.55, 0.7, -0.12]].map(([a, b, c, d]) => rr(a, b, c, d, 0.04, 'grey', { ring: true })),
+      ...[-0.8, -0.4, 0.2, 0.65].map((x) => circ(x, -0.5, 0.03, 'dark')),
+      rr(-0.25, -0.42, 0.05, -0.18, 0.04, 'accent'),
+      ...[-0.6, 0.45].map((x) => poly([[x, -0.42], [x + 0.12, -0.3], [x + 0.02, -0.27], [x + 0.1, -0.12], [x - 0.08, -0.28], [x + 0.02, -0.3]], 'accent', { flat: true })),
+      // jointed neck, steel head, copper antlers crackling at the tips, the bright red nose
+      ...path([[0.7, -0.45], [1.0, -0.75], [1.15, -0.88]], 0.26, 'grey'), ...[0.85, 1.05].map((x) => circ(x, x === 0.85 ? -0.58 : -0.8, 0.05, 'dark')),
+      blob([[1.0, -1.05], [1.35, -1.12], [1.75, -0.95], [1.8, -0.8], [1.15, -0.76]], 'metal', {}, 1),
+      ...path([[1.15, -1.05], [0.95, -1.55], [0.7, -1.85]], 0.09, 'gold'), ...path([[1.0, -1.4], [1.22, -1.7]], 0.08, 'gold'),
+      ...path([[1.32, -1.1], [1.4, -1.6], [1.68, -1.9]], 0.09, 'gold'), ...path([[1.38, -1.45], [1.7, -1.55]], 0.08, 'gold'),
+      ...[[0.7, -1.85], [1.22, -1.7], [1.68, -1.9], [1.7, -1.55]].map(([x, y]) => circ(x, y, 0.06, 'accent')),
+      poly([[1.12, -1.02], [0.95, -1.15], [1.2, -1.08]], 'metal'),
+      rr(1.25, -1.0, 1.45, -0.9, 0.03, 'accent'),
+      circ(1.82, -0.86, 0.13, 'red'), circ(1.78, -0.9, 0.04, 'white'),
     ],
   }],
 ]);

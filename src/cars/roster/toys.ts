@@ -1,5 +1,5 @@
 import { blob, checkers, stack, circ, ell, eyeball, fangs, flameDecal, grille, lightbar, ladder, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, tank } from '../draw';
-import { arc, beast, boxy, dragsterBody, dinoHead, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, rocket, sedan, tracks } from '../skins';
+import { arc, beast, boxy, dragsterBody, dinoHead, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, rocket, sedan, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { group, o } from './util';
@@ -134,15 +134,21 @@ export const TOYS = group('toys', [
   }],
   ['swamp-monster', 'Swamp Monster', 'Монстр-трак із боліт, обвішаний твані й водоростями.', 'monster', ['#4a6a2a', '#a0c040'], {
     o: o({ open: true }),
-    parts: ['teeth'],
-    skin: (f) => [
-      ...monsterChassis(f, 'brown'),
-      blob([[f.tail.x, 0.08], [f.tail.x + 0.05, -0.6], [-0.4, -1.0], [0.5, -1.0], [f.nose.x, -0.55], [f.nose.x + 0.05, 0.08]], 'body', {}, 2),
-      ...[-1.3, -0.8, -0.2, 0.5, 1.1].map((x, i) => poly([[x, 0.0], [x + 0.2, 0.0], [x + 0.13, 0.3 + (i % 2) * 0.12], [x + 0.05, 0.18]], 'leaf')),
-      ...[-0.9, -0.3, 0.2].map((x, i) => path([[x, -0.9 + i * 0.05], [x + 0.1, -0.6], [x - 0.05, -0.35]], 0.06, 'accent')).flat(),
-      ...angry(f.nose.x - 0.45, -0.4, 0.13, 'yellow'),
-      ...[[-1.0, -0.4], [-0.5, -0.7], [0.1, -0.5]].map(([x, y]) => ell(x, y, 0.1, 0.07, 'leaf')), poly([[f.nose.x - 0.6, -0.12], [f.nose.x, -0.15], [f.nose.x - 0.1, 0.0], [f.nose.x - 0.55, 0.0]], 'black'),
-    ],
+    parts: ['teeth'], hideParts: true,
+    skin: (f) => {
+      const x1 = f.nose.x, top = f.roof.y;
+      return [
+        // reeds and a cattail growing out of the bed
+        ...[[-1.35, -1.15], [-1.15, -1.3], [-0.95, -1.05]].map(([x, y]) => seg([x + 0.05, -0.6], [x, y], 0.05, 'leaf')),
+        rr(-1.2, -1.42, -1.1, -1.22, 0.04, 'brown'),
+        ...monsterTruck(f, { frame: 'brown' }),
+        // mud splashed up the lower body, weed dripping from every edge
+        blob([[f.tail.x, -0.05], [-0.6, -0.22], [0.2, -0.1], [0.9, -0.2], [x1, -0.02], [x1, 0.04], [f.tail.x, 0.04]], 'brown', {}, 1),
+        ...[[-1.25, -0.62, 0.25], [-0.75, -0.62, 0.18], [0.45, -0.58, 0.3], [0.95, -0.52, 0.2], [x1 - 0.1, -0.4, 0.22]].map(([x, y, h]) => blob([[x - 0.08, y], [x + 0.08, y], [x + 0.03, y + h], [x - 0.02, y + h * 0.7]], 'accent', {}, 1)),
+        ...[f.roof.x0 + 0.1, f.roof.x1 - 0.1].map((x) => blob([[x - 0.07, top], [x + 0.07, top], [x + 0.02, top + 0.25]], 'accent', {}, 1)),
+        ell(-0.3, -0.66, 0.18, 0.05, 'leaf'), circ(-0.25, -0.75, 0.06, 'pink'),
+      ];
+    },
   }],
   ['jet-golf-cart', 'Jet Golf Cart', 'Гольф-кар із реактивним двигуном і драйвером.', 'buggy', ['#f0f0f0', '#3aa04a'], {
     s: 0.85, parts: ['booster'], wheelie: 0.7, hideParts: true,

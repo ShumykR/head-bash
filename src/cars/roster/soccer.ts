@@ -1,5 +1,5 @@
-import { blob, circ, ell, fangs, path, poly, rect, rr, seg, stripe } from '../draw';
-import { monsterChassis, tracks, truckCab } from '../skins';
+import { blob, circ, ell, path, poly, rect, rr, seg, stripe } from '../draw';
+import { tracks, truckCab, monsterTruck } from '../skins';
 import type { CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { group, o } from './util';
@@ -34,17 +34,20 @@ const pitch = (x0: number, x1: number, y: number): CarPoly[] => Array.from({ len
 export const SOCCER = group('soccer', [
   ['soccer-monster', 'Soccer Monster', 'Монстр-трак футбольної арени з вирячкуватими очима.', 'monster', ['#ffffff', '#2a2a2a'], {
     o: o({ open: true }),
-    skin: (f) => [
-      ...monsterChassis(f),
-      blob([[f.tail.x, 0.08], [f.tail.x + 0.05, -0.75], [-0.5, -1.05], [0.5, -1.05], [f.nose.x, -0.6], [f.nose.x + 0.05, 0.08]], 'body', {}, 2),
-      ...[[-1.0, -0.55], [-0.4, -0.75], [0.1, -0.3], [-0.7, -0.15]].map(([x, y]) => poly(Array.from({ length: 5 }, (_, i) => [x + Math.cos(i * 1.2566) * 0.14, y + Math.sin(i * 1.2566) * 0.14] as [number, number]), 'black', { flat: true })),
-      ell(f.nose.x - 0.55, -0.45, 0.16, 0.18, 'white'), circ(f.nose.x - 0.5, -0.42, 0.08, 'black'),
-      ell(f.nose.x - 0.2, -0.45, 0.13, 0.15, 'white'), circ(f.nose.x - 0.16, -0.42, 0.06, 'black'),
-      poly([[f.nose.x - 0.8, -0.15], [f.nose.x + 0.02, -0.18], [f.nose.x - 0.05, 0.05], [f.nose.x - 0.75, 0.05]], 'black'),
-      ...fangs(f.nose.x - 0.78, f.nose.x - 0.05, -0.16, 5, 0.12),
-      ...path([[f.nose.x - 0.05, 0.02], [f.nose.x + 0.2, 0.06], [f.nose.x + 0.2, 0.3]], 0.12, 'chrome'),
-      rr(f.tail.x - 0.05, -0.2, f.tail.x + 0.3, 0.08, 0.04, 'green'), rect(f.tail.x + 0.05, -0.12, f.tail.x + 0.2, -0.04, 'white', { flat: true }),
-    ],
+    skin: (f) => {
+      const x1 = f.nose.x;
+      return [
+        ...monsterTruck(f),
+        // football livery: black pentagons on white, a green pitch stripe
+        ...[[-1.1, -0.35], [-0.45, -0.3], [0.85, -0.3], [0.1, -0.85]].map(([x, y]) => poly(Array.from({ length: 5 }, (_, i) => [x + Math.cos(i * 1.2566 - 1.57) * 0.13, y + Math.sin(i * 1.2566 - 1.57) * 0.13] as [number, number]), 'black', { flat: true })),
+        stripe(f.tail.x + 0.05, x1 - 0.1, -0.12, 0.08, 'green'),
+        // goal net stretched over the roll bar
+        ...[0, 1, 2].map((i) => seg([f.tail.x + 0.15 + i * 0.2, -0.6], [f.tail.x + 0.15 + i * 0.2, f.roof.y], 0.03, 'white')),
+        // bulging googly-eye headlights on the hood
+        ell(x1 - 0.55, -0.66, 0.15, 0.17, 'white'), circ(x1 - 0.5, -0.64, 0.07, 'black'),
+        ell(x1 - 0.25, -0.6, 0.12, 0.14, 'white'), circ(x1 - 0.21, -0.58, 0.06, 'black'),
+      ];
+    },
   }],
   ['soccer-ball', 'Soccer Ball', 'Футбольний м\'яч на шасі: пружинить і відскакує.', 'blob', ['#ffffff', '#2a2a2a'], {
     o: o({ mat: 'white' }), bounce: 0.5, noLights: true,
