@@ -331,7 +331,7 @@ const ORIGINALS: CarDef[] = [
     name: 'Tankette',
     archetype: 'heavy',
     blurb: 'Чотири малі колеса і броньована башта позаду водія.',
-    palette: { body: '#7a8a4a', accent: '#d8c070', dark: '#262a18', glass: '#b0e0d0', light: '#fff0a0' },
+    palette: { body: '#5e8a34', accent: '#e0c860', dark: '#1e2a14', glass: '#b0e0d0', light: '#fff0a0' },
     body: [
       box(-1.5, -0.3, 1.5, 0.22),
       poly([[-1.0, -0.3], [0.15, -0.3], [0.05, -0.72], [-0.9, -0.72]], { mat: 'accent' }),
