@@ -244,7 +244,8 @@ export function wheelPalette(p: CarPalette): (RGB | null)[] {
   // (the accent when the body is black, white or grey).
   const sat = (c: RGB) => Math.max(...c) - Math.min(...c);
   const body = hex(p.body), acc = hex(p.accent);
-  const hub = sat(body) >= 60 ? body : sat(acc) >= 60 ? acc : ([200, 60, 60] as RGB);
+  const lum = (c: RGB) => (c[0] + c[1] + c[2]) / 3;
+  const hub = sat(body) >= 60 ? body : sat(acc) >= 60 ? acc : lum(acc) > 70 && lum(acc) < 200 ? acc : ([200, 60, 60] as RGB);
   return [null, [14, 12, 20], [30, 28, 38], [62, 60, 74], [150, 152, 168], [222, 224, 234], hub, shade(hub, 0.6)];
 }
 
