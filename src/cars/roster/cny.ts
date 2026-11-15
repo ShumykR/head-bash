@@ -1,4 +1,4 @@
-import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stripe } from '../draw';
+import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe } from '../draw';
 import { beast, carriage, dinoHead, monsterChassis, rocket, tail, tracks } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import { group, o } from './util';
@@ -29,6 +29,7 @@ export const CNY = group('cny', [
       ...eyeball(1.42, -1.02, 0.1), ...eyeball(1.62, -1.0, 0.08),
       ell(1.72, -0.85, 0.08, 0.06, 'pink'),
       poly([[1.3, -0.78], [1.8, -0.78], [1.7, -0.62], [1.35, -0.62]], 'black'), ...fangs(1.32, 1.75, -0.78, 4, 0.08),
+      circ(1.4, -1.28, 0.06, 'red'), ...[-0.7, -0.2, 0.3].map((x) => circ(x, -0.05, 0.05, 'gold')),
     ],
   }],
   ['emperor-carriage', 'The Emperor\'s Carriage', 'Золотий імператорський паланкін з ліхтарями.', 'carriage', ['#e0b020', '#c02a2a'], {
@@ -40,6 +41,7 @@ export const CNY = group('cny', [
       circ(0, f.roof.y - 0.38, 0.1, 'gold'),
       rr(-0.45, f.roof.y + 0.2, 0.45, f.roof.y + 0.62, 0.04, 'red'), ...[-0.3, -0.1, 0.1, 0.3].map((x) => rect(x - 0.02, f.roof.y + 0.2, x + 0.02, f.roof.y + 0.62, 'gold', { flat: true })),
       ...lantern(f.tail.x + 0.4, -0.05, 0.8), ...lantern(f.nose.x - 0.4, -0.05, 0.8),
+      ...[f.tail.x - 0.1, f.nose.x + 0.1].map((x) => rr(x - 0.4, 0.02, x + 0.4, 0.1, 0.03, 'wood')),
     ],
   }],
   ['cloud', 'Cloud', 'Чарівна хмаринка: пливе над ареною.', 'blob', ['#f4f8ff', '#ffd23f'], {
@@ -49,6 +51,7 @@ export const CNY = group('cny', [
       ...[[-0.9, -0.55], [0.0, -0.85], [0.7, -0.5]].map(([x, y]) => blob([[x - 0.15, y], [x, y - 0.12], [x + 0.15, y], [x, y + 0.05]], 'sky', { flat: true }, 1)),
       ...eyeball(0.55, -0.22, 0.07), ...eyeball(0.8, -0.22, 0.06),
       ell(0.95, -0.05, 0.08, 0.05, 'pink'), blob([[0.55, -0.05], [0.68, 0.02], [0.8, -0.05]], 'black', {}, 1),
+      ell(-0.3, -0.75, 0.25, 0.08, 'white', { flat: true }), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'gold'), ...[-0.6, 0.0, 0.6].map((x) => circ(x, 0.22, 0.04, 'red')),
     ],
   }],
   ['chinese-dragon', 'Chinese Dragon', 'Довгий східний дракон із вусами. Дихає полум\'ям.', 'creature', ['#e02a2a', '#ffd23f'], {
@@ -66,6 +69,7 @@ export const CNY = group('cny', [
         ...eyeball(1.45 * L, -0.78, 0.09),
         ...path([[1.8 * L, -0.55], [2.05 * L, -0.35], [2.2 * L, -0.45]], 0.05, 'gold'), ...path([[1.75 * L, -0.5], [1.95 * L, -0.2], [2.1 * L, -0.25]], 0.05, 'gold'),
         rect(1.4 * L, -0.6, 1.85 * L, -0.55, 'black'), ...fangs(1.42 * L, 1.82 * L, -0.6, 4, 0.08),
+        circ(1.75 * L, -0.66, 0.03, 'black'), circ(1.45 * L, -0.78, 0.035, 'white'),
       ];
     },
   }],
@@ -81,6 +85,7 @@ export const CNY = group('cny', [
       poly([[f.nose.x - 0.8, -0.2], [f.nose.x + 0.15, -0.25], [f.nose.x + 0.05, 0.0], [f.nose.x - 0.75, 0.0]], 'black'),
       ...fangs(f.nose.x - 0.78, f.nose.x + 0.1, -0.22, 5, 0.12), ...fangs(f.nose.x - 0.7, f.nose.x, 0.0, 4, 0.1, true),
       ...path([[f.nose.x - 0.05, -0.32], [f.nose.x + 0.35, -0.2], [f.nose.x + 0.45, -0.32]], 0.05, 'gold'),
+      ...stack(f.tail.x + 0.3, -0.5, 0.45, 0.1, 'gold'), ...path([[f.nose.x - 0.05, 0.02], [f.nose.x + 0.2, 0.06], [f.nose.x + 0.2, 0.3]], 0.12, 'gold'),
     ],
   }],
   ['zodiac-dog', 'Zodiacal Dog', 'Зодіакальний святковий пес у червоному шарфі.', 'creature', ['#e0a040', '#ffffff'], {
@@ -93,7 +98,8 @@ export const CNY = group('cny', [
         poly([[1.1, -1.05], [1.0, -1.4], [1.3, -1.1]], 'brown'), ell(1.68, -0.86, 0.07, 0.06, 'black'),
         ...eyeball(h.eye[0], h.eye[1], 0.07),
         blob([[0.6, -0.6], [1.05, -0.88], [1.15, -0.7], [0.75, -0.42]], 'red', {}, 1), poly([[0.75, -0.5], [0.6, -0.15], [0.8, -0.18], [0.88, -0.48]], 'red'),
-        circ(0.95, -0.55, 0.06, 'gold'),
+        circ(0.95, -0.55, 0.06, 'gold'), circ(0.95, -0.42, 0.06, 'gold'),
+        ...[[-0.6, -0.35], [-0.1, -0.45], [0.3, -0.3]].map(([x, y]) => ell(x, y, 0.1, 0.07, 'brown')),
       ];
     },
   }],
@@ -103,6 +109,8 @@ export const CNY = group('cny', [
       ...rocket(f, { nose: 'gold', fin: 'gold' }),
       ...[0, 1, 2, 3].map((i) => poly([[-1.35 + i * 0.5, -0.32], [-1.15 + i * 0.5, -0.32], [-1.4 + i * 0.5, 0.32], [-1.6 + i * 0.5, 0.32]], 'accent', { flat: true })),
       ...lantern(-0.6, -0.32, 0.7),
+      ...[[f.tail.x - 0.4, -0.12], [f.tail.x - 0.55, 0.06], [f.tail.x - 0.35, 0.12]].map(([x, y]) => starShape(x, y, 0.06, 'yellow')),
+      rr(-1.2, 0.26, 1.0, 0.38, 0.04, 'dark'),
     ],
   }],
   ['serpent-tank', 'Serpent Dragon Tank', 'Танк у вигляді змія з драконячою пащею.', 'tracked', ['#2a8a3a', '#ffd23f'], {
@@ -113,7 +121,8 @@ export const CNY = group('cny', [
       blob([[-1.7, 0.0], [-1.65, -0.45], [0.8, -0.55], [1.6, -0.35], [1.85, -0.05], [1.6, 0.05]], 'body', {}, 1),
       ...scales(-1.5, 1.2, -0.25), ...spikesAlong(-1.4, 0.4, -0.5, 7, 0.15, 'gold'),
       circ(-0.2, -0.65, 0.3, 'body'), ...path([[-0.2, -0.7], [0.9, -1.0]], 0.14, 'gold'),
-      ...eyeball(1.25, -0.3, 0.1, 'red'),
+      ...eyeball(1.25, -0.3, 0.1, 'red'), rr(-0.4, -0.98, 0.0, -0.9, 0.03, 'gold'), rr(0.82, -1.08, 1.0, -0.94, 0.03, 'dark'),
+      rr(-1.7, -0.06, 1.7, 0.1, 0.04, 'body', { ring: true }), ...[-1.4, -0.7, 0.0, 0.7, 1.4].map((x) => circ(x, 0.02, 0.03, 'gold')),
       poly([[1.3, -0.12], [1.9, -0.15], [1.85, 0.02], [1.3, 0.02]], 'black'), ...fangs(1.35, 1.85, -0.13, 4, 0.1),
     ],
   }],
@@ -128,6 +137,7 @@ export const CNY = group('cny', [
       ...[0.25, 0.55].map((dx) => seg([dx - 0.03, f.deck.y - 0.35 - dx * 0.4], [dx + 0.06, f.deck.y + 0.08 - dx * 0.4], 0.06, 'gold')),
       circ(f.tail.x + 0.25, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.48, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.36, f.deck.y - 0.3, 0.1, 'black'),
       stripe(-0.4, 0.4, f.deck.y + 0.15, 0.06, 'red'),
+      ...[0.1, 0.45, 0.8].map((dx) => circ(dx, f.deck.y - 0.25 - dx * 0.4, 0.035, 'gold')), poly([[-0.1, f.deck.y - 0.35], [0.05, f.deck.y - 0.55], [0.15, f.deck.y - 0.3]], 'red'),
     ],
   }],
 ]);
