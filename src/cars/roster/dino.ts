@@ -57,11 +57,11 @@ export const DINO = group('dino', [
   ['sauropod', 'Sauropod', 'Довгошиїй завропод: голова високо, хвіст довгий.', 'creature', ['#6aa04a', '#c0e080'], {
     o: o({ neck: 'long', tall: 1.35, wheel: 0.8 }), parts: ['tail'], noLights: true, hideParts: true,
     skin: (f) => [
-      ...quadruped(f, { hump: 0.08, peak: -0.25, tail: 1.15, tailUp: 0.0, leg: 0.34, belly: 'accent' }),
+      ...quadruped(f, { hump: 0.25, peak: -0.1, tail: 1.15, tailUp: 0.0, leg: 0.34, belly: 'accent' }),
       // long neck rising in a gentle S to a small head
-      ...path([[0.75, -0.55], [1.12, -0.85], [1.32, -1.2], [1.45, -1.42]], 0.32, 'body'),
+      ...path([[0.65, -0.7], [1.05, -1.0], [1.3, -1.25], [1.45, -1.42]], 0.42, 'body'),
       ...path([[0.9, -0.42], [1.2, -0.8], [1.38, -1.15]], 0.1, 'accent'),
-      blob([[1.25, -1.5], [1.55, -1.66], [1.86, -1.55], [1.86, -1.38], [1.35, -1.32]], 'body', {}, 1),
+      blob([[1.2, -1.55], [1.55, -1.75], [1.95, -1.6], [1.95, -1.36], [1.32, -1.3]], 'body', {}, 1),
       rect(1.55, -1.42, 1.84, -1.39, 'dark', { flat: true }),
       ...eyeball(1.55, -1.54, 0.06),
       ...[[-0.6, -0.7, 0.1], [0.05, -0.78, 0.09], [0.45, -0.62, 0.08], [-1.05, -0.5, 0.07]].map(([x, y, r]) => ell(x, y, r, r * 0.75, 'dark')),

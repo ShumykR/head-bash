@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { CARS } from '../src/cars/defs';
 
 interface Score { z: number[]; k: number[]; p: number }
-interface Eval { id: string; group: string; ref: string; before: Score; gap: string; redo: string; after?: Score }
+interface Eval { id: string; group: string; ref: string; before: Score; gap: string; redo: string; after?: Score; da?: string; round1?: unknown }
 
 const DIR = 'docs/redesign/evals';
 const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
@@ -27,7 +27,7 @@ const fmt = (s?: Score) => (s ? `${s.z.join('')} · ${s.k.join('')} · ${s.p} �
 const lines = [
   '# Оцінка кожного авто',
   '',
-  'Згенеровано `npx tsx scripts/redesign-report.ts` з `evals/*.json`. Формат оцінки: `Z1..Z6 · K1..K3 · P → підсумок` (див. README).',
+  'Згенеровано `npx tsx scripts/redesign-report.ts` з `evals/*.json`. Формат оцінки: `Z1..Z6 · K1..K3 · P → підсумок` (див. README). ² — перемальоване в другому раунді (референси з фандому Drive Ahead): «До» тут — підсумок першого раунду, а перший раунд збережено в `round1`.',
   '',
 ];
 let done = 0, sb = 0, sa = 0;
@@ -35,12 +35,12 @@ const cats = [...new Set(CARS.map((c) => c.category ?? 'originals'))];
 for (const cat of cats) {
   const cars = CARS.filter((c) => (c.category ?? 'originals') === cat);
   lines.push(`## ${cat} (${cars.filter((c) => evals.get(c.id)?.after).length}/${cars.length})`, '');
-  lines.push('| Авто | Група | Референс | До | Прогалини | Редизайн | Після |', '|---|---|---|---|---|---|---|');
+  lines.push('| Авто | Група | Референс | Drive Ahead (фандом) | До | Прогалини | Редизайн | Після |', '|---|---|---|---|---|---|---|---|');
   for (const c of cars) {
     const e = evals.get(c.id);
-    if (!e) { lines.push(`| ${c.name} | | | ще не оцінено | | | |`); continue; }
+    if (!e) { lines.push(`| ${c.name} | | | | ще не оцінено | | | |`); continue; }
     if (e.after) { done++; sb += total(e.before); sa += total(e.after); }
-    lines.push(`| ${c.name} | ${e.group} | ${e.ref} | ${fmt(e.before)} | ${e.gap} | ${e.redo} | ${fmt(e.after)} |`);
+    lines.push(`| ${c.name}${e.round1 ? ' ²' : ''} | ${e.group} | ${e.ref} | ${e.da ?? '—'} | ${fmt(e.before)} | ${e.gap} | ${e.redo} | ${fmt(e.after)} |`);
   }
   lines.push('');
 }
