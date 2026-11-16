@@ -167,10 +167,16 @@ export const ALIEN = group('alien', [
       circ(f.deck.x0 + 0.2, -0.6, 0.2, 'dark'), ...path([[f.deck.x0 + 0.2, -0.65], [f.deck.x0 + 0.9, -0.95]], 0.12, 'grey'),
     ],
   }],
-  ['rocket-launcher', 'Rocket Launcher', 'Армійська вантажівка з великою ракетою на пусковій рейці над кабіною: ракета прикриває голову водія, а пуск дає залп малих ракет.', 'truck', ['#4f7f30', '#e02a2a'], {
+  ['rocket-launcher', 'Rocket Launcher', 'Армійська вантажівка з великою ракетою на пусковій рейці над кабіною: ракета прикриває голову водія, а пуск відправляє її в ціль.', 'truck', ['#4f7f30', '#e02a2a'], {
     // As in Drive Ahead: one big rocket lies on top, over the driver, on a launch rail raised from the
-    // bed by two hydraulic rams; the volley leaves from its nose.
-    gun: (f) => ({ at: [0, 1, 2].map((i) => [f.roof.x1 + 0.55, f.roof.y - 0.55 - i * 0.08] as Pt), aim: 14 }),
+    // bed by two hydraulic rams. Firing launches that rocket (the rail stands empty until it reloads).
+    // the rocket itself leaves the rail: the shot starts where it lies, flying along the rail
+    gun: (f) => {
+      const A: Pt = [f.deck.x0 + 0.15, f.deck.y - 0.5], B: Pt = [f.roof.x1 + 0.2, f.roof.y - 0.22];
+      const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uy = (B[1] - A[1]) / L;
+      const t = (L + 0.4) / 2 - 0.22, c = 0.24;
+      return { at: [[A[0] + ux * t + uy * c, A[1] + uy * t - ux * c]], aim: +((Math.atan2(-uy, ux) * 180) / Math.PI).toFixed(1) };
+    },
     parts: ['launcher'], hideParts: true,
     skin: (f) => {
       const d = f.deck;
@@ -188,11 +194,15 @@ export const ALIEN = group('alien', [
         // the launch rail: a long girder from the bed out over the cab
         band(-0.05, L + 0.05, -0.06, 0.04, 'dark'), ...[0.3, 0.9, 1.5, 2.1].filter((t) => t < L).map((t) => band(t, t + 0.08, -0.04, c - r + 0.04, 'grey')),
         // the big rocket: olive body with a white band, red nose cone, fins, a nozzle at the back
-        band(0.05, L - 0.05, c - r, c + r, 'body'), band(L * 0.55, L * 0.62, c - r, c + r, 'white', { flat: true }),
-        poly([at(L - 0.05, c - r), at(L + 0.5, c), at(L - 0.05, c + r)], 'accent'),
-        poly([at(0.05, c + r), at(0.35, c + r), at(-0.08, c + r + 0.25)], 'accent'), poly([at(0.05, c - r), at(0.35, c - r), at(0.0, c - r - 0.12)], 'accent'),
-        band(-0.12, 0.05, c - r * 0.6, c + r * 0.6, 'grey'),
-        ...armyStar(...at(L * 0.35, c), 0.1),
+        ...[
+          band(0.05, L - 0.05, c - r, c + r, 'body'), band(L * 0.55, L * 0.62, c - r, c + r, 'white', { flat: true }),
+          poly([at(L - 0.05, c - r), at(L + 0.5, c), at(L - 0.05, c + r)], 'accent'),
+          poly([at(0.05, c + r), at(0.35, c + r), at(-0.08, c + r + 0.25)], 'accent'), poly([at(0.05, c - r), at(0.35, c - r), at(0.0, c - r - 0.12)], 'accent'),
+          band(-0.12, 0.05, c - r * 0.6, c + r * 0.6, 'grey'),
+          ...armyStar(...at(L * 0.35, c), 0.1),
+        ].map((p) => ({ ...p, ammo: true })),
+        // the rail's cradle under the rocket, seen when it has gone
+        ...[0.15, L * 0.5, L - 0.25].map((t) => band(t, t + 0.1, -0.04, c - r + 0.1, 'grey')),
         ...armyStar(f.nose.x - 0.5, -0.4, 0.12),
         ...[d.x0 + 0.1, d.x1 - 0.3].map((x) => [rect(x, d.y, x + 0.07, d.y + 0.35, 'dark'), rr(x - 0.08, d.y + 0.32, x + 0.15, d.y + 0.38, 0.02, 'black')]).flat(),
       ];

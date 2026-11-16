@@ -94,7 +94,18 @@ export function generateFxGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
  * later piece sits on a different material it gets a 1px outline so details read
  * as separate parts (a `ring` piece gets a dark seam even on the same material).
  */
-export function generateCarGrid(def: CarDef, ppm = CAR_PPM): PixelGrid {
+/** Just the car's loaded round (its `ammo` pieces), drawn over the body while the shot is ready; null when it has none. */
+export function generateAmmoGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
+  const body = def.body.filter((p) => p.ammo && !p.hide).map((p) => ({ ...p, ammo: false }));
+  return body.length ? generateCarGrid({ ...def, body, windows: [], stripe: undefined, lights: false }, ppm) : null;
+}
+
+/**
+ * The car's body sprite. live = the game's sprite: it leaves out the loaded round and the running
+ * gear (a track belt), which the game draws itself.
+ */
+export function generateCarGrid(def: CarDef, ppm = CAR_PPM, live = false): PixelGrid {
+  if (live && def.body.some((p) => p.ammo || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !(p.gear && def.belt)) };
   const b = carBounds(def);
   const pad = 3;
   const ox = Math.ceil(-b.x0 * ppm) + pad;
@@ -321,25 +332,26 @@ export const HELMET_SCALE = 1.2;
 /**
  * The helmet, after Drive Ahead's: a slightly egg-shaped shell in the player's colour, a white cap
  * of light on the crown, a pale band down the back, and a black visor slanting across the upper
- * front with a lilac glint on its edge. Drawn from a hand-made 14x14 template (facing +x) and
+ * front with a lilac glint on its edge; the visor slants down to the front like a frown and the jaw ends
+ * in a sharp chin. Drawn from a hand-made 14x14 template (facing +x) and
  * resampled to the helmet's size, so every size keeps the same pixel shapes.
  *   O outline  W white cap  L light  H shell  D shadow  V visor  G glint
  */
 const HELMET = [
-  '.....OOOOO....',
-  '....OWWWWWO...',
-  '...OLWWHHHWO..',
-  '..OLLHHHHVVGO.',
-  '..OLHHHHVVVVGO',
-  '.OLLHHHVVVVVGO',
-  '.OLLHHHVVVVVGO',
-  '.OLHHHHHVVVVGO',
-  '.OLHHHHHHHVVO.',
-  '.ODHHHHHHHHHO.',
-  '.ODDHHHHHHHHO.',
-  '..ODDHHHHHHO..',
-  '..OODDDDDDOO..',
-  '....OOOOOO....',
+  '...OOOOO......',
+  '..OWWWWWOO....',
+  '.OLWWHHHHHO...',
+  '.OLHHHHHHHHO..',
+  'OLLHHHVVHHHGO.',
+  'OLHHHHVVVVVVGO',
+  'OLHHHHHVVVVVGO',
+  'OLHHHHHVVVVVGO',
+  'OLHHHHHHHVVVGO',
+  'ODHHHHHHHHHVVO',
+  'ODHHHHHHHHHHHO',
+  '.OODHHHHHHHHHO',
+  '...OODDDDHHHHO',
+  '.....OOOOOOOOO',
 ];
 const HELMET_PX: Record<string, number> = { O: DP.OUTLINE, W: DP.STRIPE, L: DP.HELM_L, H: DP.HELM, D: DP.HELM_D, V: DP.VISOR, G: DP.VISOR_L };
 

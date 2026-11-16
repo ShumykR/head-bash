@@ -288,6 +288,7 @@ export const WINTER = group('winter', [
     ],
   }],
   ['snow-coach', 'Snow Coach', 'Гусеничний снігобус: довгий обтічний кузов із рядом вікон, гусениця ззаду, лижа спереду.', 'carriage', ['#2a3a5a', '#e0c040'], {
+    drive: 'tracks',
     // After Drive Ahead's Snow Coach: a Bombardier-style tracked snow bus. Both physics wheels hide inside the track.
     o: o({ len: 1.2 }), hideWheels: [0, 1],
     skin: (f) => {
@@ -364,6 +365,7 @@ export const WINTER = group('winter', [
     ],
   }],
   ['caterdog', 'Caterdog', 'Робопес-гусениця на широких траках.', 'creature', ['#c0c8d0', '#3a8ad8'], {
+    drive: 'tracks',
     o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true, glide: 0.82,
     skin: () => [
       // track loop under a robot dog

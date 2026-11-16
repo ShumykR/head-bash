@@ -114,32 +114,38 @@ export const RETRO = group('retro', [
       rr(f.tail.x + 0.5, f.roof.y - 0.34, f.tail.x + 1.1, f.roof.y - 0.16, 0.04, 'brown'), rr(f.tail.x + 1.15, f.roof.y - 0.3, f.tail.x + 1.5, f.roof.y - 0.16, 0.04, 'blue'),
     ],
   }],
-  ['tourist-bus', 'Tourist Bus', 'Великий туристичний автобус із вогняним декором. Голова водія — у люку на даху, малим авто до неї не дотягнутися.', 'bus', ['#e84040', '#fff0c0'], {
-    o: o({ tall: 1.45 }), axles: [0.85, 0.85],
-    // As in Drive Ahead: a closed coach on two small wheels with five side windows (the second from
-    // the front is the door) and a flame decal; only the roof hatch the player looks out of is open.
-    head: (f) => [f.nose.x - 0.55, f.roof.y + 0.12],
+  ['tourist-bus', 'Tourist Bus', 'Двоповерховий туристичний автобус із вогняним декором. Голова водія — у люку на даху, малим авто до неї не дотягнутися.', 'bus', ['#e84040', '#fff0c0'], {
+    o: o({ tall: 1.75 }), axles: [0.85, 0.85],
+    // A closed double-decker on two small wheels (Drive Ahead's coach, stacked): five windows on
+    // each deck, the door the second from the front on the lower one, a flame decal along the
+    // bottom, and the roof hatch at the front the player looks out of.
+    head: (f) => [f.nose.x - 0.55, f.roof.y - 0.02],
     skin: (f) => {
       const t = f.roof.y, hx = f.nose.x - 0.55;
-      const x0 = f.tail.x + 0.18, x1 = f.nose.x - 0.12, cw = (x1 - x0) / 5, wy0 = t + 0.34, wy1 = -0.3;
+      const x0 = f.tail.x + 0.18, x1 = f.nose.x - 0.12, cw = (x1 - x0) / 5;
+      const up0 = t + 0.3, up1 = t + 0.7, mid = t + 0.82, lo0 = mid + 0.16, lo1 = -0.26;
       return [
         ...boxy(f, { top: t, slope: 0.2, slopeH: 0.3, screen: false, round: 0.14 }),
-        // five big side windows, the second from the front a folding door down to the step
-        // (the driver is up in the roof hatch, so the window under the hatch stays glazed)
-        ...[0, 1, 2, 4].map((i) => rr(x0 + i * cw + 0.05, wy0, x0 + (i + 1) * cw - 0.05, wy1, 0.05, 'glass', { keep: true })),
-        rr(x0 + 3 * cw + 0.04, wy0 - 0.04, x0 + 4 * cw - 0.04, 0.24, 0.04, 'dark', { ring: true }),
-        ...[0, 1].map((k) => rr(x0 + 3 * cw + 0.08 + k * (cw - 0.08) / 2, wy0, x0 + 3 * cw + (k + 1) * (cw - 0.08) / 2, 0.18, 0.03, 'glass', { keep: true })),
-        rect(x0 + 3 * cw + cw / 2 - 0.01, wy0, x0 + 3 * cw + cw / 2 + 0.01, 0.22, 'dark', { flat: true }),
+        // upper deck: five windows in a row, the front one a wide panorama pane
+        ...[0, 1, 2, 3].map((i) => rr(x0 + i * cw + 0.05, up0, x0 + (i + 1) * cw - 0.05, up1, 0.05, 'glass', { keep: true })),
+        rr(x0 + 4 * cw + 0.05, up0, x1 + 0.04, up1 + 0.04, 0.07, 'glass', { keep: true }),
+        // the belt between the decks
+        stripe(f.tail.x, f.nose.x, up1 + 0.04, mid - up1 - 0.04, 'accent'), stripe(f.tail.x, f.nose.x, mid - 0.03, 0.03, 'gold'),
+        // lower deck: windows with the folding door the second from the front, down to the step
+        ...[0, 1, 2, 4].map((i) => rr(x0 + i * cw + 0.05, lo0, x0 + (i + 1) * cw - 0.05, lo1, 0.05, 'glass', { keep: true })),
+        rr(x0 + 3 * cw + 0.04, lo0 - 0.04, x0 + 4 * cw - 0.04, 0.24, 0.04, 'dark', { ring: true }),
+        ...[0, 1].map((k) => rr(x0 + 3 * cw + 0.08 + k * (cw - 0.08) / 2, lo0, x0 + 3 * cw + (k + 1) * (cw - 0.08) / 2, 0.18, 0.03, 'glass', { keep: true })),
+        rect(x0 + 3 * cw + cw / 2 - 0.01, lo0, x0 + 3 * cw + cw / 2 + 0.01, 0.22, 'dark', { flat: true }),
         // livery: a cream band under the windows, the flame decal licking back along the lower body
-        stripe(f.tail.x, x0 + 3 * cw, 0.0, 0.07, 'accent'), stripe(x0 + 4 * cw, f.nose.x, 0.0, 0.07, 'accent'),
-        ...flameDecal(f.tail.x + 0.2, x0 + 3 * cw - 0.15, 0.13, 0.15),
-        stripe(f.tail.x, f.nose.x, t + 0.18, 0.05, 'accent'),
+        stripe(f.tail.x, x0 + 3 * cw, -0.2, 0.07, 'accent'), stripe(x0 + 4 * cw, f.nose.x, -0.2, 0.07, 'accent'),
+        ...flameDecal(f.tail.x + 0.2, x0 + 3 * cw - 0.15, 0.06, 0.15),
+        stripe(f.tail.x, f.nose.x, t + 0.16, 0.05, 'accent'),
         // the roof: a luggage rail at the back and the open hatch round the player
         ...[0.25, 0.65, 1.05, 1.45].map((dx) => rect(f.tail.x + dx, t - 0.12, f.tail.x + dx + 0.04, t, 'chrome')),
         rr(f.tail.x + 0.2, t - 0.15, f.tail.x + 1.55, t - 0.09, 0.03, 'chrome'),
         rr(hx - 0.42, t - 0.07, hx + 0.38, t + 0.06, 0.04, 'black'), rr(hx - 0.46, t - 0.1, hx - 0.36, t + 0.06, 0.03, 'chrome'), rr(hx + 0.32, t - 0.1, hx + 0.42, t + 0.06, 0.03, 'chrome'),
-        // destination board and lamps
-        rr(f.nose.x - 0.3, t + 0.08, f.nose.x - 0.02, t + 0.2, 0.03, 'black'), rect(f.nose.x - 0.26, t + 0.11, f.nose.x - 0.06, t + 0.17, 'yellow', { flat: true }),
+        // destination board under the front windscreen and the lamps
+        rr(f.nose.x - 0.34, mid - 0.02, f.nose.x - 0.02, mid + 0.12, 0.03, 'black'), rect(f.nose.x - 0.3, mid + 0.02, f.nose.x - 0.06, mid + 0.08, 'yellow', { flat: true }),
         ...frontLamp(f.nose.x - 0.02, 0.1, 0.09), rearLamp(f.tail.x + 0.02, 0.05, 0.09),
       ];
     },
@@ -511,6 +517,7 @@ export const RETRO = group('retro', [
     })],
   }],
   ['bumper-car', 'Bumper Car', 'Атракціонна машинка на штанзі. Гумовий бампер — і бамс!', 'kart', ['#ff3a5a', '#ffd23f'], {
+    drive: 'wheels',
     // No visible wheels: it rolls on hidden casters under the rubber skirt.
     s: 0.85, arch: 'tiny', glide: 0.27, parts: ['antenna'], bounce: 0.4, noLights: true, hideParts: true,
     skin: (f) => [

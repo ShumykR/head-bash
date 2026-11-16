@@ -1,7 +1,7 @@
-import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stripe } from '../draw';
-import { carriage, rocket, tracks, monsterTruck } from '../skins';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, smooth, spikesAlong, stripe } from '../draw';
+import { rocket, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
-import { browEye, crew, dims, quadruped, saddle } from '../critters';
+import { crew, dims, dragonHead, quadruped, saddle } from '../critters';
 import { group, o } from './util';
 
 /** Paper lantern hanging from a pole. */
@@ -10,55 +10,66 @@ const lantern = (x: number, y: number, s = 1): CarPoly[] => [
   ell(x, y - 0.95 * s, 0.17 * s, 0.22 * s, 'red'), rect(x - 0.1 * s, y - 1.2 * s, x + 0.1 * s, y - 1.14 * s, 'gold'), rect(x - 0.1 * s, y - 0.76 * s, x + 0.1 * s, y - 0.7 * s, 'gold'),
   seg([x, y - 0.7 * s], [x, y - 0.55 * s], 0.04, 'yellow'),
 ];
-/** Scales: a row of small arcs. */
-const scales = (x0: number, x1: number, y: number, mat: CarMat = 'accent'): CarPoly[] => {
-  const out: CarPoly[] = [];
-  for (let x = x0; x < x1; x += 0.22) out.push(blob([[x, y], [x + 0.11, y + 0.1], [x + 0.22, y]], mat, { flat: true }, 1));
-  return out;
-};
-
 export const CNY = group('cny', [
-  ['dancing-lion', 'Dancing Lion', 'Святковий лев із пишною гривою.', 'creature', ['#e02a2a', '#ffd23f'], {
+  ['dancing-lion', 'Dancing Lion', 'Святковий лев із пишною гривою.', 'creature', ['#2a5ad8', '#3aa84a'], {
     o: o({ tall: 1.15, wheel: 0.8 }), parts: ['ears', 'tail'], noLights: true, hideParts: true,
-    // A lion-dance costume: the big painted head in front, the cloth body draped behind it.
+    // As in Drive Ahead's New Year set: a compact lion-dance costume. A rounded body painted with
+    // rows of zigzag waves on short legs, a curled tail, and the big round head in front with a
+    // spiral curl on its cheek, a bright eye and a gaping gold mouth; the player rides its back.
     skin: (f) => {
       const { rear, front } = dims(f);
+      const hx = 1.0, hy = -0.85;
+      const zig = (y: number, x0: number, x1: number, m: CarMat) => path(Array.from({ length: Math.round((x1 - x0) / 0.2) + 1 }, (_, i) => [x0 + i * 0.2, y + (i % 2 ? 0.09 : -0.09)] as [number, number]), 0.09, m);
+      const spiral = (cx: number, cy: number, r: number, m: CarMat) => [0, 1, 2].map((k) => arc(cx + (k % 2 ? 0.02 : 0), cy, r * (1 - k * 0.3), Math.PI * (0.2 + k * 0.5), Math.PI * (1.7 + k * 0.5), 0.07, m, { flat: true }));
       return [
-        // dancers' legs in yellow trousers under the drape
-        ...[rear, front].flatMap((x) => [rr(x - 0.14, -0.1, x + 0.14, 0.3, 0.05, 'accent', { ring: true }), rect(x - 0.14, 0.2, x + 0.14, 0.3, 'black')]),
-        // cloth body: red with gold scales, white fur along the spine and a fringed hem
-        blob([[-1.3, -0.05], [-1.25, -0.6], [-0.5, -0.8], [0.5, -0.78], [0.95, -0.5], [0.95, -0.05]], 'body', {}, 2),
-        ...[-1.0, -0.6, -0.2, 0.2, 0.6].flatMap((x) => [arc(x, -0.35, 0.14, Math.PI * 0.05, Math.PI * 0.95, 0.05, 'accent'), arc(x + 0.2, -0.55, 0.12, Math.PI * 0.05, Math.PI * 0.95, 0.05, 'gold')]),
-        ...[-1.2, -0.95, -0.7, -0.45, -0.2, 0.05, 0.3, 0.55, 0.8].map((x) => poly([[x - 0.12, -0.08], [x + 0.12, -0.08], [x, 0.08]], 'white')),
-        ...path([[-1.25, -0.62], [-0.6, -0.82], [0.2, -0.82]], 0.1, 'white'),
-        blob([[-1.3, -0.5], [-1.6, -0.75], [-1.55, -0.35], [-1.3, -0.25]], 'accent', {}, 1),
-        // the lion head: fluffy white mane, mirror and horn on the brow, huge lashed eyes, open mouth
-        ...[0, 1, 2, 3, 4, 5, 6].map((i) => ell(1.25 + Math.cos(-0.4 - i * 0.55) * 0.5, -0.85 + Math.sin(-0.4 - i * 0.55) * 0.45, 0.14, 0.12, 'white')),
-        blob([[0.8, -1.25], [1.3, -1.35], [1.75, -1.15], [1.85, -0.75], [1.7, -0.45], [1.0, -0.42], [0.8, -0.8]], 'body', {}, 2),
-        rr(0.95, -1.28, 1.65, -1.16, 0.05, 'gold'), circ(1.3, -1.2, 0.08, 'sky'), poly([[1.22, -1.32], [1.3, -1.55], [1.4, -1.32]], 'gold'),
-        ...[1.2, 1.55].flatMap((x) => [ell(x, -0.98, 0.14, 0.12, 'white'), circ(x + 0.04, -0.97, 0.07, 'black'), rect(x - 0.14, -1.13, x + 0.14, -1.09, 'black', { flat: true })]),
-        ell(1.78, -0.82, 0.09, 0.07, 'gold'),
-        poly([[1.15, -0.72], [1.85, -0.7], [1.8, -0.52], [1.2, -0.5]], 'black', { flat: true }), ...fangs(1.2, 1.8, -0.71, 4, 0.08),
-        blob([[1.1, -0.52], [1.82, -0.52], [1.7, -0.38], [1.15, -0.38]], 'accent', {}, 1),
-        ...saddle(f.head.x, f.head.y + 0.22, 'gold'),
+        // stubby legs onto the wheels
+        ...[rear, front].map((x) => rr(x - 0.17, -0.2, x + 0.17, 0.3, 0.07, 'body')),
+        // the curled tail
+        ...spiral(-1.12, -0.72, 0.2, 'accent'),
+        // the rounded body with rows of zigzag waves and a fringed hem
+        blob([[-1.05, 0.1], [-1.1, -0.45], [-0.8, -0.72], [0.3, -0.75], [0.75, -0.6], [0.8, 0.1]], 'body', {}, 2),
+        ...[-0.48, -0.16].flatMap((y) => zig(y, -0.95, 0.6, 'accent')),
+        ...[-0.95, -0.7, -0.45, -0.2, 0.05, 0.3, 0.55].map((x) => poly([[x - 0.1, 0.06], [x + 0.1, 0.06], [x, 0.2]], 'accent')),
+        // the head: round, ringed by a darker mane edge, the spiral curl on its cheek
+        ell(hx, hy, 0.66, 0.62, 'accent'),
+        ell(hx + 0.05, hy, 0.58, 0.55, 'body'),
+        ...spiral(hx - 0.15, hy - 0.04, 0.34, 'accent'),
+        // the eye and a horn knob on the brow
+        circ(hx + 0.34, hy - 0.26, 0.12, 'white', { flat: true }), circ(hx + 0.38, hy - 0.26, 0.07, 'black', { flat: true }),
+        circ(hx + 0.12, hy - 0.6, 0.09, 'gold'),
+        // the gaping mouth at the front: gold lips, white teeth, a red tongue
+        poly([[hx + 0.3, hy + 0.08], [hx + 0.72, hy - 0.02], [hx + 0.7, hy + 0.36], [hx + 0.32, hy + 0.34]], 'black', { flat: true }),
+        ...fangs(hx + 0.35, hx + 0.7, hy + 0.03, 2, 0.1),
+        ell(hx + 0.5, hy + 0.3, 0.14, 0.05, 'red', { flat: true }),
+        rr(hx + 0.28, hy + 0.34, hx + 0.72, hy + 0.42, 0.03, 'gold'), rr(hx + 0.3, hy - 0.06, hx + 0.76, hy + 0.02, 0.03, 'gold'),
+        ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
   }],
-  ['emperor-carriage', 'The Emperor\'s Carriage', 'Золотий імператорський паланкін з ліхтарями.', 'carriage', ['#e0b020', '#c02a2a'], {
+  ['emperor-carriage', 'The Emperor\'s Carriage', 'Імператорський трон на ношах: двоє носіїв у конічних брилях несуть його на довгій жердині.', 'carriage', ['#e0b020', '#c02a2a'], {
     parts: ['lantern'], hideParts: true, hideWheels: [0, 1],
     // The porters are solid too: you bump into them, not through them.
     art: (f) => [f.tail.x - 0.12, f.nose.x + 0.12].map((x) => ({ ...rect(x - 0.17, -0.62, x + 0.17, 0.05, 'blue', { density: 0.2 }), deco: false, hide: true })),
-    // No wheels: two porters in conical hats carry the palanquin on long poles (their feet are the wheels).
-    skin: (f) => [
+    // As in Drive Ahead's New Year set: no wheels and no box — the player sits on an open throne
+    // set on a gilded platform, and two porters in conical hats carry it on one long pole.
+    skin: (f) => {
+      const hx = f.head.x, sy = f.head.y + 0.25;
+      return [
       // one long carrying pole through the base, resting on the porters' shoulders
       rr(f.tail.x - 0.45, -0.2, f.nose.x + 0.45, -0.1, 0.04, 'wood'),
-      ...carriage({ ...f, wheels: [] }, { trim: 'red' }),
-      poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 - 0.05, f.roof.y - 0.28], [f.roof.x0 + 0.05, f.roof.y - 0.28]], 'accent'),
-      poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x0 - 0.1, f.roof.y - 0.12], [f.roof.x0 - 0.5, f.roof.y - 0.2]], 'accent'), poly([[f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.1, f.roof.y - 0.12], [f.roof.x1 + 0.5, f.roof.y - 0.2]], 'accent'),
-      circ(0, f.roof.y - 0.38, 0.1, 'gold'),
-      rr(-0.45, f.roof.y + 0.2, 0.45, f.roof.y + 0.62, 0.04, 'red'), ...[-0.3, -0.1, 0.1, 0.3].map((x) => rect(x - 0.02, f.roof.y + 0.2, x + 0.02, f.roof.y + 0.62, 'gold', { flat: true })),
-      ...lantern(f.tail.x + 0.4, -0.05, 0.8), ...lantern(f.nose.x - 0.4, -0.05, 0.8),
-      // the porters stand clear of the box at both pole ends, striding forward
+      // the platform: a red base banded with gold, a gold rail along the top
+      rr(f.tail.x + 0.5, -0.42, f.nose.x - 0.5, 0.05, 0.04, 'accent', { ring: true }),
+      ...Array.from({ length: 8 }, (_, i) => f.tail.x + 0.6 + i * ((f.nose.x - f.tail.x - 1.2) / 7)).map((x) => rect(x - 0.025, -0.3, x + 0.025, -0.04, 'gold', { flat: true })),
+      rr(f.tail.x + 0.45, -0.48, f.nose.x - 0.45, -0.4, 0.03, 'gold'), rr(f.tail.x + 0.45, 0.02, f.nose.x - 0.45, 0.1, 0.03, 'gold'),
+      // the throne: a tall stepped back behind the player, a cushioned seat, an armrest in front
+      rr(hx - 0.85, sy - 0.95, hx - 0.3, sy + 0.05, 0.05, 'body'),
+      rr(hx - 0.92, sy - 1.08, hx - 0.23, sy - 0.92, 0.04, 'gold'), rr(hx - 0.75, sy - 1.2, hx - 0.4, sy - 1.06, 0.04, 'gold'),
+      rr(hx - 0.75, sy - 0.82, hx - 0.4, sy - 0.12, 0.04, 'accent', { flat: true }), circ(hx - 0.575, sy - 0.55, 0.08, 'gold'),
+      rr(hx - 0.85, sy - 0.05, hx + 0.5, -0.42, 0.05, 'body', { ring: true }),
+      ...[0, 1, 2, 3, 4, 5].map((i) => rect(hx - 0.75 + i * 0.23, sy + 0.05, hx - 0.72 + i * 0.23, -0.48, 'gold', { flat: true })),
+      rr(hx - 0.8, sy - 0.12, hx + 0.4, sy + 0.0, 0.05, 'accent'),
+      rr(hx + 0.32, sy - 0.4, hx + 0.5, sy + 0.0, 0.04, 'body'), circ(hx + 0.41, sy - 0.42, 0.07, 'gold'),
+      // the porters stand clear of the platform at both pole ends, striding forward
       ...[f.tail.x - 0.12, f.nose.x + 0.12].flatMap((x, i) => {
         const g = f.wheels[i].y + f.wheels[i].r, s = i ? 0.1 : -0.1;
         return [
@@ -70,63 +81,81 @@ export const CNY = group('cny', [
           ...crew(x + 0.02, -0.6, 0.2, { helm: 'red', stripe: null, suit: 'blue', style: 'conical' }),
         ];
       }),
-    ],
+      ];
+    },
   }],
-  ['cloud', 'Cloud', 'Чарівна хмаринка: пливе над ареною.', 'blob', ['#f4f8ff', '#ffd23f'], {
-    o: o({ shape: 'flat', mat: 'white' }), float: 0.75, noLights: true,
-    skin: () => [
-      ell(-0.6, -0.4, 0.55, 0.38, 'white'), ell(0.15, -0.55, 0.6, 0.45, 'white'), ell(0.85, -0.3, 0.45, 0.32, 'white'), ell(0, -0.1, 1.25, 0.3, 'white'),
-      ...[[-0.9, -0.55], [0.0, -0.85], [0.7, -0.5]].map(([x, y]) => blob([[x - 0.15, y], [x, y - 0.12], [x + 0.15, y], [x, y + 0.05]], 'sky', { flat: true }, 1)),
-      ...eyeball(0.55, -0.22, 0.07), ...eyeball(0.8, -0.22, 0.06),
-      ell(0.95, -0.05, 0.08, 0.05, 'pink'), blob([[0.55, -0.05], [0.68, 0.02], [0.8, -0.05]], 'black', {}, 1),
-      ell(-0.3, -0.75, 0.25, 0.08, 'white', { flat: true }), rr(-0.9, 0.14, 0.9, 0.3, 0.05, 'gold'), ...[-0.6, 0.0, 0.6].map((x) => circ(x, 0.22, 0.04, 'red')),
-    ],
-  }],
-  ['chinese-dragon', 'Chinese Dragon', 'Довгий східний дракон із вусами. Дихає полум\'ям.', 'creature', ['#e02a2a', '#ffd23f'], {
-    o: o({ neck: 'raptor', len: 1.3, wheel: 0.8 }), parts: ['plates', 'tail', 'mohawk'], noLights: true, hideParts: true,
-    skin: (f) => {
-      const { rear, front } = dims(f);
-      const spine: [number, number][] = [[-2.25, -1.0], [-1.75, -0.45], [-1.15, -0.72], [-0.5, -0.42], [0.25, -0.7], [0.85, -0.5], [1.25, -0.72]];
+  ['cloud', 'Cloud', 'Чарівна хмаринка: пливе над ареною.', 'blob', ['#e02a2a', '#ffc828'], {
+    o: o({ shape: 'flat', mat: 'white' }), float: 0.75, noLights: true, axles: [0.6, 0.6],
+    // As in Drive Ahead's New Year set: an auspicious cloud — round lobes curling into gold spirals,
+    // a flat underside on two little wheels, a curl trailing off the back, the player on top.
+    skin: () => {
+      const curl = (cx: number, cy: number, r: number) => [arc(cx, cy, r * 0.75, Math.PI * 0.9, Math.PI * 2.6, 0.07, 'accent', { flat: true }), arc(cx + r * 0.12, cy, r * 0.38, Math.PI * 1.4, Math.PI * 2.9, 0.07, 'accent', { flat: true })];
       return [
-        // long serpentine body with a gold belly band and a flame-tipped tail
-        ...path(spine, 0.36, 'body'),
-        ...path(spine.map(([x, y]) => [x + 0.02, y + 0.12] as [number, number]), 0.1, 'accent'),
-        ...spine.slice(0, -1).flatMap(([x, y], i) => poly([[x - 0.08, y - 0.15], [x + 0.1, y - 0.16], [x + 0.02 - (i % 2) * 0.05, y - 0.38]], 'gold')),
-        poly([[-2.25, -1.0], [-2.55, -1.25], [-2.35, -0.85], [-2.6, -0.8], [-2.2, -0.82]], 'orange'),
-        // clawed legs onto the wheels
-        ...[rear, front].flatMap((x) => [...path([[x - 0.05, -0.5], [x + 0.12, -0.15], [x, 0.18]], 0.18, 'body'), ...[-0.1, 0.05].map((d) => poly([[x + d, 0.18], [x + d + 0.08, 0.18], [x + d + 0.12, 0.3]], 'bone'))]),
-        // head: long snout, antler horns, flowing whiskers, red mane, open jaws
-        ...path([[1.6, -1.05], [1.3, -1.5], [1.05, -1.6]], 0.07, 'gold'), ...path([[1.38, -1.35], [1.5, -1.6]], 0.06, 'gold'),
-        blob([[1.1, -0.95], [1.3, -1.25], [1.15, -1.45], [0.9, -1.1], [0.75, -0.8]], 'orange', {}, 1),
-        blob([[1.2, -1.05], [1.75, -1.15], [2.35, -0.95], [2.4, -0.75], [1.6, -0.7], [1.25, -0.72]], 'body', {}, 1),
-        poly([[1.55, -0.75], [2.4, -0.78], [2.3, -0.58], [1.6, -0.6]], 'black', { flat: true }), ...fangs(1.65, 2.35, -0.76, 4, 0.08),
-        blob([[1.5, -0.62], [2.3, -0.6], [2.1, -0.48], [1.55, -0.5]], 'body', {}, 1),
-        ...browEye(1.7, -0.95, 0.08, 'black', 'gold'),
-        ...path([[2.3, -0.9], [2.6, -0.8], [2.85, -0.98]], 0.05, 'gold'), ...path([[2.2, -0.7], [2.45, -0.45], [2.7, -0.5]], 0.05, 'gold'),
-        circ(2.3, -0.92, 0.035, 'black'),
-        ...saddle(f.head.x, f.head.y + 0.22, 'gold'),
+        // the trailing curl at the back
+        ell(-1.2, -0.4, 0.28, 0.24, 'body'), ...curl(-1.2, -0.4, 0.28),
+        // the lobes
+        ell(-0.65, -0.35, 0.45, 0.38, 'body'), ell(0.15, -0.5, 0.55, 0.45, 'body'), ell(0.85, -0.3, 0.42, 0.34, 'body'),
+        rr(-1.0, -0.3, 1.2, 0.38, 0.15, 'body'),
+        // gold spirals curling in each lobe, and the gold rim along the flat underside the wheels peek out of
+        ...curl(-0.65, -0.35, 0.36), ...curl(0.15, -0.5, 0.42), ...curl(0.85, -0.3, 0.32), ...curl(-0.2, 0.12, 0.22), ...curl(0.55, 0.12, 0.2),
+        rr(-1.0, 0.3, 1.2, 0.4, 0.05, 'accent'),
+      ];
+    },
+  }],
+  ['chinese-dragon', 'Chinese Dragon', 'Довгий східний дракон із вусами. Дихає полум\'ям.', 'creature', ['#d82a2a', '#ffc828'], {
+    o: o({ neck: 'raptor', len: 1.3, wheel: 0.8 }), parts: ['plates', 'tail', 'mohawk'], noLights: true, hideParts: true,
+    // the fire leaves the open jaws
+    gun: () => ({ at: [[2.45, -0.78]], aim: 4 }),
+    // As in Drive Ahead's New Year set: a snaking dragon whose body dives down onto each wheel and
+    // rises into humps between them (the player rides the middle hump), a gold crest of spines
+    // along the back, a pale belly stripe, a finned tail and the gold temple-dragon head in front.
+    skin: (f) => {
+      const { rear, front, wy } = dims(f);
+      const lo = wy - 0.22;
+      const spine = smooth([[-2.15, -1.05], [-1.7, -0.55], [rear - 0.2, lo], [rear + 0.2, lo], [rear + 0.35, -0.55], [-0.25, -0.75], [front - 0.35, -0.55], [front - 0.2, lo], [front + 0.2, lo], [1.3, -0.5], [1.4, -0.8]], 2, false) as [number, number][];
+      const along = (i: number, t: number): [number, number] => { const [x, y] = spine[i], [nx, ny] = spine[i + 1]; return [x + (nx - x) * t, y + (ny - y) * t]; };
+      return [
+        // the crest: short gold spines standing along the back
+        ...spine.slice(0, -1).filter((_, i) => i % 2 === 0).map((_, k) => {
+          const i = k * 2, [x, y] = along(i, 0.5), [nx, ny] = spine[i + 1], [px, py] = spine[i];
+          const dx = nx - px, dy = ny - py, l = Math.hypot(dx, dy) || 1, ux = dy / l, uy = -dx / l, tx = dx / l, ty = dy / l;
+          return poly([[x - tx * 0.12 + ux * 0.15, y - ty * 0.12 + uy * 0.15], [x + tx * 0.12 + ux * 0.15, y + ty * 0.12 + uy * 0.15], [x - tx * 0.08 + ux * 0.46, y - ty * 0.08 + uy * 0.46]], 'accent');
+        }),
+        // the finned tail
+        ...[[-2.55, -1.25], [-2.6, -0.95], [-2.4, -1.35]].map(([x, y]) => poly([[-2.1, -1.08], [-2.2, -0.92], [x, y]], 'accent')),
+        // the snaking body: a thick tube, a pale belly stripe, gold claws where it meets the wheels
+        ...path(spine, 0.46, 'body'),
+        ...path(spine.map(([x, y]) => [x, y + 0.15] as [number, number]), 0.07, 'accent'),
+        ...[rear, front].flatMap((x) => [rr(x - 0.22, lo + 0.06, x + 0.22, lo + 0.2, 0.05, 'accent'), ...[-0.15, 0.0, 0.15].map((d) => poly([[x + d - 0.05, lo + 0.18], [x + d + 0.05, lo + 0.18], [x + d, lo + 0.3]], 'white'))]),
+        // the head
+        ...dragonHead(1.4, -0.8, 0.95, { mane: ['green', 'accent'], maneLen: 0.4 }),
+        ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
   }],
   ['dragon-monster', 'Dragon Monster', 'Монстр-трак із головою дракона. Пихкає вогнем.', 'monster', ['#e02a2a', '#ffd23f'], {
     o: o({ open: true }),
-    parts: ['fangs', 'horns'], hideParts: true,
+    parts: ['fangs', 'horns'], hideParts: 'all',
+    // A red monster truck that is a dragon: the hood is the dragon's head (its jaw round the fangs),
+    // the horn over the cab is its gold horn, bat wings fold along the bed and a spiny crest runs
+    // down the back to a tail over the tailgate.
     skin: (f) => {
-      const x1 = f.nose.x, top = f.roof.y;
+      const x0 = f.tail.x, x1 = f.nose.x, r = f.roof;
       return [
         ...monsterTruck(f, { lamps: false }),
-        // gold scales along the flanks, a spiny crest over the cab and down the bed
-        ...[-1.15, -0.85, -0.55, -0.25, 0.05, 0.35, 0.65].map((x) => arc(x, -0.32, 0.12, Math.PI * 0.05, Math.PI * 0.95, 0.05, 'accent')),
-        ...spikesAlong(f.roof.x0, f.roof.x1, top - 0.05, 4, 0.18, 'accent'),
-        ...spikesAlong(f.tail.x + 0.2, f.roof.x0 - 0.1, -0.62, 3, 0.15, 'accent'),
-        // the dragon head is the front end: horned brow, glowing eye, jaws with fangs, whiskers
-        blob([[x1 - 0.75, -0.55], [x1 - 0.5, -0.95], [x1 - 0.05, -0.85], [x1 + 0.22, -0.55], [x1 + 0.2, -0.38], [x1 - 0.7, -0.35]], 'body', {}, 1),
-        poly([[x1 - 0.62, -0.85], [x1 - 0.95, -1.25], [x1 - 0.4, -0.95]], 'gold'), poly([[x1 - 0.4, -0.92], [x1 - 0.55, -1.3], [x1 - 0.2, -0.9]], 'gold'),
-        ...browEye(x1 - 0.3, -0.7, 0.08, 'red'),
-        poly([[x1 - 0.55, -0.4], [x1 + 0.22, -0.42], [x1 + 0.18, -0.2], [x1 - 0.5, -0.22]], 'black', { flat: true }),
-        ...fangs(x1 - 0.45, x1 + 0.18, -0.41, 4, 0.1), ...fangs(x1 - 0.4, x1 + 0.12, -0.21, 3, 0.09, true),
-        ...path([[x1 + 0.15, -0.5], [x1 + 0.4, -0.6], [x1 + 0.5, -0.8]], 0.05, 'gold'),
-        circ(x1 + 0.12, -0.55, 0.035, 'black'),
+        // the tail curling off the tailgate, and gold scales along the flanks
+        ...path([[x0 + 0.1, -0.45], [x0 - 0.3, -0.6], [x0 - 0.55, -0.95]], 0.18, 'body'), poly([[x0 - 0.45, -0.95], [x0 - 0.75, -1.25], [x0 - 0.5, -0.85], [x0 - 0.68, -0.8]], 'accent'),
+        ...[-1.25, -0.95, -0.65, -0.35, -0.05, 0.25].map((x) => arc(x, -0.34, 0.12, Math.PI * 0.05, Math.PI * 0.95, 0.06, 'accent', { flat: true })),
+        // the folded bat wing over the bed: dark membrane between gold finger bones
+        poly([[x0 + 0.05, -0.6], [r.x0 - 0.1, -0.6], [r.x0 - 0.2, -1.45], [x0 + 0.5, -1.3], [x0 + 0.1, -0.95]], 'dark'),
+        ...[[x0 + 0.1, -0.95], [x0 + 0.5, -1.3], [r.x0 - 0.2, -1.45]].map(([x, y]) => seg([r.x0 - 0.25, -0.62], [x, y], 0.07, 'accent')),
+        ...path([[r.x0 - 0.25, -0.62], [r.x0 - 0.2, -1.45], [r.x0 - 0.05, -1.6]], 0.09, 'accent'),
+        // the goring horn over the cab: black, like the dragon's own
+        poly([[r.x1 - 0.3, r.y], [r.x1 - 0.02, r.y + 0.05], [r.x1 + 0.7, r.y - 0.75]], 'black'),
+        // the head over the hood, jaws round the fangs
+        // a neck rising off the hood
+        blob([[x1 - 1.1, -0.5], [x1 - 0.9, -0.95], [x1 - 0.5, -0.9], [x1 - 0.2, -0.45]], 'body', {}, 1),
+        ...dragonHead(x1 - 0.8, -0.6, 1.2, { maneLen: 0.4 }),
       ];
     },
   }],
@@ -162,14 +191,23 @@ export const CNY = group('cny', [
   ['serpent-tank', 'Serpent Dragon Tank', 'Танк у вигляді змія з драконячою пащею.', 'tracked', ['#2a8a3a', '#ffd23f'], {
     gun: () => ({ at: [[0.93, -1.01]], aim: 15 }),
     parts: ['fangs', 'cannon'], hideParts: true,
+    // A tank whose hull is a green serpent lying on the tracks: scaly back with a gold crest,
+    // its tail coiled over the rear, the dragon's head reared up in front, and the gun turret
+    // riding on its back like a gold saddle.
     skin: (f) => [
       ...tracks(f, 'rubber'),
-      blob([[-1.7, 0.0], [-1.65, -0.45], [0.8, -0.55], [1.6, -0.35], [1.85, -0.05], [1.6, 0.05]], 'body', {}, 1),
-      ...scales(-1.5, 1.2, -0.25), ...spikesAlong(-1.4, 0.4, -0.5, 7, 0.15, 'gold'),
-      circ(-0.2, -0.65, 0.3, 'body'), ...path([[-0.2, -0.7], [0.9, -1.0]], 0.14, 'gold'),
-      ...eyeball(1.25, -0.3, 0.1, 'red'), rr(-0.4, -0.98, 0.0, -0.9, 0.03, 'gold'), rr(0.82, -1.08, 1.0, -0.94, 0.03, 'dark'),
-      rr(-1.7, -0.06, 1.7, 0.1, 0.04, 'body', { ring: true }), ...[-1.4, -0.7, 0.0, 0.7, 1.4].map((x) => circ(x, 0.02, 0.03, 'gold')),
-      poly([[1.3, -0.12], [1.9, -0.15], [1.85, 0.02], [1.3, 0.02]], 'black'), ...fangs(1.35, 1.85, -0.13, 4, 0.1),
+      // the coiled tail at the back
+      ...path([[-1.55, -0.3], [-1.9, -0.55], [-1.75, -0.85], [-1.45, -0.75]], 0.2, 'body'), poly([[-1.45, -0.82], [-1.3, -0.72], [-1.5, -0.66]], 'accent'),
+      // the serpent hull: a long scaly body with a pale belly band and a crest of gold spines
+      ...spikesAlong(-1.4, 0.6, -0.5, 8, 0.16, 'accent'),
+      blob([[-1.7, 0.02], [-1.65, -0.42], [-0.6, -0.55], [0.6, -0.55], [1.2, -0.42], [1.45, -0.1], [1.3, 0.05]], 'body', {}, 1),
+      ...[-0.38, -0.2].flatMap((y, r) => [-1.4, -1.0, -0.6, -0.2, 0.2, 0.6, 1.0].map((x) => arc(x + r * 0.2, y, 0.11, Math.PI * 0.1, Math.PI * 0.9, 0.05, 'green', { flat: true }))),
+      rr(-1.6, -0.06, 1.3, 0.06, 0.04, 'cream'),
+      // the turret: a gold-banded dome on the serpent's back, the barrel through a dragon-mouth mantlet
+      ...path([[-0.2, -0.75], [0.9, -1.01]], 0.15, 'dark'), rr(0.8, -1.09, 1.0, -0.93, 0.03, 'black'),
+      circ(-0.2, -0.62, 0.32, 'body'), rr(-0.52, -0.68, 0.12, -0.6, 0.03, 'accent'), circ(0.06, -0.78, 0.07, 'accent'),
+      // the head reared up in front
+      ...dragonHead(1.05, -0.32, 0.95, { mat: 'body', snout: 'accent', mane: ['accent', 'teal'], spikes: 'red', maneLen: 0.35 }),
     ],
   }],
   ['cannon-carriage', 'Cannon Carriage', 'Середньовічна гармата на великих колесах.', 'cart', ['#7a4a2a', '#3a3a3a'], {

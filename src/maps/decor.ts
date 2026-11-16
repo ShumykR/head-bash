@@ -511,37 +511,63 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
   if (kind === 'ball' || kind === 'twinball') return ballGrid(r, ppm);
   const R = Math.max(2, Math.round(r * ppm));
   const D = R * 2;
-  let p: Pen;
+  let p!: Pen;
+  // shaded like the cars: light from the top left, a dark lower right, a white glint
+  const iron = (lt: number, base: number, dk: number) => (dx: number, dy: number) => (dx + dy < -0.9 && dx > -0.7 ? C.W : dx + dy < -0.35 ? lt : dx + dy > 0.55 ? dk : base);
+  const shell = (len: number, body: number, light: number, nose: number, fin: number | null, band: number | null) => {
+    // a finned round flying along +x: nozzle, fins, banded body with a top highlight, cone nose
+    p = new Pen(len + 2, D + 2);
+    const y0 = 1, n = Math.max(2, Math.round(R * 1.3));
+    if (fin !== null) p.poly([[0, y0 - 1], [n, y0 + 1], [n, y0 + D - 1], [0, y0 + D + 1]], fin);
+    p.rect(1, y0 + 1, len - n - 1, D - 2, body);
+    p.rect(1, y0 + 1, len - n - 1, Math.max(1, Math.round(R * 0.45)), light);
+    p.rect(1, y0 + D - 2, len - n - 1, 1, C.DG);
+    if (band !== null) p.rect(Math.round(len * 0.45), y0 + 1, Math.max(1, Math.round(R * 0.4)), D - 2, band);
+    p.poly([[len - n, y0], [len + 1, y0 + R], [len - n, y0 + D]], nose);
+    p.rect(0, y0 + R - 1, 1, 2, C.DG);
+  };
   switch (kind) {
     case 'laser':
     case 'railgun':
     case 'zap': {
-      p = new Pen(R * 8, D);
-      p.rect(0, 0, R * 8, D, kind === 'zap' ? C.Y : kind === 'railgun' ? C.PU : C.CY);
-      if (kind === 'zap') for (let i = 0; i < 4; i++) p.rect(i * R * 2, (i % 2) * R, R * 2, R, C.W);
-      else p.rect(1, Math.floor(R / 2), R * 8 - 2, Math.max(1, R), C.W);
+      // a glowing bolt: coloured halo, white-hot core, tapered ends
+      const glow = kind === 'zap' ? C.Y : kind === 'railgun' ? C.PU : C.CY, L = R * 8;
+      p = new Pen(L, D);
+      if (kind === 'zap') {
+        for (let i = 0; i < 4; i++) p.line(i * R * 2, (i % 2) * (D - 2) + 1, (i + 1) * R * 2, ((i + 1) % 2) * (D - 2) + 1, glow, Math.max(2, Math.round(R * 0.7)));
+        for (let i = 0; i < 4; i++) p.line(i * R * 2, (i % 2) * (D - 2) + 1, (i + 1) * R * 2, ((i + 1) % 2) * (D - 2) + 1, C.W, 1);
+      } else {
+        p.poly([[0, R], [R, 0], [L - R, 0], [L, R], [L - R, D], [R, D]], glow);
+        p.poly([[R * 0.5, R], [R * 1.2, R - Math.max(1, R * 0.4)], [L - R, R - Math.max(1, R * 0.4)], [L - 1, R], [L - R, R + Math.max(1, R * 0.4)], [R * 1.2, R + Math.max(1, R * 0.4)]], C.W);
+      }
       break;
     }
-    case 'firework':
-    case 'missile':
-    case 'volley':
-    case 'seeker':
-    case 'torpedo': {
-      const body = kind === 'firework' ? C.R : kind === 'torpedo' ? C.DG : kind === 'seeker' ? C.W : C.LG;
-      p = new Pen(R * 5, D);
-      p.rect(0, 0, R * 4, D, body);
-      p.poly([[R * 4, 0], [R * 5, R], [R * 4, D]], kind === 'firework' ? C.Y : kind === 'seeker' ? C.LI : C.R);
-      p.rect(R, 0, 1, D, kind === 'torpedo' ? C.G : C.Y);
-      if (kind !== 'firework') p.poly([[0, -1], [R, 0], [0, 1]], C.DG);
+    case 'missile': shell(R * 6, C.W, C.W, C.R, C.R, C.Y); break;
+    case 'volley': shell(R * 6, C.LG, C.W, C.R, C.DG, C.R); break;
+    case 'seeker': shell(R * 6, C.W, C.W, C.LI, C.LI, C.K); break;
+    case 'torpedo': shell(R * 6, C.DG, C.G, C.R, C.K, C.Y); break;
+    case 'firework': {
+      // a red rocket tube with gold rings, a gold cone and a lit fuse at the back
+      shell(R * 6, C.R, C.PK, C.Y, null, C.Y);
+      p.rect(Math.round(R * 1.5), 2, 1, D - 2, C.Y);
+      p.px(0, R + 1, C.OR);
       break;
     }
     case 'harpoon':
     case 'hook':
     case 'quill': {
-      p = new Pen(R * 9, D);
-      p.rect(0, R - 1, R * 7, 2, kind === 'quill' ? C.CR : kind === 'hook' ? C.G : C.BR);
-      if (kind === 'hook') { p.rect(R * 7, 0, 2, D, C.LG); p.rect(R * 7, D - 2, R * 2, 2, C.LG); }
-      else p.poly([[R * 7, 0], [R * 9, R], [R * 7, D]], kind === 'quill' ? C.K : C.LG);
+      const L = R * 9;
+      p = new Pen(L + 1, D + 2);
+      const y = R + 1;
+      p.rect(0, y - 1, R * 7, 2, kind === 'quill' ? C.CR : kind === 'hook' ? C.G : C.BR);
+      if (kind === 'harpoon') {
+        // a steel head with two barbs, a rope lashing behind it
+        p.poly([[R * 6.2, y - R], [L, y], [R * 6.2, y + R], [R * 6.8, y]], C.LG);
+        p.poly([[R * 6.2, y - R], [R * 5.6, y - R - 1], [R * 6.6, y - 1]], C.G);
+        p.poly([[R * 6.2, y + R], [R * 5.6, y + R + 1], [R * 6.6, y + 1]], C.G);
+        p.rect(R * 5, y - 1, 2, 2, C.SA);
+      } else if (kind === 'hook') { p.rect(R * 7, y - R, 2, D, C.LG); p.rect(R * 7, y + R - 2, R * 2, 2, C.LG); p.rect(R * 8.5, y, 2, R, C.LG); }
+      else p.poly([[R * 7, y - R], [L, y], [R * 7, y + R]], C.K);
       break;
     }
     case 'toast': {
@@ -651,9 +677,48 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
     }
     case 'tracer':
     case 'bullet': {
+      // a brass case with a copper tip (the tracer glows yellow-white)
       p = new Pen(R * 4, D);
       p.rect(0, 0, R * 3, D, kind === 'tracer' ? C.Y : C.GO);
-      p.ell(R * 3, R, R, R, kind === 'tracer' ? C.W : C.GO);
+      p.rect(0, 0, R * 3, Math.max(1, Math.round(R * 0.5)), kind === 'tracer' ? C.W : C.Y);
+      p.ell(R * 3, R, R, R, kind === 'tracer' ? C.W : C.OR);
+      break;
+    }
+    case 'bigrocket': {
+      // the launcher's own big rocket off its rail: olive body, white band and star, red nose and fins
+      const L = R * 10;
+      p = new Pen(L + 2, D + 4);
+      const y0 = 2;
+      p.poly([[0, y0 - 2], [R * 1.6, y0], [R * 1.6, y0 + D], [0, y0 + D + 2]], C.R);
+      p.rect(R * 0.6, y0 + 1, R * 7.4, D - 2, C.GRD);
+      p.rect(R * 0.6, y0 + 1, R * 7.4, Math.max(1, Math.round(R * 0.5)), C.GR);
+      p.rect(R * 4.4, y0 + 1, Math.max(2, Math.round(R * 0.6)), D - 2, C.W);
+      p.ell(R * 2.6, y0 + R, R * 0.45, R * 0.45, C.W);
+      p.poly([[R * 8, y0 + 1], [L + 1, y0 + R], [R * 8, y0 + D - 1]], C.R);
+      p.rect(0, y0 + R - 1, R * 0.6, 2, C.DG);
+      break;
+    }
+    case 'chainshot': {
+      // two iron half-balls with a chain between them
+      p = new Pen(R * 4, D);
+      for (const cx of [R * 0.9, R * 3.1]) p.ell(cx, R, R * 0.9, R * 0.9, C.DG, iron(C.G, C.DG, C.K));
+      for (let x = Math.round(R * 1.7); x < R * 2.4; x += 2) p.rect(x, R - 1, 1, 2, C.LG);
+      break;
+    }
+    case 'cannon':
+    case 'mega':
+    case 'grapeshot': {
+      p = new Pen(D, D);
+      p.ell(R, R, R, R, C.DG, iron(C.G, C.DG, C.K));
+      if (kind === 'mega') p.rect(0, R - 1, D, 2, C.LG);
+      break;
+    }
+    case 'popshell': {
+      p = new Pen(R * 3, D);
+      p.rect(0, 0, R * 2, D, C.GO);
+      p.rect(0, 0, R * 2, Math.max(1, Math.round(R * 0.5)), C.Y);
+      p.rect(Math.round(R * 0.4), 0, 1, D, C.BR);
+      p.ell(R * 2, R, R, R, C.LG, iron(C.W, C.LG, C.G));
       break;
     }
     case 'web': {
@@ -667,9 +732,9 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
     default: {
       p = new Pen(D, D);
       if (kind === 'slush') p.ell(R, R, R, R, C.CY, (dx, dy) => (dx + dy < -0.5 ? C.W : (dx * 3 + dy * 5) % 1 > 0.6 ? C.W : C.CY));
-      else if (kind === 'dragonshell') p.ell(R, R, R, R, C.Y, (dx, dy) => (dx + dy < -0.6 ? C.W : dx + dy > 0.5 ? C.R : C.Y));
+      else if (kind === 'dragonshell') p.ell(R, R, R, R, C.Y, (dx, dy) => (dx + dy < -0.8 ? C.W : Math.abs(((dx * 2 + dy * 3 + 5) % 1) - 0.5) < 0.12 ? C.R : dx + dy > 0.5 ? C.OR : C.Y));
       else if (kind === 'snowball' || kind === 'bigsnow' || kind === 'twinsnow') p.ell(R, R, R, R, C.W, (dx, dy) => (dx + dy > 0.5 ? C.SN : C.W));
-      else p.ell(R, R, R, R, C.DG, (dx, dy) => (dx + dy < -0.6 ? C.G : C.DG));
+      else p.ell(R, R, R, R, C.DG, iron(C.G, C.DG, C.K));
     }
   }
   return centered(p);

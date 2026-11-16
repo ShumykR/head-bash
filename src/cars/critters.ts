@@ -274,3 +274,68 @@ export function crew(x: number, y: number, r: number, o: CrewOpts = {}): CarPoly
   const c = Math.cos(o.rot), s = Math.sin(o.rot);
   return out.map((p) => ({ ...p, pts: p.pts.map(([px, py]) => [+(x + (px - x) * c - (py - y) * s).toFixed(3), +(y + (px - x) * s + (py - y) * c).toFixed(3)] as Pt) }));
 }
+
+export interface DragonHeadOpts {
+  /** Scaly skull and lower jaw. */
+  mat?: CarMat;
+  snout?: CarMat;
+  /** Long fronds of the mane streaming back (two alternating colours) and the spikes among them. */
+  mane?: [CarMat, CarMat];
+  spikes?: CarMat;
+  /** How far back the mane streams (1 = a full head length). */
+  maneLen?: number;
+  horn?: CarMat;
+  /** Curling whiskers off the snout (null = none). */
+  whiskers?: CarMat | null;
+  /** Facing -x. */
+  flip?: boolean;
+}
+
+/**
+ * An eastern dragon's head, after a temple dragon: facing +x, drawn round its jaw hinge (x, y),
+ * sized k (1 ≈ 1.2 m from mane to nose). A gold scaly skull with a green brow tuft, an orange
+ * snout with a red nose knob, one round staring eye, a black horn curling back, the jaws gaping on
+ * white fangs over red gums with the tongue lolling out, a gold whisker curling up off the snout,
+ * a red beard, and a long mane of green and teal fronds with red spikes streaming back.
+ */
+export function dragonHead(x: number, y: number, k = 1, o: DragonHeadOpts = {}): CarPoly[] {
+  const m = o.mat ?? 'gold', [m1, m2] = o.mane ?? ['green', 'teal'], sp = o.spikes ?? 'red';
+  const sx = o.flip ? -1 : 1;
+  const at = (a: number, b: number): Pt => [x + a * k * sx, y + b * k];
+  const P = (pts: Pt[]): Pt[] => pts.map(([a, b]) => at(a, b));
+  const teeth = (x0: number, x1: number, yy: number, n: number, h: number, up = false) => {
+    const [a, b] = o.flip ? [at(x1, 0)[0], at(x0, 0)[0]] : [at(x0, 0)[0], at(x1, 0)[0]];
+    return fangs(a, b, y + yy * k, n, h * k, up);
+  };
+  const out: CarPoly[] = [];
+  // the mane: long fronds streaming back, red spikes between them
+  const fronds: [Pt, Pt][] = [[[0.05, -0.32], [-0.95, -0.72]], [[0.0, -0.18], [-1.15, -0.42]], [[0.0, -0.04], [-1.15, -0.12]], [[0.02, 0.1], [-1.05, 0.2]], [[0.08, 0.24], [-0.8, 0.5]], [[0.15, 0.32], [-0.45, 0.66]]];
+  const ml = o.maneLen ?? 0.6;
+  fronds.forEach(([[bx, by], [tx0, ty0]], i) => {
+    const tx = bx + (tx0 - bx) * ml, ty = by + (ty0 - by) * ml;
+    if (i < 5) out.push(poly(P([[bx + 0.1, by - 0.06], [bx + 0.1, by + 0.12], [bx + (tx - bx) * 0.75, (ty + by) / 2 + 0.06]]), sp));
+    out.push(poly(P([[bx, by - 0.07], [bx + 0.05, by + 0.07], [(bx + tx) / 2, (by + ty) / 2 + 0.06], [tx, ty], [(bx + tx) / 2, (by + ty) / 2 - 0.04]]), i % 2 ? m2 : m1));
+  });
+  // the horn curling back
+  out.push(...path(P([[0.3, -0.34], [0.15, -0.62], [-0.15, -0.78], [-0.42, -0.72], [-0.5, -0.58]]), 0.1 * k, o.horn ?? 'black'));
+  // the red beard under the jaw
+  out.push(...[0.25, 0.5, 0.75].map((bx, i) => poly(P([[bx - 0.1, 0.36], [bx + 0.1, 0.38], [bx - 0.22, 0.68]]), i % 2 ? m1 : sp)));
+  // the skull, the green brow tuft, the orange snout with its red nose knob
+  out.push(blob(P([[-0.1, -0.25], [0.2, -0.44], [0.6, -0.4], [0.88, -0.26], [0.98, -0.1], [0.4, -0.04], [0.0, 0.02]]), m, {}, 1));
+  out.push(blob(P([[0.18, -0.4], [0.45, -0.52], [0.66, -0.38], [0.38, -0.32]]), m1, {}, 1));
+  out.push(blob(P([[0.76, -0.3], [1.1, -0.26], [1.22, -0.1], [0.82, -0.04]]), o.snout ?? 'orange', {}, 1));
+  out.push(circ(...at(1.12, -0.22), 0.075 * k, 'red'));
+  // the staring eye
+  out.push(circ(...at(0.6, -0.24), 0.105 * k, 'white', { flat: true }), circ(...at(0.63, -0.24), 0.065 * k, 'black', { flat: true }));
+  // the gaping mouth: red gums, white fangs, the tongue lolling out, the gold lower jaw
+  out.push(poly(P([[0.1, -0.02], [1.2, -0.04], [1.0, 0.26], [0.15, 0.16]]), 'black', { flat: true }));
+  out.push(poly(P([[0.15, -0.08], [1.2, -0.08], [1.18, -0.01], [0.18, 0.0]]), 'red', { flat: true }));
+  out.push(...teeth(0.35, 1.15, -0.01, 4, 0.13));
+  out.push(...path(P([[0.35, 0.14], [0.8, 0.18], [1.18, 0.36]]), 0.08 * k, 'pink'));
+  out.push(blob(P([[0.05, 0.16], [0.98, 0.24], [1.05, 0.36], [0.15, 0.34]]), m, {}, 1));
+  out.push(poly(P([[0.25, 0.25], [0.98, 0.32], [0.98, 0.34], [0.25, 0.28]]), 'red', { flat: true }));
+  out.push(...teeth(0.45, 0.95, 0.24, 3, 0.1, true));
+  // the whisker curling up off the snout
+  if (o.whiskers !== null) out.push(...path(P([[1.1, -0.14], [1.32, -0.3], [1.22, -0.52], [1.42, -0.72], [1.3, -0.92]]), 0.055 * k, o.whiskers ?? 'gold'));
+  return out;
+}

@@ -29,6 +29,10 @@ export interface CarPoly {
   flat?: boolean;
   /** Glass that stays even right under the driver (who looks out of a roof hatch above it). */
   keep?: boolean;
+  /** Render only: the round the car fires (a rocket on its rail); it vanishes while the shot recharges. */
+  ammo?: boolean;
+  /** Render only: running gear at rest (a track belt) that the game draws live, following the wheels. */
+  gear?: boolean;
 }
 
 export interface WheelDef {
@@ -43,6 +47,13 @@ export interface WheelDef {
   /** Physics-only wheel (sled runners, bumper-car skirt): not drawn. */
   hidden?: boolean;
 }
+
+/**
+ * How a car meets the ground. Wheels roll; a track belt wraps the road wheels and its lugs run with
+ * them; runners (sled runners, skis, skates) slide and throw up snow; a hover car floats on a
+ * glowing air cushion that kicks up dust.
+ */
+export type DriveKind = 'wheels' | 'tracks' | 'runners' | 'hover';
 
 export interface CarPalette {
   body: string;
@@ -70,7 +81,7 @@ export type ProjectileKind =
   | 'bone' | 'missile' | 'water' | 'ice' | 'fire' | 'urn' | 'zap' | 'cork' | 'burger' | 'web'
   | 'golf' | 'bullet' | 'bigsnow' | 'bat' | 'penguin' | 'mega' | 'torpedo' | 'volley' | 'tea' | 'plasma'
   | 'seeker' | 'fist' | 'railgun' | 'atom' | 'hook' | 'quill' | 'ink'
-  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot';
+  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot' | 'bigrocket';
 
 /** Loose things a car carries (start in the bed and spill out), drops, or an arena scatters around. */
 export type ItemKind =
@@ -141,8 +152,10 @@ export interface LinkDef {
   to?: number;
   /** Swing limits around the rest pose, radians, for a car facing right (positive = clockwise on screen). Omit for a free hinge. */
   swing?: [number, number];
-  /** Springiness pulling the piece back to rest (motor torque, N·m). */
+  /** Springiness pulling the piece back to rest (the most torque the spring gives, N·m). */
   spring?: number;
+  /** How fast the sprung piece sways back, Hz (default 2.6); 0 = a stiff servo that only gives under a hard knock (load-bearing necks). */
+  hz?: number;
   /** Motor spin, rad/s (saws, rollers, propellers). */
   spin?: number;
   /** The piece's own free-rolling wheels (trailers). */
@@ -170,6 +183,10 @@ export interface CarDef {
   palette: CarPalette;
   /** Collision + render polygons. */
   body: CarPoly[];
+  /** Running gear (default: wheels). */
+  drive?: DriveKind;
+  /** A live track belt round the wheels: how far it stands off the wheel rims and its material. */
+  belt?: { grow: number; mat: CarMat };
   /** Render-only decoration: window polygons, stripes. */
   windows?: Pt[][];
   stripe?: { y: number; h: number };

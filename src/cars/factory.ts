@@ -1,4 +1,5 @@
-import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
+import { withDrive } from './drive';
+import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
 import { estimateMass } from './stats';
 
 /*
@@ -492,7 +493,7 @@ function frame(id: FrameId, o: FrameOpts): Frame {
         const legs = 2;
         const hit = polys.splice(body1 + legs, 2);
         const nx = (neck === 'long' ? 0.72 : neck === 'short' ? 0.78 : 0.85) * L;
-        limbs.push({ at: [nx, -0.4], swing: [-16, 14], spring: 14, density: 0.9, hit, art: [], take: (x, y) => x > nx + 0.02 && y < -0.3 });
+        limbs.push({ at: [nx, -0.4], swing: [-16, 14], spring: 14, hz: 0, density: 0.9, hit, art: [], take: (x, y) => x > nx + 0.02 && y < -0.3 });
       }
       const wr = 0.34 * wk;
       return {
@@ -1000,6 +1001,7 @@ export interface LinkSpec {
   /** Swing limits around rest, degrees [lo, hi] (positive = clockwise for a car facing right). */
   swing?: [number, number];
   spring?: number;
+  hz?: number;
   spin?: number;
   wheels?: WheelDef[];
   density?: number;
@@ -1016,6 +1018,7 @@ export function makeLink(l: LinkSpec, s = 1): LinkDef {
     to: l.to,
     swing: l.swing ? [+(l.swing[0] * Math.PI / 180).toFixed(3), +(l.swing[1] * Math.PI / 180).toFixed(3)] : undefined,
     spring: l.spring,
+    ...(l.hz !== undefined ? { hz: l.hz } : {}),
     spin: l.spin,
     wheels: l.wheels?.map((w) => ({ ...w, x: +(w.x * s).toFixed(3), y: +(w.y * s).toFixed(3), r: +(w.r * s).toFixed(3) })),
     density: l.density,
@@ -1077,8 +1080,10 @@ export interface CarSpec {
    * a bigger wheel grows up into the arch, a smaller one shrinks down towards the road.
    */
   axles?: number[];
-  /** With a skin: also hide the bolted-on parts (the skin draws them itself). */
-  hideParts?: boolean;
+  /** With a skin: also hide the bolted-on parts (the skin draws them itself). 'all' hides the horns too (the skin must draw them in the same place). */
+  hideParts?: boolean | 'all';
+  /** Running gear, when the frame and skin don't say (tracks hidden in a skin, a hover skirt). */
+  drive?: DriveKind;
   /** No head/tail light pixels (creatures, blobs…). */
   noLights?: boolean;
   /** Air-control multiplier. */
@@ -1148,8 +1153,8 @@ export function buildCar(spec: CarSpec): CarDef {
     const r = part(f, id, k ?? 1);
     // A part that would swallow the driver's head becomes render-only.
     for (const p of r.polys) if (!p.deco && (inPoly(p.pts, f.head.x, f.head.y) || inPoly(p.pts, f.head.x, f.head.y - f.head.r * 0.7))) p.deco = true;
-    // Horns are always the real thing: what you see is what gores.
-    const hideIt = skinned && spec.hideParts && id !== 'horns';
+    // Horns are the real thing: what you see is what gores (unless the skin redraws them in place).
+    const hideIt = skinned && !!spec.hideParts && (id !== 'horns' || spec.hideParts === 'all');
     polys.push(...(hideIt ? r.polys.map((p) => ({ ...p, hide: true })) : r.polys));
     if (r.windows && !hideIt) windows.push(...r.windows);
     if (r.boost) boost = true;
@@ -1250,6 +1255,10 @@ export function buildCar(spec: CarSpec): CarDef {
   if (spec.headOn !== undefined) def.headOn = spec.headOn;
   if (f.cabin && !spec.head && spec.headOn === undefined) def.cabin = true;
   if (spec.float ?? f.float) def.float = spec.float ?? f.float;
+  // Running gear: a skin's track belt makes a tracked car, sled runners and hover skirts their own kinds.
+  const drv = withDrive(def, spec.drive ?? (spec.frame === 'hover' ? 'hover' : glide !== undefined && !def.body.some((p) => p.gear) ? 'runners' : undefined));
+  if (drv.drive) def.drive = drv.drive;
+  if (drv.belt) def.belt = drv.belt;
   if (spec.bounce) def.restitution = spec.bounce;
   // Normalize chassis density so the car hits its target mass, then torque for target accel.
   const targetMass = pre.mass * (spec.mass ?? 1) * Math.max(0.8, Math.min(1.25, s));

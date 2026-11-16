@@ -209,10 +209,12 @@ export function monsterChassis(f: Frame, mat: CarMat = 'black'): CarPoly[] {
 export function tracks(f: Frame, mat: CarMat = 'rubber', grow = 0.08): CarPoly[] {
   const a = firstW(f), b = lastW(f);
   const r = a.r + grow;
-  const out: CarPoly[] = [rr(a.x - r, a.y - r, b.x + r, a.y + r, r, mat)];
+  // The belt is running gear: previews show it at rest, the game draws it live round the wheels.
+  const gear = { gear: true };
+  const out: CarPoly[] = [rr(a.x - r, a.y - r, b.x + r, a.y + r, r, mat, gear)];
   // tread lugs on the top run
-  for (let x = a.x; x < b.x; x += 0.24) out.push(rect(x - 0.04, a.y - r - 0.04, x + 0.04, a.y - r + 0.03, mat));
-  out.push(rr(a.x - r + 0.08, a.y - r + 0.06, b.x + r - 0.08, a.y + r - 0.06, r - 0.08, 'black'));
+  for (let x = a.x; x < b.x; x += 0.24) out.push(rect(x - 0.04, a.y - r - 0.04, x + 0.04, a.y - r + 0.03, mat, gear));
+  out.push(rr(a.x - r + 0.08, a.y - r + 0.06, b.x + r - 0.08, a.y + r - 0.06, r - 0.08, 'black', gear));
   // a guard over the top run, so the track reads as a separate machine part
   out.push(rr(a.x - r * 0.6, a.y - r - 0.1, b.x + r * 0.6, a.y - r + 0.02, 0.03, 'grey'));
   return out;

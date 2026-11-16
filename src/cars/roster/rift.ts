@@ -2,7 +2,7 @@ import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spi
 import { arc, boxy, carriage, hover, pickup, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
-import { dims, saddle, theropod, arm, pincer, maw, browEye } from '../critters';
+import { dims, saddle, theropod, arm, pincer, browEye, dragonHead } from '../critters';
 import { group, o } from './util';
 
 function base(f: Frame, mat: CarMat = 'body', h = 0.38): CarPoly[] {
@@ -150,18 +150,17 @@ export const RIFT = group('rift', [
     skin: (f) => [
       ...carriage(f, { trim: 'accent' }),
       crystal(-0.5, f.roof.y - 0.05, 0.6, 0.3, 'accent'), crystal(-0.2, f.roof.y - 0.05, 0.4, 0.22, 'sky'),
-      // the summoned ghost dragon: a pale, glowing body coiling up out of the crystals, wings spread, fire from its jaws
-      ...path([[-0.9, f.roof.y + 0.05], [-1.3, f.roof.y - 0.35], [-1.0, f.roof.y - 0.75], [-0.6, f.roof.y - 0.6]], 0.14, 'sky'),
-      poly([[-0.5, f.roof.y - 0.55], [-1.2, f.roof.y - 1.35], [-0.75, f.roof.y - 1.15], [-0.45, f.roof.y - 1.45], [-0.2, f.roof.y - 1.05], [0.1, f.roof.y - 1.25], [0.1, f.roof.y - 0.6]], 'teal'),
-      ...[[-1.2, -1.35], [-0.45, -1.45], [0.1, -1.25]].map(([x, y]) => seg([-0.3, f.roof.y - 0.6], [x, f.roof.y + y], 0.035, 'white')),
-      ...path([[-0.4, f.roof.y - 0.45], [0.2, f.roof.y - 0.75], [f.roof.x1 + 0.3, f.roof.y - 0.8], [f.roof.x1 + 0.6, f.roof.y - 0.95]], 0.3, 'sky'),
-      blob([[f.roof.x1 + 0.45, f.roof.y - 1.1], [f.roof.x1 + 0.95, f.roof.y - 1.18], [f.roof.x1 + 1.3, f.roof.y - 0.9], [f.roof.x1 + 0.6, f.roof.y - 0.78]], 'sky', {}, 1),
-      ...path([[f.roof.x1 + 0.6, f.roof.y - 1.1], [f.roof.x1 + 0.45, f.roof.y - 1.35]], 0.05, 'white'),
-      circ(f.roof.x1 + 0.82, f.roof.y - 1.0, 0.05, 'teal'), ...fangs(f.roof.x1 + 0.85, f.roof.x1 + 1.25, f.roof.y - 0.88, 3, 0.07),
+      // the summoned ghost dragon: a pale glowing body coiling up out of the crystals, a wing spread
+      // behind, and the head reared over the front, jaws open for the fire
+      ...path([[-0.9, f.roof.y + 0.05], [-1.35, f.roof.y - 0.35], [-1.05, f.roof.y - 0.75], [-0.5, f.roof.y - 0.65], [0.1, f.roof.y - 0.8], [f.roof.x1 + 0.1, f.roof.y - 0.8]], 0.3, 'sky'),
+      ...[[-1.25, -0.5], [-0.8, -0.78], [-0.25, -0.75], [0.3, -0.9]].map(([x, y]) => poly([[x - 0.12, f.roof.y + y - 0.12], [x + 0.12, f.roof.y + y - 0.14], [x - 0.06, f.roof.y + y - 0.38]], 'white')),
+      poly([[-0.5, f.roof.y - 0.7], [-1.25, f.roof.y - 1.5], [-0.8, f.roof.y - 1.3], [-0.45, f.roof.y - 1.6], [-0.2, f.roof.y - 1.2], [0.1, f.roof.y - 1.4], [0.05, f.roof.y - 0.8]], 'teal'),
+      ...[[-1.25, -1.5], [-0.45, -1.6], [0.1, -1.4]].map(([x, y]) => seg([-0.3, f.roof.y - 0.75], [x, f.roof.y + y], 0.04, 'white')),
+      ...dragonHead(f.roof.x1 + 0.25, f.roof.y - 0.7, 0.95, { mat: 'sky', snout: 'white', mane: ['teal', 'accent'], spikes: 'white', horn: 'white', whiskers: 'accent', maneLen: 0.45 }),
       ...[-0.6, 0.0, 0.6].map((x) => [circ(x, f.roof.y + 0.45, 0.11, 'dark'), circ(x, f.roof.y + 0.45, 0.07, 'accent')]).flat(),
     ],
     // the dragon's fire and the crystals' sparks are animated
-    fx: (f) => [{ kind: 'flame', at: [f.roof.x1 + 1.25, f.roof.y - 0.9], dir: 5, size: 0.22 }, { kind: 'spark', at: [-0.4, f.roof.y - 0.5], size: 0.18, mat: 'accent', rate: 0.6 }],
+    fx: (f) => [{ kind: 'flame', at: [f.roof.x1 + 1.4, f.roof.y - 0.66], dir: 5, size: 0.22 }, { kind: 'spark', at: [-0.4, f.roof.y - 0.5], size: 0.18, mat: 'accent', rate: 0.6 }],
   }],
   ['jelly-shock', 'Jelly Shock', 'Електрична медуза: б\'є струмом блискавкою.', 'blob', ['#ff7ad0', '#5ef0ff'], {
     o: o({ shape: 'egg' }), parts: ['tentacles'], bounce: 0.5, noLights: true, hideParts: true,
@@ -178,19 +177,23 @@ export const RIFT = group('rift', [
     o: o({ neck: 'raptor', len: 1.3, tall: 0.7 }), parts: ['tail'], noLights: true, hideParts: true,
     skin: (f) => {
       const L = 1.3;
-      const spine: [number, number][] = [[f.tail.x - 1.0, -0.55], [f.tail.x - 0.4, -0.2], [-0.7, -0.45], [0.0, -0.22], [0.7, -0.42], [1.05 * L, -0.55]];
+      const spine: [number, number][] = [[f.tail.x - 1.0, -0.6], [f.tail.x - 0.4, -0.25], [-0.7, -0.42], [0.0, -0.25], [0.7, -0.42], [1.05 * L, -0.55]];
       return [
-        // undulating eel body riding low over the wheels, ribbon fin along the back
-        ...path(spine.map(([x, y]) => [x, y - 0.18] as [number, number]), 0.12, 'teal'),
-        ...path(spine, 0.42, 'body'),
-        ...path(spine.slice(1).map(([x, y]) => [x, y + 0.14] as [number, number]), 0.1, 'grey'),
-        ...spine.slice(1, -1).map(([x, y]) => circ(x, y - 0.03, 0.07, 'accent')),
+        // undulating eel body riding low over the wheels: a teal ribbon fin along the back,
+        // a pale belly, and rows of glowing spots
+        ...path(spine.map(([x, y]) => [x, y - 0.24] as [number, number]), 0.16, 'teal'),
+        ...path(spine, 0.52, 'body'),
+        ...path(spine.slice(1).map(([x, y]) => [x, y + 0.16] as [number, number]), 0.14, 'grey'),
+        ...spine.slice(1, -1).flatMap(([x, y]) => [circ(x - 0.2, y - 0.08, 0.06, 'accent'), circ(x + 0.15, y - 0.04, 0.06, 'accent')]),
+        poly([[f.tail.x - 1.0, -0.6], [f.tail.x - 1.35, -0.95], [f.tail.x - 1.3, -0.3]], 'teal'),
         rr(f.wheels[0].x - 0.2, -0.05, f.wheels[1].x + 0.2, 0.1, 0.04, 'dark'),
-        // angler head: wide jaw of needle teeth, glowing lure on a stalk, pale eye
-        blob([[1.0 * L, -0.85], [1.45 * L, -0.92], [1.85 * L, -0.7], [1.85 * L, -0.38], [1.1 * L, -0.3], [0.95 * L, -0.5]], 'body', {}, 1),
-        ...maw(1.25 * L, 1.85 * L, -0.5, 0.14, 5),
-        ...path([[1.3 * L, -0.9], [1.25 * L, -1.2], [1.48 * L, -1.32]], 0.04, 'grey'), circ(1.5 * L, -1.32, 0.08, 'accent'),
-        circ(1.42 * L, -0.72, 0.08, 'sky'), circ(1.44 * L, -0.72, 0.035, 'black'),
+        // the angler head: a huge underbite of needle teeth, a glowing lure on a stalk, a pale eye
+        ...path([[1.3 * L, -0.95], [1.2 * L, -1.35], [1.5 * L, -1.5]], 0.05, 'grey'), circ(1.52 * L, -1.5, 0.11, 'accent'), circ(1.52 * L, -1.5, 0.05, 'white'),
+        blob([[0.95 * L, -0.85], [1.4 * L, -1.0], [1.85 * L, -0.85], [1.95 * L, -0.6], [1.2 * L, -0.55], [0.9 * L, -0.45]], 'body', {}, 1),
+        poly([[1.05 * L, -0.55], [1.95 * L, -0.6], [1.95 * L, -0.28], [1.1 * L, -0.3]], 'black', { flat: true }),
+        ...fangs(1.15 * L, 1.92 * L, -0.58, 6, 0.12), ...fangs(1.2 * L, 1.95 * L, -0.31, 6, 0.13, true),
+        blob([[0.95 * L, -0.4], [1.98 * L, -0.33], [2.02 * L, -0.12], [1.1 * L, -0.12]], 'body', {}, 1),
+        circ(1.45 * L, -0.78, 0.11, 'sky', { flat: true }), circ(1.48 * L, -0.78, 0.05, 'black', { flat: true }),
         ...saddle(f.head.x, f.head.y + 0.2, 'teal'),
       ];
     },

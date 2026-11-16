@@ -131,7 +131,7 @@ export class AudioEngine {
       case 'shoot':
         if (proj === 'laser' || proj === 'zap') this.tone(1800, 0.18, 'square', 0.09, 300);
         else if (proj === 'snowball' || proj === 'ball' || proj === 'egg' || proj === 'burger' || proj === 'gift') { this.noiseBurst(0.12, 0.3, 700, 1, 300); this.tone(240, 0.1, 'triangle', 0.15, 120); }
-        else if (proj === 'firework' || proj === 'missile') { this.noiseBurst(0.5, 0.25, 3000, 0.6, 800); this.tone(600, 0.4, 'square', 0.05, 1600); }
+        else if (proj === 'firework' || proj === 'missile' || proj === 'bigrocket') { this.noiseBurst(0.5, 0.25, 3000, 0.6, 800); this.tone(600, 0.4, 'square', 0.05, 1600); }
         else if (proj === 'toast') { this.tone(900, 0.06, 'square', 0.12); this.tone(500, 0.15, 'triangle', 0.12, 1200, 0.05); }
         else if (proj === 'bubble') [600, 900, 1200].forEach((f, i) => this.tone(f, 0.08, 'sine', 0.1, f * 1.5, i * 0.06));
         else if (proj === 'water' || proj === 'fire') this.noiseBurst(0.6, 0.35, proj === 'water' ? 1800 : 900, 0.5, proj === 'water' ? 2600 : 400);

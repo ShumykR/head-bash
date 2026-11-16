@@ -19,6 +19,12 @@ const wrapAngle = (a: number) => {
   return a - Math.PI;
 };
 
+/** Sway of sprung links (tails, ears, booms): natural frequency, Hz, and damping ratio. */
+const LINK_HZ = 2.6;
+const LINK_DAMPING = 0.22;
+/** How hard a track belt evens out its road wheels' spin each step (0..1). */
+const TRACK_COUPLING = 0.35;
+
 /**
  * A spawned car: chassis + wheels joined by WheelJoints (spring suspension + motor).
  * Car-local geometry faces +x; `facing = -1` mirrors it.
@@ -67,6 +73,8 @@ export class Car {
   /** Moving pieces on hinges (see LinkDef), in def.links order. */
   readonly links: Body[] = [];
   readonly linkJoints: RevoluteJoint[] = [];
+  /** Spring-damper constants of sprung links (stiffness, damping, torque cap), by link index. */
+  private readonly linkSprings: ({ k: number; c: number; max: number } | undefined)[] = [];
   /** Trim links: they never collide (see LinkDef.trim). */
   private readonly trim = new Set<Body>();
   /** Wheels of the links (trailers): [body, link index, wheel def]. */
@@ -220,11 +228,21 @@ export class Car {
         jd.enableMotor = true;
         jd.motorSpeed = ld.spin * f;
         jd.maxMotorTorque = 60;
-      } else if (ld.spring) {
+      } else if (ld.spring && ld.hz === 0) {
+        // a stiff servo holding the piece at rest: it only gives under a hard knock
         jd.enableMotor = true;
         jd.maxMotorTorque = ld.spring;
       }
       const j = world.createJoint(new RevoluteJoint(jd, parent, lb, new Vec2(x + ld.at[0] * f, y + ld.at[1])))!;
+      if (ld.spring && !ld.spin && ld.hz !== 0) {
+        // A real spring and damper round the hinge, tuned to the piece's own inertia about it:
+        // it sways with every bump, start and stop, and settles in a couple of wobbles.
+        const c = lb.getWorldCenter(), hinge = new Vec2(x + ld.at[0] * f, y + ld.at[1]);
+        const m = lb.getMass(), lc = lb.getLocalCenter();
+        const I = Math.max(1e-4, lb.getInertia() - m * Vec2.dot(lc, lc) + m * Vec2.distanceSquared(c, hinge));
+        const w = 2 * Math.PI * (ld.hz ?? LINK_HZ);
+        this.linkSprings[li] = { k: I * w * w, c: 2 * LINK_DAMPING * I * w, max: ld.spring };
+      }
       this.links.push(lb);
       this.linkJoints.push(j);
       for (const wd of ld.wheels ?? []) {
@@ -520,7 +538,17 @@ export class Car {
     for (let i = 0; i < this.linkJoints.length; i++) {
       const ld = d.links![i];
       const j = this.linkJoints[i];
-      if (ld.spring && !ld.spin) j.setMotorSpeed(Math.max(-8, Math.min(8, -j.getJointAngle() * 10)));
+      if (ld.spring && !ld.spin && ld.hz === 0) j.setMotorSpeed(Math.max(-8, Math.min(8, -j.getJointAngle() * 10)));
+      const sp = this.linkSprings[i];
+      if (sp) {
+        const lb = this.links[i], parent = j.getBodyA();
+        // hold up the piece's own weight, so it rests where it was drawn and only sways with the motion
+        const g = lb.getWorld().getGravity(), c = lb.getWorldCenter(), h = parent.getWorldPoint(j.getLocalAnchorA());
+        const tg = lb.getMass() * ((c.x - h.x) * g.y - (c.y - h.y) * g.x);
+        const t = Math.max(-sp.max, Math.min(sp.max, -tg - sp.k * j.getJointAngle() - sp.c * (lb.getAngularVelocity() - parent.getAngularVelocity())));
+        lb.applyTorque(t, true);
+        parent.applyTorque(-t, true);
+      }
       // A light piece wedged between the car and the ground can be forced past its stops:
       // put it back at the stop, so at full swing it behaves like a rigid part of the car.
       if (ld.swing) {
@@ -541,6 +569,17 @@ export class Car {
     const trq = (this.turboT > 0 ? 1.4 : 1) * (this.heavyT > 0 ? 2.6 : 1) * (this.slowT > 0 ? 0.6 : 1);
     if (this.stasisT > 0) {
       for (const b of this.allBodies) { b.setLinearVelocity(new Vec2(0, 0)); b.setAngularVelocity(b.getAngularVelocity() * 0.8); }
+    }
+
+    // A track belt ties its road wheels together: a wheel in the air turns with the ones on the ground.
+    if (d.belt && this.wheels.length > 1) {
+      let m = 0, n = 0;
+      for (let i = 0; i < this.wheels.length; i++) { m += this.wheels[i].getAngularVelocity() * d.wheels[i].r; n++; }
+      m /= n;
+      for (let i = 0; i < this.wheels.length; i++) {
+        const w = this.wheels[i], r = d.wheels[i].r;
+        w.setAngularVelocity(w.getAngularVelocity() + (m / r - w.getAngularVelocity()) * TRACK_COUPLING);
+      }
     }
 
     // Motor: drive wheels toward target angular speed; light rolling brake when idle.

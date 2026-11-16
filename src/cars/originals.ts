@@ -1,3 +1,4 @@
+import { withDrive } from './drive';
 import type { Frame } from './factory';
 import type { CarDef, CarPoly } from './types';
 import { blob, bumper, circ, ell, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spare, spikesAlong, stack, starShape, stripe, tank } from './draw';
@@ -301,6 +302,6 @@ const beaconLeft = (x: number, y: number): CarPoly[] => [rect(x - 0.12, y - 0.05
 export function skinOriginal(d: CarDef): CarDef {
   const skin = ORIGINAL_SKINS[d.id];
   if (!skin) return d;
-  return { ...d, body: [...d.body.map((p) => ({ ...p, hide: true })), ...skin(d).map((p) => ({ ...p, deco: true }))], windows: [], stripe: undefined };
+  return withDrive({ ...d, body: [...d.body.map((p) => ({ ...p, hide: true })), ...skin(d).map((p) => ({ ...p, deco: true }))], windows: [], stripe: undefined });
 }
 

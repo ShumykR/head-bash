@@ -107,6 +107,7 @@ export const DOME = group('dome', [
     ],
   }],
   ['hovercraft', 'Hovercraft', 'Судно на повітряній подушці з великим гвинтом. Ширяє над землею.', 'boat', ['#e0c020', '#2a2a2a'], {
+    drive: 'hover',
     parts: ['propeller'], float: 0.85, hideParts: true, hideWheels: [0, 1],
     // No visible wheels: the physics wheels hide inside an inflated rubber skirt down to the ground.
     skin: (f) => [
