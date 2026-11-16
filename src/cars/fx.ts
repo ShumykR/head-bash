@@ -81,3 +81,16 @@ export function fxSnapshot(def: CarDef): CarPoly[] {
   }
   return out;
 }
+
+/** How each kind of car effect moves (per particle; rate is per second at fx.rate 1). */
+export const FX_PARAMS: Record<string, { rate: number; speed: number; jitter: number; life: number; size: number; g: number; drag: number; grow: number; spin: number; alpha: number; carry: number }> = {
+  smoke: { rate: 9, speed: 1.4, jitter: 0.5, life: 1.3, size: 0.9, g: -0.8, drag: 1.2, grow: 1.6, spin: 2, alpha: 0.85, carry: 0.2 },
+  steam: { rate: 12, speed: 1.8, jitter: 0.6, life: 0.9, size: 0.9, g: -1.2, drag: 1.4, grow: 2, spin: 2, alpha: 0.8, carry: 0.2 },
+  wisp: { rate: 14, speed: 1.6, jitter: 0.8, life: 0.8, size: 0.7, g: -0.4, drag: 1, grow: 1.2, spin: 1, alpha: 0.6, carry: 0.1 },
+  spark: { rate: 10, speed: 2.2, jitter: 3, life: 0.35, size: 0.4, g: 2, drag: 2, grow: 0, spin: 8, alpha: 1, carry: 0.6 },
+  bubble: { rate: 7, speed: 0.9, jitter: 0.8, life: 1.1, size: 0.5, g: -1.5, drag: 1, grow: 0.6, spin: 0, alpha: 0.75, carry: 0.5 },
+  frost: { rate: 12, speed: 1.3, jitter: 0.7, life: 0.8, size: 0.6, g: 0.4, drag: 1.5, grow: 1.4, spin: 2, alpha: 0.7, carry: 0.4 },
+  flame: { rate: 30, speed: 4, jitter: 0.8, life: 0.22, size: 0.9, g: 0, drag: 2, grow: 0, spin: 6, alpha: 1, carry: 0.8 },
+  trail: { rate: 40, speed: 0.2, jitter: 0.1, life: 0.55, size: 0.45, g: 0, drag: 3, grow: 0, spin: 0, alpha: 0.9, carry: 0 },
+  rain: { rate: 26, speed: 7, jitter: 0.3, life: 0.35, size: 0.25, g: 6, drag: 0, grow: 0, spin: 0, alpha: 0.85, carry: 0.8 },
+};

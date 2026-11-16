@@ -310,7 +310,7 @@ export const DP = {
 export function driverPalette(playerColor: string): (RGB | null)[] {
   const c = hex(playerColor);
   return [
-    null, [16, 14, 24], mix(shade(c, 0.66), COOL, 0.15), c, mix(shade(c, 1.35), WARM, 0.18), [22, 24, 40], [150, 214, 246],
+    null, [16, 14, 24], mix(shade(c, 0.66), COOL, 0.15), c, mix(shade(c, 1.35), WARM, 0.18), [10, 10, 16], [196, 168, 244],
     [236, 184, 140], [46, 48, 66], [28, 28, 42], [244, 246, 252], [24, 22, 30], mix([46, 48, 66], c, 0.35), mix(shade(c, 0.42), COOL, 0.3),
   ];
 }
@@ -319,47 +319,39 @@ export function driverPalette(playerColor: string): (RGB | null)[] {
 export const HELMET_SCALE = 1.2;
 
 /**
- * Full-face racing helmet facing +x, origin at the head centre: a round shell lit from the
- * upper left with a white racing stripe over the crown, a wide dark visor with a sky glint,
- * a chin bar with a vent, and the shell cut flat at the back of the neck.
+ * The helmet, after Drive Ahead's: a slightly egg-shaped shell in the player's colour, a white cap
+ * of light on the crown, a pale band down the back, and a black visor slanting across the upper
+ * front with a lilac glint on its edge. Drawn from a hand-made 14x14 template (facing +x) and
+ * resampled to the helmet's size, so every size keeps the same pixel shapes.
+ *   O outline  W white cap  L light  H shell  D shadow  V visor  G glint
  */
+const HELMET = [
+  '.....OOOOO....',
+  '....OWWWWWO...',
+  '...OLWWHHHWO..',
+  '..OLLHHHHVVGO.',
+  '..OLHHHHVVVVGO',
+  '.OLLHHHVVVVVGO',
+  '.OLLHHHVVVVVGO',
+  '.OLHHHHHVVVVGO',
+  '.OLHHHHHHHVVO.',
+  '.ODHHHHHHHHHO.',
+  '.ODDHHHHHHHHO.',
+  '..ODDHHHHHHO..',
+  '..OODDDDDDOO..',
+  '....OOOOOO....',
+];
+const HELMET_PX: Record<string, number> = { O: DP.OUTLINE, W: DP.STRIPE, L: DP.HELM_L, H: DP.HELM, D: DP.HELM_D, V: DP.VISOR, G: DP.VISOR_L };
+
 export function generateHeadGrid(r: number, ppm = CAR_PPM): PixelGrid {
   // The helmet is drawn a size up on the head: the driver is what the eye should find first.
   const R = Math.max(3, Math.round(r * ppm * HELMET_SCALE));
-  const size = R * 2 + 1;
+  const size = R * 2 + 1, n = HELMET.length;
   const g = makeGrid(size, size, R, R);
-  const px = 1 / R;
-  const inside = (x: number, y: number) => {
-    const u = (x - R) / R, v = (y - R) / R;
-    if (Math.hypot(u, v) > 1 + 0.3 * px) return false;
-    // flat neck opening under the back of the shell
-    return !(v > 1 - 1.6 * px && u < 0.25);
-  };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      if (!inside(x, y)) continue;
-      const u = (x - R) / R, v = (y - R) / R, d = Math.hypot(u, v);
-      let c: number = DP.HELM;
-      if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) c = DP.OUTLINE;
-      else {
-        if (u + v < -0.75) c = DP.HELM_L;
-        if (v > 0.45 || (u < -0.45 && v > 0.2)) c = DP.HELM_D;
-        if (v > 0.7 && u < 0.1) c = DP.HELM_DD;
-        // thin racing stripe over the crown, just inside the outline
-        if (d > 1 - 1.9 * px && v < -0.45 && u > -0.55 && u < 0.3) c = DP.STRIPE;
-        // visor: wide dark band on the front half, rimmed at the back, a short glint on top
-        const vt = -0.36, vb = 0.2;
-        if (u > 0.02 && v > vt && v < vb) {
-          c = DP.VISOR;
-          if (u < 0.02 + px) c = DP.OUTLINE;
-          else if (v < vt + px && u < 0.02 + 3 * px) c = DP.VISOR_L;
-        } else if (u > 0.02 && v >= vb && v < vb + px) c = DP.HELM_DD;
-        // chin vent
-        if (u > 0.42 && u < 0.75 && Math.abs(v - 0.52) < 0.5 * px) c = DP.HELM_DD;
-        // specular dot on the shell
-        if (Math.abs(u + 0.5) < 0.55 * px && Math.abs(v + 0.4) < 0.55 * px) c = DP.STRIPE;
-      }
-      gset(g, x, y, c);
+      const c = HELMET[Math.min(n - 1, Math.floor(((y + 0.5) * n) / size))][Math.min(n - 1, Math.floor(((x + 0.5) * n) / size))];
+      if (c !== '.') gset(g, x, y, HELMET_PX[c]);
     }
   }
   return g;

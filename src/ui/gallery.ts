@@ -12,7 +12,7 @@ export function showGallery(root: HTMLElement) {
   for (const def of CARS.filter((c) => !f || c.category === f || c.id === f)) {
     const card = document.createElement('div');
     card.className = 'gcard';
-    const cv = carPreviewCanvas(def, def.palette, '#3ec1ff', 3);
+    const cv = carPreviewCanvas(def, def.palette, '#3ec1ff', 3, false, true);
     const st = normalizedStats(def, CARS);
     card.innerHTML = `<div class="gname">${def.name}</div><div class="garch">${def.archetype} · ${abilityLabel(def)}</div>`;
     card.prepend(cv);

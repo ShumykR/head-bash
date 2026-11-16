@@ -255,17 +255,17 @@ export function crew(x: number, y: number, r: number, o: CrewOpts = {}): CarPoly
       circ(x + 1.1 * r, y + 1.38 * r, 0.2 * r, 'black'),
     );
   }
-  out.push(circ(x, y, r, helm));
+  // egg-shaped shell, a pale band down the back
+  out.push(ell(x, y, r * 0.95, r * 1.02, helm), arc(x, y, r * 0.75, Math.PI * 0.75, Math.PI * 1.3, r * 0.22, 'white', { flat: true }));
   const band = st === 'stripes' ? 'white' : o.stripe === undefined ? 'white' : o.stripe;
   if (st === 'stripes') {
     // prison stripes round the shell
     for (const v of [-0.62, -0.05, 0.5]) out.push(rect(x - Math.sqrt(1 - v * v) * r * 0.95, y + (v - 0.13) * r, x + Math.sqrt(1 - v * v) * r * 0.95, y + (v + 0.13) * r, 'black', { flat: true }));
-  } else if (band && st !== 'swat') out.push(arc(x, y, r * 0.84, Math.PI * 1.18, Math.PI * 1.62, r * 0.2, band, { flat: true }));
-  // the visor and its glint, a chin vent below it
+  } else if (band && st !== 'swat') out.push(arc(x, y, r * 0.8, Math.PI * 1.25, Math.PI * 1.75, r * 0.28, band, { flat: true }));
+  // the visor slanting across the upper front (as on the player's helmet), a lilac glint on its edge
   out.push(
-    poly([[x + 0.04 * r, y - 0.38 * r], [x + 0.9 * r, y - 0.38 * r], [x + 1.0 * r, y - 0.05 * r], [x + 0.95 * r, y + 0.22 * r], [x + 0.04 * r, y + 0.22 * r]], o.visor ?? 'black'),
-    rect(x + 0.14 * r, y - 0.36 * r, x + 0.5 * r, y - 0.24 * r, 'sky', { flat: true }),
-    rect(x + 0.45 * r, y + 0.45 * r, x + 0.8 * r, y + 0.55 * r, 'black', { flat: true }),
+    poly([[x + 0.05 * r, y - 0.1 * r], [x + 0.55 * r, y - 0.62 * r], [x + 0.92 * r, y - 0.42 * r], [x + 0.95 * r, y + 0.1 * r], [x + 0.55 * r, y + 0.3 * r], [x + 0.2 * r, y + 0.15 * r]], o.visor ?? 'black'),
+    arc(x, y, r * 0.95, -Math.PI * 0.2, Math.PI * 0.05, r * 0.14, 'purple', { flat: true }),
   );
   if (st === 'swat') out.push(rect(x - 0.95 * r, y - 0.08 * r, x + 0.04 * r, y + 0.1 * r, 'black', { flat: true }), rr(x - 0.75 * r, y - 0.85 * r, x - 0.1 * r, y - 0.6 * r, 0.1 * r, 'white', { flat: true }));
   if (st === 'conical') out.push(poly([[x - 1.45 * r, y - 0.55 * r], [x + 1.45 * r, y - 0.55 * r], [x + 0.1 * r, y - 1.45 * r]], 'gold'), rect(x - 1.45 * r, y - 0.62 * r, x + 1.45 * r, y - 0.5 * r, 'brown', { flat: true }));

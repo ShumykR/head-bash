@@ -205,7 +205,7 @@ export class Menu {
       panel.appendChild(top);
       const stage = el('div', 'stage');
       const sameAsOther = cur[1 - p].id === def.id && p === 1;
-      const cv = carPreviewCanvas(def, sameAsOther ? altPalette(def.palette) : def.palette, PLAYER_COLORS[p], 3, p === 1);
+      const cv = carPreviewCanvas(def, sameAsOther ? altPalette(def.palette) : def.palette, PLAYER_COLORS[p], 3, p === 1, true);
       cv.className = 'preview';
       cv.addEventListener('click', () => pickFromGarage(p));
       cv.title = 'Відкрити всі авто';

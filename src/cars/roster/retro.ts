@@ -198,7 +198,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['skid-steer', 'Skid-Steer Loader', 'Компактний навантажувач із ковшем: підчіплює суперника знизу.', 'box', ['#f0b020', '#2a2a2a'], {
-    s: 0.8, arch: 'scoop', axles: [0.8, 0.8],
+    s: 0.8, arch: 'scoop', axles: [0.8, 0.8], o: o({ len: 0.72, tall: 1.1 }),
     // As in Drive Ahead: a squat yellow loader, the driver in a caged cab in the middle, the engine
     // behind, and a small grey bucket down at the road on lift arms that run low along the side.
     skin: (f) => {
@@ -207,8 +207,7 @@ export const RETRO = group('retro', [
         // the engine housing behind the cab (lower than the cab), the low nose in front of it
         rr(f.tail.x - 0.05, e, hx - 0.4, 0.38, 0.1, 'body'),
         rr(hx - 0.45, -0.2, f.nose.x - 0.08, 0.38, 0.08, 'body'),
-        ...[0, 1].map((i) => rr(f.tail.x + 0.2 + i * 0.35, e + 0.14, f.tail.x + 0.45 + i * 0.35, e + 0.36, 0.03, 'dark')),
-        rr(f.tail.x - 0.1, 0.05, f.tail.x + 0.15, 0.25, 0.04, 'black'), ...stack(hx - 0.7, e, 0.2, 0.07, 'dark'),
+        rr(f.tail.x - 0.1, 0.05, f.tail.x + 0.15, 0.25, 0.04, 'black'),
         // the caged cab: roll-over frame round the driver, tinted side glass, a beacon on the roof
         rect(hx - 0.36, top + 0.04, hx + 0.3, -0.2, 'glass'),
         rr(hx - 0.44, top - 0.06, hx + 0.38, top + 0.06, 0.03, 'dark'),
