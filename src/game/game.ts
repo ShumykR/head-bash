@@ -22,7 +22,7 @@ export type GameEvent =
   | { type: 'go' }
   | { type: 'impact'; x: number; y: number; strength: number; carCar: boolean }
   | { type: 'ability'; player: number; kind: AbilityKind; x: number; y: number; from?: { x: number; y: number } }
-  | { type: 'blast'; x: number; y: number; r: number; kind: 'slam' | 'firework' | 'bomb' | 'roar' | 'zap' | 'punch' }
+  | { type: 'blast'; x: number; y: number; r: number; kind: 'slam' | 'firework' | 'bomb' | 'roar' | 'zap' | 'punch'; power?: number; proj?: ProjectileKind }
   | { type: 'effect'; player: number; effect: EffectKind; x: number; y: number }
   | { type: 'bolt'; x: number; y: number }
   | { type: 'portal'; player: number; x: number; y: number; from: { x: number; y: number } }
@@ -817,7 +817,7 @@ export class Game {
   }
 
   /** Push everything near player p away (slam, fireworks, bombs). */
-  shockwave(p: number, r: number, power: number, at?: { x: number; y: number }, kind: 'slam' | 'firework' | 'bomb' | 'roar' = 'slam') {
+  shockwave(p: number, r: number, power: number, at?: { x: number; y: number }, kind: 'slam' | 'firework' | 'bomb' | 'roar' = 'slam', proj?: ProjectileKind) {
     const c = at ?? this.cars[p].position;
     const push = (bodies: Body[], scale: number) => {
       const pos = bodies[0].getWorldCenter();
@@ -835,7 +835,7 @@ export class Game {
     for (const b of this.arena.balls) push([b.body], 1.4);
     for (const b of this.arena.blocks) push([b.body], 1.2);
     for (const it of this.items) if (!it.dead) push([it.body], 1.2);
-    this.emit({ type: 'blast', x: c.x, y: c.y, r, kind });
+    this.emit({ type: 'blast', x: c.x, y: c.y, r, kind, power, proj });
   }
 
   private stun(p: number, t: number, look: 'ice' | 'zap' | 'web') {
@@ -1053,7 +1053,7 @@ export class Game {
       if (s.dead || age > pr.life || pos.y > this.map.killY) {
         if (pr.effect === 'boom') {
           const r = pr.blast ?? 3.2;
-          this.shockwave(s.owner, r, pr.power ?? (s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8), { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb');
+          this.shockwave(s.owner, r, pr.power ?? (s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8), { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb', s.proj);
         } else if (s.dead) this.emit({ type: 'shotHit', x: pos.x, y: pos.y, proj: s.proj });
         this.world.destroyBody(s.body);
         this.shots.splice(i, 1);
