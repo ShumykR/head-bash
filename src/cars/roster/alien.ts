@@ -128,6 +128,7 @@ export const ALIEN = group('alien', [
     ],
   }],
   ['army-bike', 'Army Bike', 'Армійський мотоцикл із кулеметом на кермі.', 'trike', ['#4f7f30', '#2a2a2a'], {
+    axles: [0.8, 0.8, 0.8],
     gun: () => ({ at: [[1.13, -0.55]], aim: 4 }),
     parts: ['gun'], hideParts: true,
     skin: (f) => [
@@ -136,6 +137,11 @@ export const ALIEN = group('alien', [
       ...armyStar(0.2, -0.15, 0.09),
       ...path([[0.5, -0.5], [1.1, -0.55]], 0.1, 'dark'), rr(0.45, -0.62, 0.68, -0.4, 0.03, 'dark'), rr(0.25, -0.45, 0.45, -0.3, 0.03, 'tan'),
       stripe(-1.35, -0.5, -0.1, 0.05, 'black'), circ(-0.95, -0.1, 0.07, 'white'),
+      // camouflage decals (as in Drive Ahead) and a heavy machine gun with an ammo belt on the bars
+      ...[[-1.15, -0.1, 0.14], [-0.8, 0.05, 0.1], [0.0, -0.05, 0.12], [0.35, -0.25, 0.09], [-0.25, -0.3, 0.08]].map(([x, y, r]) => ell(x, y, r, r * 0.7, 'brown', { flat: true })),
+      ...[[-0.95, -0.2, 0.08], [0.15, 0.08, 0.08]].map(([x, y, r]) => ell(x, y, r, r * 0.7, 'dark', { flat: true })),
+      rr(0.5, -0.66, 1.25, -0.52, 0.03, 'black'), rect(1.1, -0.7, 1.16, -0.48, 'dark'), rr(0.62, -0.52, 0.86, -0.36, 0.03, 'tan'),
+      ...[0, 1, 2, 3].map((i) => rect(0.66 + i * 0.05, -0.36, 0.69 + i * 0.05, -0.26, 'gold', { flat: true })),
     ],
   }],
   ['gunboat', 'Gunboat', 'Броньований річковий катер із гарматою на носі.', 'boat', ['#5a6a7a', '#ffd23f'], {
@@ -180,6 +186,7 @@ export const ALIEN = group('alien', [
     ],
   }],
   ['space-bike', 'Space Bike', 'Світловий мотоцикл зі смугами неону.', 'bike', ['#1a1a2a', '#5ef0ff'], {
+    axles: [0.8, 0.8],
     o: o({ rim: 'disc' }), speed: 1.15,
     skin: (f) => [
       blob([[f.wheels[0].x - 0.3, 0.1], [-0.6, -0.3], [0.4, -0.35], [f.wheels[1].x + 0.35, 0.0], [f.wheels[1].x, 0.15], [-0.2, 0.25]], 'body', {}, 2),
@@ -188,6 +195,13 @@ export const ALIEN = group('alien', [
       rr(-0.55, -0.42, 0.0, -0.3, 0.05, 'black'),
       ...[f.wheels[0], f.wheels[1]].map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.05, Math.PI * 1.95, 0.08, 'accent')),
       rr(f.wheels[1].x + 0.15, -0.12, f.wheels[1].x + 0.4, -0.02, 0.03, 'light'),
+      // light-cycle shell: one dark capsule over both wheels, neon edges, a tail fin and a glowing trail behind
+      ...[0, 1, 2].map((i) => rr(f.wheels[0].x - 0.6 - i * 0.45, -0.05 + i * 0.02, f.wheels[0].x - 0.3 - i * 0.45, 0.02 + i * 0.02, 0.02, 'accent', { flat: true })),
+      blob([[f.wheels[0].x - 0.45, 0.05], [f.wheels[0].x - 0.35, -0.38], [-0.4, -0.5], [0.5, -0.45], [f.wheels[1].x + 0.45, -0.12], [f.wheels[1].x + 0.45, 0.05]], 'body', {}, 2),
+      ...path([[f.wheels[0].x - 0.4, -0.3], [-0.4, -0.46], [0.5, -0.42], [f.wheels[1].x + 0.42, -0.1]], 0.04, 'accent'),
+      ...path([[f.wheels[0].x - 0.4, 0.02], [f.wheels[1].x + 0.42, 0.02]], 0.035, 'accent'),
+      ...[f.wheels[0], f.wheels[1]].map((w) => circ(w.x, w.y, w.r * 0.55, 'accent', { flat: true })),
+      blob([[0.3, -0.42], [0.65, -0.62], [0.85, -0.38]], 'glass', {}, 1),
     ],
   }],
   ['alien-drone', 'Alien Attack Drone', 'Бойовий дрон прибульців із червоним оком-лазером.', 'saucer', ['#3a3a4a', '#ff3a3a'], {
@@ -198,6 +212,9 @@ export const ALIEN = group('alien', [
       ...[-0.8, -0.4, 0.0].map((x) => poly([[x, -0.32], [x + 0.2, -0.32], [x + 0.1, -0.52]], 'red')),
       ...path([[-0.6, -0.75], [-0.8, -1.25]], 0.05, 'grey'), circ(-0.8, -1.3, 0.08, 'red'),
       ...path([[f.tail.x + 0.3, 0.2], [f.tail.x + 0.1, 0.5]], 0.07, 'grey'), ...path([[f.nose.x - 0.3, 0.2], [f.nose.x - 0.1, 0.5]], 0.07, 'grey'),
+      // two laser guns on the sides (as in Drive Ahead) and the drone's rotors on outriggers
+      ...[[f.tail.x - 0.05, -1], [f.nose.x + 0.05, 1]].flatMap(([x, d]) => [rr(Math.min(x, x + d * 0.45), -0.42, Math.max(x, x + d * 0.45), -0.28, 0.04, 'grey'), rr(Math.min(x + d * 0.4, x + d * 0.55), -0.4, Math.max(x + d * 0.4, x + d * 0.55), -0.3, 0.03, 'red')]),
+      ...[f.tail.x + 0.35, f.nose.x - 0.35].flatMap((x) => [seg([x, -0.45], [x, -0.82], 0.05, 'grey'), ell(x, -0.86, 0.38, 0.05, 'grey', { flat: true }), rect(x - 0.05, -0.92, x + 0.05, -0.82, 'dark')]),
     ],
   }],
   ['celestial-teapot', 'Celestial Teapot', 'Космічний чайник на реактивній тязі. Хлюпає окропом.', 'blob', ['#f0f0f0', '#4a8ad8'], {

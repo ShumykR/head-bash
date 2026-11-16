@@ -1,6 +1,6 @@
 import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong } from '../draw';
 import { arm, browEye, dims, maw, quadruped, saddle, theropod } from '../critters';
-import type { CarMat, CarPoly } from '../types';
+import type { CarMat, CarPoly, Pt } from '../types';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -104,6 +104,7 @@ export const DINO = group('dino', [
     ],
   }],
   ['t-rex', 'T. Rex', 'Тиранозавр: величезна паща, крихітні лапки і рик, що зносить машини.', 'creature', ['#3a6aa8', '#e8d8a0'], {
+    axles: [0.9, 1.1],
     o: o({ neck: 'raptor', len: 1.15, tall: 1.2 }), parts: ['tail'], noLights: true, hideParts: true,
     // The lower jaw hangs on its own hinge under the skull: it drops open on bumps and snaps shut.
     links: () => [{
@@ -129,6 +130,7 @@ export const DINO = group('dino', [
     ],
   }],
   ['velociraptor', 'Velociraptor', 'Швидкий велоцираптор: стрибає на здобич зі смугастою спиною.', 'creature', ['#c08a3a', '#c0302a'], {
+    axles: [0.9, 1.1],
     s: 0.85, o: o({ neck: 'raptor' }), parts: ['tail'], speed: 1.15, noLights: true, hideParts: true,
     skin: (f) => [
       ...theropod(f, { bulk: 0.72, tail: 1.1, tailUp: 0.05, stripes: 'accent', belly: 'tan' }),
@@ -147,25 +149,38 @@ export const DINO = group('dino', [
     ],
   }],
   ['fossil', 'Fossil', 'Ожилий скелет: кістки, ребра й порожні очниці.', 'creature', ['#e8dcc0', '#8a7a5a'], {
-    o: o({ neck: 'long', mat: 'bone' }), parts: ['tail'], noLights: true, hideParts: true,
+    // Like Drive Ahead's Skeletal Ride: a low, long raptor skeleton on old spoked cart wheels.
+    o: o({ neck: 'raptor', mat: 'bone', rim: 'spokes' }), parts: ['tail'], noLights: true, hideParts: true,
     skin: (f) => {
       const { rear, front } = dims(f);
+      const tx = f.tail.x - 0.85;
+      const spine = (t: number): Pt => [-0.95 + t * 1.8, -0.62 - Math.sin(t * Math.PI) * 0.06];
       return [
-        // spine from the tail tip over the back and up the neck
-        ...path([[f.tail.x - 0.7, -0.85], [-1.0, -0.62], [-0.4, -0.66], [0.3, -0.62], [0.75, -0.5], [1.05, -0.85], [1.38, -1.35]], 0.12, 'bone'),
-        ...[-1.5, -1.2].map((x) => circ(x, x < -1.4 ? -0.8 : -0.7, 0.06, 'bone')),
-        // ribcage: curved ribs hanging from the spine, a breastbone below
-        ...[-0.6, -0.32, -0.04, 0.24, 0.5].map((x) => path([[x, -0.62], [x + 0.1, -0.4], [x + 0.04, -0.12]], 0.08, 'bone')).flat(),
-        ...path([[-0.62, -0.1], [0.55, -0.12]], 0.08, 'bone'),
-        // pelvis and shoulder blade, leg bones down onto the wheels
-        blob([[-0.95, -0.75], [-0.6, -0.78], [-0.55, -0.4], [-0.85, -0.35]], 'bone', {}, 1),
-        blob([[0.55, -0.7], [0.82, -0.62], [0.75, -0.3], [0.55, -0.35]], 'bone', {}, 1),
-        ...[rear, front].flatMap((x) => path([[x - 0.05, -0.45], [x + 0.08, -0.05], [x, 0.3]], 0.1, 'bone')),
-        ...[rear, front].map((x) => circ(x + 0.08, -0.05, 0.07, 'bone')),
-        // skull: empty sockets, toothy grin, a green glint in the eye
-        blob([[1.18, -1.48], [1.5, -1.64], [1.88, -1.52], [1.86, -1.34], [1.3, -1.28]], 'bone', {}, 1),
-        circ(1.48, -1.5, 0.08, 'black'), circ(1.5, -1.5, 0.03, 'green'), circ(1.78, -1.5, 0.03, 'black'),
-        ...[0, 1, 2, 3].map((i) => rect(1.48 + i * 0.09, -1.36, 1.52 + i * 0.09, -1.28, 'black', { flat: true })),
+        // tail: a chain of shrinking vertebrae sloping down behind the rear wheel
+        ...Array.from({ length: 8 }, (_, i) => {
+          const t = i / 7, x = -0.95 + (tx + 0.95) * t, y = -0.62 + 0.42 * t * t;
+          return [circ(x, y, 0.09 - t * 0.05, 'bone'), poly([[x - 0.03, y - 0.04], [x + 0.03, y - 0.04], [x - 0.02, y - 0.16 + t * 0.08]], 'bone', { flat: true })];
+        }).flat(),
+        // backbone with a crest of neural spines
+        ...path(Array.from({ length: 7 }, (_, i) => spine(i / 6)), 0.11, 'bone'),
+        ...Array.from({ length: 9 }, (_, i) => {
+          const [x, y] = spine(i / 8);
+          return poly([[x - 0.05, y - 0.03], [x + 0.05, y - 0.03], [x - 0.03, y - 0.24]], 'bone', { flat: true });
+        }),
+        // ribcage: curved ribs hanging from the spine with dark gaps, a breastbone below
+        ...[-0.55, -0.33, -0.11, 0.11, 0.33, 0.55].map((x) => path([[x, -0.6], [x + 0.09, -0.38], [x + 0.03, -0.12]], 0.075, 'bone')).flat(),
+        ...path([[-0.58, -0.1], [0.6, -0.12]], 0.07, 'bone'),
+        // pelvis and shoulder blade, leg bones with knobbly joints down to the axles
+        blob([[-1.05, -0.72], [-0.68, -0.78], [-0.62, -0.42], [-0.92, -0.36]], 'bone', {}, 1),
+        circ(-0.84, -0.56, 0.06, 'black'),
+        blob([[0.58, -0.68], [0.86, -0.6], [0.78, -0.3], [0.58, -0.34]], 'bone', {}, 1),
+        ...[rear, front].flatMap((x) => [...path([[x - 0.06, -0.45], [x + 0.1, -0.12], [x, f.wheels[0].y]], 0.09, 'bone'), circ(x + 0.1, -0.12, 0.07, 'bone')]),
+        // neck vertebrae up to a long, low skull: hollow socket, green glint, rows of teeth
+        ...[[0.82, -0.66], [0.94, -0.74], [1.05, -0.82]].map(([x, y]) => circ(x, y, 0.08, 'bone')),
+        blob([[0.98, -0.96], [1.25, -1.08], [1.62, -1.0], [1.88, -0.84], [1.84, -0.74], [1.2, -0.72], [1.02, -0.8]], 'bone', {}, 1),
+        circ(1.3, -0.9, 0.08, 'black'), circ(1.32, -0.9, 0.03, 'green'), ell(1.6, -0.88, 0.06, 0.035, 'black'), circ(1.83, -0.84, 0.025, 'black'),
+        blob([[1.12, -0.66], [1.76, -0.66], [1.58, -0.54], [1.15, -0.56]], 'bone', {}, 1),
+        ...[0, 1, 2, 3, 4].map((i) => poly([[1.28 + i * 0.1, -0.73], [1.34 + i * 0.1, -0.73], [1.31 + i * 0.1, -0.66]], 'white', { flat: true })),
       ];
     },
   }],
@@ -187,13 +202,15 @@ export const DINO = group('dino', [
       ...[-0.75, -0.4, -0.05, 0.3].map((x) => poly([[x - 0.1, -0.72], [x + 0.1, -0.74], [x + 0.02, -0.45]], 'accent', { flat: true })),
       // neck up to a duck-billed head with the long tube crest swept back
       ...path([[0.7, -0.5], [1.05, -0.8], [1.25, -0.95]], 0.34, 'body'),
-      ...path([[1.12, -1.12], [0.8, -1.38], [0.48, -1.5]], 0.15, 'accent'),
+      ...path([[1.25, -1.12], [0.95, -1.28], [0.62, -1.36], [0.42, -1.34]], 0.17, 'accent'),
+      ...path([[1.15, -1.08], [0.9, -1.2], [0.6, -1.27]], 0.05, 'orange'),
       blob([[1.05, -1.15], [1.4, -1.18], [1.75, -0.98], [1.85, -0.82], [1.55, -0.76], [1.1, -0.78]], 'body', {}, 1),
       poly([[1.55, -0.86], [1.88, -0.84], [1.84, -0.78], [1.55, -0.8]], 'dark', { flat: true }),
       ...eyeball(1.35, -1.0, 0.065),
     ],
   }],
   ['allosaurus', 'Allosaurus', 'Хижий аллозавр із гребенями над очима.', 'creature', ['#a04a2a', '#f0d0a0'], {
+    axles: [0.9, 1.1],
     o: o({ neck: 'raptor' }), parts: ['teeth', 'tail'], noLights: true,
     skin: (f) => [
       ...theropod(f, { bulk: 0.9, tail: 1.0, tailUp: 0.25, stripes: null, belly: 'accent' }),
@@ -230,6 +247,7 @@ export const DINO = group('dino', [
     },
   }],
   ['mechasaurus', 'Mechasaurus', 'Кібердинозавр із ракетними пускачами на спині.', 'creature', ['#a0a8b8', '#e02a2a'], {
+    axles: [0.9, 1.1],
     gun: () => ({ at: [[-0.32, -0.98], [-0.1, -0.98], [0.12, -0.98]], aim: 35 }),
     o: o({ neck: 'raptor', mat: 'metal' }), parts: ['teeth', 'tail'], noLights: true, hideParts: true,
     // Every piece of the machine is bolted on separately: neck, steel jaw, whip antenna, tail.

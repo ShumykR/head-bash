@@ -9,6 +9,7 @@ const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
 
 export const SUMMER = group('summer', [
   ['harvester', 'Harvester', 'Зернозбиральний комбайн із мотовилом. Скидає тюки сіна.', 'box', ['#3aa04a', '#ffd23f'], {
+    axles: [0.75, 1.15],
     o: o({ len: 1.15, tall: 1.2 }), arch: 'scoop', cargo: ['hay', 2],
     art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.3, 'accent')), hidden(poly([[f.nose.x - 0.2, -0.3], [f.nose.x + 0.7, -0.15], [f.nose.x + 0.75, 0.3], [f.nose.x - 0.2, 0.3]], 'yellow', { deco: false }))],
     // The reel is absurdly big and really turns: it combs whatever is in front up and over the header.
@@ -38,8 +39,17 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['sports-bike', 'Sports Bike', 'Шосейний спортбайк з обтічником.', 'bike', ['#e02a2a', '#ffffff'], {
+    axles: [0.82, 0.8],
     speed: 1.2, accel: 1.2,
-    skin: (f) => [...bike(f, { style: 'sport' })],
+    skin: (f) => [
+      ...bike(f, { style: 'sport' }),
+      // full racing fairing: one red shell from the front wheel to under the rider, a tinted screen, number and stripe
+      blob([[-0.35, 0.18], [-0.5, -0.2], [0.2, -0.4], [0.75, -0.62], [1.05, -0.35], [1.0, 0.0], [0.55, 0.22]], 'body', {}, 2),
+      stripe(-0.35, 0.95, -0.12, 0.07, 'accent'),
+      blob([[0.6, -0.6], [0.85, -0.82], [0.95, -0.6]], 'glass', {}, 1),
+      circ(0.35, 0.02, 0.13, 'white'), rect(0.32, -0.05, 0.38, 0.09, 'black', { flat: true }),
+      rr(0.85, -0.3, 1.05, -0.2, 0.03, 'light'),
+    ],
   }],
   ['off-road-truck', 'Off-Road Truck', 'Експедиційний трак з ящиками спорядження в кузові.', 'pickup', ['#e0a020', '#2a2a2a'], {
     o: o({ wheel: 1.25 }), cargo: ['tire', 3],
@@ -75,6 +85,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['lowrider', 'Lowrider', 'Лоурайдер на гідравліці: підстрибує на місці.', 'sedan', ['#8a2ae0', '#ffd23f'], {
+    axles: [0.82, 0.82],
     o: o({ len: 1.1 }), arch: 'bouncy', bounce: 0.3,
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', bumper: 'gold' }),
@@ -91,13 +102,17 @@ export const SUMMER = group('summer', [
       stripe(f.tail.x, f.nose.x - 0.2, -0.28, 0.08, 'accent'), stripe(f.tail.x + 0.1, f.nose.x - 0.5, 0.0, 0.06, 'accent'),
       blob([[-0.6, -0.45], [-0.55, -0.88], [0.6, -0.9], [0.95, -0.45]], 'white', {}, 1), ...windows(-0.4, 0.6, -0.8, -0.58, 3, 0.08),
       circ(0.1, -0.68, 0.16, 'red'), circ(0.1, -0.68, 0.08, 'white'),
-      ...path([[0.3, -0.9], [0.3, -1.4]], 0.05, 'chrome'), poly([[0.33, -1.4], [0.33, -1.15], [0.75, -1.28]], 'accent'),
+      // the second deck: a flybridge with its own windows, a rail and the mast on top (two decks, as in Drive Ahead)
+      blob([[-0.25, -0.88], [-0.2, -1.2], [0.45, -1.22], [0.7, -0.88]], 'white', {}, 1), ...windows(-0.1, 0.5, -1.14, -0.98, 2, 0.06),
+      ...[-0.2, 0.15, 0.5].map((x) => rect(x - 0.02, -1.4, x + 0.02, -1.2, 'chrome')), rr(-0.25, -1.43, 0.55, -1.37, 0.02, 'chrome'),
+      ...path([[0.3, -1.2], [0.3, -1.8]], 0.05, 'chrome'), poly([[0.33, -1.8], [0.33, -1.55], [0.75, -1.68]], 'accent'),
       ...[-1.6, -1.3, -1.0].map((x) => [circ(x, -0.15, 0.08, 'chrome'), circ(x, -0.15, 0.055, 'glass')]).flat(),
       ...path([[f.tail.x + 0.1, -0.5], [-0.6, -0.55], [-0.6, -0.45]], 0.04, 'chrome'), ...path([[0.95, -0.48], [f.nose.x - 0.2, -0.55]], 0.04, 'chrome'),
       rr(-0.62, -0.95, 0.62, -0.88, 0.02, 'accent'),
     ],
   }],
   ['coupe', 'Coupé', 'Компактне дводверне купе.', 'coupe', ['#3ab0b0', '#ffffff'], {
+    axles: [0.8, 0.8],
     skin: (f) => [...sedan(f, { roof: 'coupe', pin: null }), poly([[f.tail.x + 0.1, -0.06], [f.nose.x - 0.2, 0.0], [f.nose.x - 0.2, 0.06], [f.tail.x + 0.1, 0.02]], 'white', { flat: true }), ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.03, 0.12, 2), circ(-0.1, 0.12, 0.1, 'white'), rect(-0.13, 0.06, -0.07, 0.18, 'black', { flat: true })],
   }],
   ['speedboat', 'Speedboat', 'Швидкісний катер із номером на борту.', 'boat', ['#e02a2a', '#ffffff'], {
@@ -123,9 +138,17 @@ export const SUMMER = group('summer', [
       ...[0, 1, 2].map((i) => rect(f.nose.x + 0.05, f.nose.y0 + 0.15 + i * 0.15, f.nose.x + 0.25, f.nose.y0 + 0.2 + i * 0.15, 'grey', { flat: true })),
       ...[-0.9, -0.5, -0.1, 0.3].map((x) => circ(x, 0.2, 0.04, 'chrome')),
       circ(-0.4, -0.3, 0.13, 'gold'), starShape(-0.4, -0.3, 0.09, 'body'), rect(f.tail.x + 0.06, f.roof.y + 0.08, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }),
+      // two SWAT officers riding on the roof with their rifles (as in Drive Ahead's Swat Van)
+      ...[f.tail.x + 0.35, f.tail.x + 0.85].flatMap((x) => [
+        rr(x - 0.13, f.roof.y - 0.42, x + 0.13, f.roof.y - 0.02, 0.05, 'dark'), rect(x - 0.13, f.roof.y - 0.3, x + 0.13, f.roof.y - 0.22, 'white', { flat: true }),
+        circ(x, f.roof.y - 0.55, 0.13, 'tan'), blob([[x - 0.15, f.roof.y - 0.58], [x - 0.12, f.roof.y - 0.72], [x + 0.12, f.roof.y - 0.72], [x + 0.16, f.roof.y - 0.58]], 'black', {}, 1),
+        rect(x + 0.02, f.roof.y - 0.58, x + 0.14, f.roof.y - 0.52, 'dark', { flat: true }),
+        rr(x - 0.05, f.roof.y - 0.36, x + 0.45, f.roof.y - 0.29, 0.02, 'black'), rect(x + 0.12, f.roof.y - 0.3, x + 0.18, f.roof.y - 0.2, 'black'),
+      ]),
     ],
   }],
   ['dune-buggy', 'Dune Buggy', 'Легкий багі для дюн із прапорцем на щоглі.', 'buggy', ['#ff8a1a', '#2a2a2a'], {
+    axles: [1.12, 0.9],
     skin: (f) => [
       blob([[f.tail.x, 0.2], [f.tail.x + 0.1, -0.12], [-0.4, -0.12], [0.6, -0.16], [f.nose.x + 0.05, 0.02], [f.nose.x - 0.1, 0.22]], 'body', {}, 1),
       ...path([[-0.85, -0.1], [-0.65, -0.95], [0.25, -0.95]], 0.09, 'accent'), seg([0.62, -0.12], [0.48, -0.42], 0.09, 'accent'), seg([-0.65, -0.95], [-0.2, -0.1], 0.07, 'accent'),
@@ -138,6 +161,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['taxi', 'Taxi', 'Жовте міське таксі з шашечками.', 'sedan', ['#ffd020', '#1a1a1a'], {
+    axles: [0.8, 0.8],
     parts: ['sign'], hideParts: true,
     skin: (f) => [
       ...sedan(f),
@@ -176,6 +200,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['locomotive', 'Locomotive', 'Паровоз із тендером вугілля: вугілля сиплеться на ходу.', 'loco', ['#2a2a2a', '#e02a2a'], {
+    axles: [1.12, 1.12, 0.72],
     cargo: ['coal', 5],
     skin: (f) => [...loco(f, { mat: 'accent', boiler: 'black', trim: 'gold' })],
   }],

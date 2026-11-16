@@ -1,5 +1,5 @@
 import { blob, checkers, stack, circ, ell, eyeball, fangs, flameDecal, grille, lightbar, ladder, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, tank } from '../draw';
-import { arc, boxy, dragsterBody, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, rocket, sedan, tracks, monsterTruck } from '../skins';
+import { arc, boxy, dragsterBody, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, sedan, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { fishCar, arm, browEye, maw, quadruped } from '../critters';
@@ -40,6 +40,7 @@ const angry = (x: number, y: number, r: number, iris: CarMat = 'red'): CarPoly[]
 
 export const TOYS = group('toys', [
   ['rattle-bones', 'Rattle Bones', 'Хот-род із решіткою-черепом і хромованими трубами.', 'sports', ['#1a1a1a', '#e8dcc0'], {
+    axles: [1.15, 0.85],
     parts: ['exhaust'], hideParts: true,
     skin: (f) => [
       ...wedge(f),
@@ -47,15 +48,23 @@ export const TOYS = group('toys', [
       ...[0, 1, 2].map((i) => path([[0.2 + i * 0.15, -0.24], [0.1 + i * 0.15, -0.55]], 0.08, 'chrome')).flat(),
       ...path([[-0.5, 0.22], [f.tail.x - 0.2, 0.2]], 0.1, 'chrome'),
       stripe(-1.4, 0.6, 0.03, 0.06, 'bone'),
+      // the skull grille on the nose and chrome side pipes
+      circ(f.nose.x - 0.2, -0.12, 0.2, 'bone'), rr(f.nose.x - 0.34, -0.02, f.nose.x - 0.05, 0.1, 0.03, 'bone'),
+      circ(f.nose.x - 0.27, -0.14, 0.055, 'black'), circ(f.nose.x - 0.13, -0.14, 0.055, 'black'), poly([[f.nose.x - 0.21, -0.06], [f.nose.x - 0.17, -0.06], [f.nose.x - 0.19, -0.02]], 'black'),
+      ...[0, 1, 2].map((i) => rect(f.nose.x - 0.3 + i * 0.08, 0.0, f.nose.x - 0.27 + i * 0.08, 0.1, 'black', { flat: true })),
+      ...path([[-0.6, 0.12], [f.tail.x + 0.1, 0.1], [f.tail.x - 0.2, 0.0]], 0.08, 'chrome'), ...path([[-0.6, 0.2], [f.tail.x + 0.1, 0.2], [f.tail.x - 0.2, 0.12]], 0.08, 'chrome'),
     ],
   }],
   ['fang-racer', 'Fang Racer', 'Звіроподібний болід із зубастою пащею на носі.', 'sports', ['#2a6ae0', '#ffffff'], {
     parts: ['fangs'], hideParts: true,
     skin: (f) => [
       ...wedge(f),
-      ...angry(f.nose.x - 0.5, -0.12, 0.1),
-      poly([[f.nose.x - 0.6, 0.06], [f.nose.x + 0.05, 0.05], [f.nose.x, 0.22], [f.nose.x - 0.6, 0.22]], 'black'),
-      ...fangs(f.nose.x - 0.58, f.nose.x, 0.06, 4, 0.1), ...fangs(f.nose.x - 0.55, f.nose.x - 0.05, 0.22, 4, 0.08, true),
+      // a beast's head pushed out over the front wheel: brow, angry eye, gaping toothy maw
+      blob([[f.nose.x - 0.75, -0.45], [f.nose.x - 0.2, -0.52], [f.nose.x + 0.3, -0.4], [f.nose.x + 0.42, -0.2], [f.nose.x + 0.3, -0.02], [f.nose.x - 0.6, -0.05]], 'body', {}, 1),
+      poly([[f.nose.x - 0.35, -0.28], [f.nose.x + 0.4, -0.24], [f.nose.x + 0.32, -0.08], [f.nose.x - 0.3, -0.12]], 'black'),
+      ...fangs(f.nose.x - 0.3, f.nose.x + 0.36, -0.26, 4, 0.1), ...fangs(f.nose.x - 0.26, f.nose.x + 0.3, -0.1, 4, 0.08, true),
+      ...angry(f.nose.x - 0.2, -0.4, 0.08),
+      poly([[f.nose.x - 0.55, -0.48], [f.nose.x - 0.4, -0.7], [f.nose.x - 0.3, -0.5]], 'accent'),
       ...[0, 1, 2, 3].map((i) => poly([[-1.4 + i * 0.45, -0.12], [-1.2 + i * 0.45, -0.12], [-1.35 + i * 0.45, 0.2], [-1.55 + i * 0.45, 0.2]], 'accent', { flat: true })),
     ],
   }],
@@ -76,11 +85,22 @@ export const TOYS = group('toys', [
       starShape(-0.6, -0.12, 0.14, 'gold'), stripe(f.tail.x, f.nose.x - 0.2, 0.0, 0.05, 'accent'),
       ...path([[0.6, -0.3], [1.3, -0.45]], 0.1, 'grey'), circ(1.32, -0.45, 0.08, 'yellow'), rr(0.55, -0.42, 0.75, -0.2, 0.04, 'dark'),
       ...[[-1.2, -0.5], [0.9, -0.7]].map(([x, y]) => starShape(x, y, 0.07, 'yellow')),
+      // the star blaster on the roof: a long barrel with a glowing star at the muzzle
+      rr(0.1, -0.36, f.nose.x + 0.25, -0.2, 0.05, 'grey'), rr(-0.1, -0.42, 0.35, -0.14, 0.06, 'accent'), ...[0.55, 0.85].map((x) => rect(x, -0.38, x + 0.05, -0.18, 'dark')),
+      starShape(f.nose.x + 0.38, -0.28, 0.2, 'gold'), starShape(f.nose.x + 0.38, -0.28, 0.09, 'white'),
+      ...[[-1.0, -0.15], [0.3, 0.05]].map(([x, y]) => starShape(x, y, 0.08, 'white')),
     ],
   }],
   ['dark-phantom', 'Dark Phantom', 'Бойова машина темного лорда: розчиняється в тіні.', 'sports', ['#7a3ae0', '#e8dcc0'], {
     parts: ['skull', 'roofspikes'],
-    skin: (f) => [...wedge(f, 'body', 'dark'), ...flameDecal(0.9, -0.9, 0.05, 0.2), ...spikesAlong(-1.3, -0.6, -0.18, 3, 0.2, 'bone')],
+    skin: (f) => [
+      // the shadow it dissolves into: dark wisps streaming off the tail
+      ...[[f.tail.x - 0.35, -0.35, 0.32, 0.12], [f.tail.x - 0.75, -0.2, 0.28, 0.1], [f.tail.x - 1.05, -0.4, 0.2, 0.08], [f.tail.x - 0.5, 0.05, 0.25, 0.08]].map(([x, y, rx, ry]) => ell(x, y, rx, ry, 'purple', { flat: true })),
+      ...wedge(f, 'body', 'dark'), ...spikesAlong(-1.3, -0.6, -0.18, 3, 0.2, 'bone'),
+      // the dark lord's sigil: a skull on the flank, glowing eye-lamps on the nose
+      circ(-0.15, -0.02, 0.13, 'bone'), circ(-0.2, -0.04, 0.035, 'black'), circ(-0.1, -0.04, 0.035, 'black'), rect(-0.2, 0.06, -0.1, 0.1, 'bone'),
+      ...[0, 0.14].map((d) => poly([[f.nose.x - 0.42 + d, -0.16], [f.nose.x - 0.3 + d, -0.2], [f.nose.x - 0.32 + d, -0.1]], 'green')),
+    ],
   }],
   ['rex-dragster', 'Rex Dragster', 'Гібрид тиранозавра й дрегстера: ракета ззаду, паща спереду.', 'dragster', ['#3a8a3a', '#e0e0c0'], {
     parts: ['teeth', 'booster'], hideParts: true,
@@ -110,6 +130,11 @@ export const TOYS = group('toys', [
     art: (f) => [hidden(poly([[f.nose.x - 0.05, -0.05], [f.nose.x - 0.05, 0.2], [f.nose.x + 1.1, -0.3]], 'accent', { deco: false, density: 0.3 }))],
     skin: (f) => [
       ...pickup(f),
+      // the triceratops head over the bonnet: a big bony frill fanning up behind the horns, edged with spikes
+      blob([[f.nose.x - 0.85, -0.2], [f.nose.x - 0.95, -0.75], [f.nose.x - 0.6, -1.15], [f.nose.x - 0.15, -1.05], [f.nose.x + 0.1, -0.6], [f.nose.x + 0.05, -0.2]], 'brown', {}, 1),
+      ...[[-0.95, -0.75], [-0.8, -1.0], [-0.55, -1.15], [-0.25, -1.1], [-0.02, -0.85]].map(([dx, y]) => poly([[f.nose.x + dx - 0.07, y + 0.04], [f.nose.x + dx + 0.07, y + 0.04], [f.nose.x + dx, y - 0.14]], 'bone')),
+      ell(f.nose.x - 0.45, -0.7, 0.2, 0.15, 'accent', { flat: true }), ell(f.nose.x - 0.45, -0.7, 0.1, 0.07, 'brown', { flat: true }),
+      poly([[f.nose.x + 0.05, -0.3], [f.nose.x + 0.38, -0.2], [f.nose.x + 0.3, 0.02], [f.nose.x + 0.05, 0.05]], 'bone'),
       blob([[f.nose.x - 0.25, -0.26], [f.nose.x + 0.0, -0.75], [f.nose.x + 0.25, -0.65], [f.nose.x + 0.05, -0.2]], 'accent', {}, 1),
       poly([[f.nose.x - 0.05, -0.05], [f.nose.x - 0.05, 0.2], [f.nose.x + 1.1, -0.3]], 'bone'),
       poly([[f.roof.x1 - 0.3, f.roof.y], [f.roof.x1 - 0.02, f.roof.y + 0.05], [f.roof.x1 + 0.7, f.roof.y - 0.75]], 'bone'),
@@ -147,6 +172,11 @@ export const TOYS = group('toys', [
       poly([[f.tail.x + 0.1, 0.02], [f.nose.x - 0.1, -0.02], [f.nose.x - 0.1, 0.06], [f.tail.x + 0.1, 0.1]], 'accent', { flat: true }),
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.1, 'body')), ...frontLamp(f.nose.x + 0.06, 0.02, 0.1),
       poly([[f.tail.x - 0.35, 0.0], [f.tail.x - 0.6, 0.05], [f.tail.x - 0.35, 0.1]], 'orange'),
+      // stealth: matte faceted armour panels over the frame, and the rocket engine with its flame at the back
+      poly([[f.tail.x + 0.15, -0.12], [-0.4, -0.5], [0.4, -0.45], [f.nose.x - 0.05, -0.1]], 'grey'),
+      poly([[-0.4, -0.5], [0.0, -0.32], [0.4, -0.45]], 'dark'), poly([[f.tail.x + 0.15, -0.12], [-0.4, -0.5], [-0.2, -0.15]], 'dark'), poly([[0.4, -0.45], [0.1, -0.15], [f.nose.x - 0.05, -0.1]], 'dark'),
+      rr(f.tail.x - 0.35, -0.2, f.tail.x + 0.15, 0.02, 0.06, 'grey'), rr(f.tail.x - 0.42, -0.22, f.tail.x - 0.3, 0.04, 0.03, 'dark'),
+      poly([[f.tail.x - 0.42, -0.18], [f.tail.x - 0.9, -0.09], [f.tail.x - 0.42, 0.0]], 'orange'), poly([[f.tail.x - 0.42, -0.14], [f.tail.x - 0.7, -0.09], [f.tail.x - 0.42, -0.04]], 'yellow'),
     ],
   }],
   ['swamp-monster', 'Swamp Monster', 'Монстр-трак із боліт, обвішаний твані й водоростями.', 'monster', ['#4a6a2a', '#a0c040'], {
@@ -183,6 +213,10 @@ export const TOYS = group('toys', [
   ['bumper-concept', 'Bumper Concept', 'Концепт-бампер: гумове коло й удар з розгону.', 'blob', ['#ffd020', '#2a6ae0'], {
     o: o({ shape: 'flat' }), parts: ['ram'], bounce: 0.45, noLights: true, hideParts: true,
     skin: (f) => [
+      // the rubber ring: one fat inflated tube right round the pod (a bumper boat on wheels)
+      rr(f.tail.x - 0.2, -0.82, f.nose.x + 0.32, 0.14, 0.45, 'rubber'),
+      rr(f.tail.x + 0.0, -0.68, f.nose.x + 0.12, 0.0, 0.32, 'dark'),
+      ...[f.tail.x + 0.2, 0.0, f.nose.x - 0.1].map((x) => rect(x - 0.03, -0.82, x + 0.03, -0.68, 'grey', { flat: true })),
       rr(f.tail.x - 0.05, -0.25, f.nose.x + 0.25, 0.08, 0.16, 'rubber'),
       blob([[f.tail.x + 0.1, -0.2], [f.tail.x + 0.1, -0.5], [-0.3, -0.58], [0.6, -0.45], [f.nose.x - 0.05, -0.2]], 'body', {}, 2),
       ell(0, -0.42, 0.32, 0.12, 'accent'), starShape(0.75, -0.35, 0.1, 'white'),
@@ -231,12 +265,24 @@ export const TOYS = group('toys', [
   }],
   ['rocket-board', 'Rocket Board', 'Скейт-ракета: дошка, двигун і ніякого здорового глузду.', 'rocket', ['#ff8a1a', '#2a2a2a'], {
     s: 0.9, parts: ['booster'], hideParts: true,
-    skin: (f) => [
-      blob([[f.tail.x - 0.1, 0.28], [f.tail.x, 0.36], [f.nose.x - 0.1, 0.36], [f.nose.x + 0.1, 0.22], [f.nose.x - 0.05, 0.28]], 'wood', {}, 1),
-      ...rocket(f, { glass: false, nose: 'accent' }),
-      ...flameDecal(1.2, 0.0, 0.0, 0.24),
-      ...[f.tail.x + 0.4, f.nose.x - 0.5].map((x) => rr(x - 0.15, 0.36, x + 0.15, 0.42, 0.02, 'grey')), circ(0.0, -0.05, 0.12, 'white'), rect(-0.03, -0.12, 0.03, 0.02, 'black', { flat: true }),
-    ],
+    // A skateboard with a rocket strapped on: the deck and trucks are the car, the rocket sits behind the rider.
+    skin: (f) => {
+      const a = f.wheels[0], b = f.wheels[1], d = a.y - a.r - 0.16;
+      return [
+        // the rocket, strapped to the deck behind the rider, flame out of the nozzle
+        poly([[f.tail.x - 0.3, d - 0.12], [f.tail.x - 0.75, d - 0.02], [f.tail.x - 0.3, d + 0.08]], 'orange'), poly([[f.tail.x - 0.3, d - 0.08], [f.tail.x - 0.55, d - 0.02], [f.tail.x - 0.3, d + 0.04]], 'yellow'),
+        rr(f.tail.x - 0.32, d - 0.22, f.tail.x - 0.12, d + 0.18, 0.04, 'dark'),
+        rr(f.tail.x - 0.15, d - 0.32, -0.35, d + 0.02, 0.15, 'body'), poly([[-0.4, d - 0.32], [-0.1, d - 0.17], [-0.4, d + 0.02]], 'accent'),
+        poly([[f.tail.x, d - 0.3], [f.tail.x + 0.15, d - 0.55], [f.tail.x + 0.35, d - 0.3]], 'accent'),
+        ...[f.tail.x + 0.4, -0.65].map((x) => rect(x - 0.03, d - 0.33, x + 0.03, d + 0.02, 'grey')),
+        // the deck: a long wooden board with kicked-up tail and nose, grip tape and a flame graphic
+        blob([[f.tail.x - 0.12, d - 0.14], [f.tail.x + 0.05, d], [f.nose.x - 0.05, d], [f.nose.x + 0.15, d - 0.14], [f.nose.x + 0.12, d + 0.04], [f.nose.x - 0.1, d + 0.1], [f.tail.x + 0.1, d + 0.1], [f.tail.x - 0.15, d + 0.02]], 'wood', {}, 1),
+        rect(f.tail.x + 0.1, d - 0.02, f.nose.x - 0.1, d + 0.02, 'black', { flat: true }),
+        ...flameDecal(f.nose.x - 0.2, -0.1, d + 0.06, 0.06),
+        // trucks down to the little wheels
+        ...[a, b].flatMap((w) => [rr(w.x - 0.18, d + 0.08, w.x + 0.18, d + 0.16, 0.03, 'chrome'), poly([[w.x - 0.08, d + 0.14], [w.x + 0.08, d + 0.14], [w.x + 0.03, w.y], [w.x - 0.03, w.y]], 'grey')]),
+      ];
+    },
   }],
   ['woodie-surfer', 'Woodie Surfer', 'Дерев\'яний універсал серфера з дошкою на даху.', 'sedan', ['#c08a4a', '#ffffff'], {
     o: o({ mat: 'wood' }),
@@ -267,6 +313,10 @@ export const TOYS = group('toys', [
       ...[[-1.4, -0.1], [-1.25, 0.15], [0.6, -0.05], [0.75, 0.08]].map(([x, y]) => circ(x, y, 0.05, 'white')),
       rect(f.tail.x, -0.32, f.tail.x + 0.12, 0.32, 'dark'),
       rect(-1.0, -0.3, 0.6, -0.26, 'white', { flat: true }), rr(-1.2, 0.3, 1.0, 0.4, 0.04, 'dark'),
+      // a big label round the bottle, glass highlights and fizz bubbling out round the cork
+      rr(-0.6, -0.33, 0.25, 0.33, 0.04, 'accent'), rect(-0.5, -0.1, 0.15, 0.1, 'white', { flat: true }), rect(-0.4, -0.04, 0.05, 0.04, 'accent', { flat: true }),
+      rr(f.tail.x + 0.1, -0.26, 0.8, -0.2, 0.03, 'white', { flat: true }),
+      ...[[f.nose.x + 0.2, -0.25, 0.06], [f.nose.x + 0.35, -0.1, 0.05], [f.nose.x + 0.15, -0.42, 0.04], [f.nose.x + 0.4, -0.35, 0.035]].map(([x, y, r]) => circ(x, y, r, 'white')),
     ],
   }],
   ['aero-fire-engine', 'Aero Fire Engine', 'Обтічна пожежна машина-концепт.', 'sports', ['#e02a2a', '#f0f0f0'], {
@@ -317,6 +367,8 @@ export const TOYS = group('toys', [
       seg([f.tail.x + 0.25, -0.12], [f.tail.x + 0.2, -0.38], 0.07, 'black'), rr(f.tail.x - 0.1, -0.5, f.tail.x + 0.55, -0.36, 0.03, 'black'),
       rr(-0.45, -0.66, -0.05, -0.5, 0.04, 'white'), rect(-0.4, -0.62, -0.1, -0.54, 'black', { flat: true }),
       rr(-0.1, 0.12, 0.35, 0.24, 0.04, 'black'), circ(0.6, 0.0, 0.12, 'white'), rect(0.57, -0.07, 0.63, 0.07, 'black', { flat: true }),
+      // the TAXI sign on the roof and a checker band: it is still a taxi, only tuned
+      rr(-1.15, -0.85, -0.55, -0.6, 0.04, 'light'), ...[0, 1, 2, 3].map((i) => rect(-1.08 + i * 0.13, -0.78, -1.0 + i * 0.13, -0.67, 'black', { flat: true })), rect(-0.89, -0.6, -0.81, -0.5, 'black'),
     ],
   }],
   ['oval-racer', 'Oval Racer', 'Болід для кільцевих перегонів із номером.', 'formula', ['#2a6ae0', '#ffd23f'], {
@@ -336,9 +388,13 @@ export const TOYS = group('toys', [
     ],
   }],
   ['night-bat-rod', 'Night Bat Rod', 'Низький вампірський хот-род із крилами-плавниками.', 'sports', ['#2a1a3a', '#c02a3a'], {
+    axles: [1.2, 0.85],
     parts: ['fangs'],
     skin: (f) => [
-      poly([[f.tail.x + 0.1, -0.12], [-0.4, -0.18], [-0.9, -0.6], [-1.15, -0.4], [-1.35, -0.55], [-1.5, -0.3], [-1.7, -0.4]], 'accent'),
+      // bat-wing tail fins: scalloped membranes stretched over bony fingers
+      poly([[f.tail.x + 0.2, -0.15], [-0.3, -0.2], [-0.5, -0.95], [-0.8, -0.65], [-1.05, -0.9], [-1.2, -0.55], [-1.5, -0.75], [-1.55, -0.35], [-1.8, -0.4]], 'accent'),
+      ...[[-0.5, -0.95], [-1.05, -0.9], [-1.5, -0.75]].map(([x, y]) => seg([-0.45, -0.2], [x, y], 0.04, 'black')),
+      poly([[-0.6, -0.18], [-0.95, -0.7], [-1.25, -0.5], [-1.35, -0.3]], 'red'),
       ...wedge(f, 'body', 'dark'),
       ...angry(f.nose.x - 0.5, -0.1, 0.1, 'red'),
       poly([[f.nose.x - 0.25, 0.14], [f.nose.x - 0.15, 0.14], [f.nose.x - 0.2, 0.28]], 'white'),
@@ -380,6 +436,8 @@ export const TOYS = group('toys', [
         // eight eyes in two rows and the fangs at the nose
         ...[0, 1, 2, 3].flatMap((i) => [circ(n - 0.62 + i * 0.13, -0.12, 0.055, 'accent'), circ(n - 0.56 + i * 0.13, 0.0, 0.04, 'accent')]),
         ...fangs(n - 0.2, n + 0.02, 0.16, 2, 0.14),
+        // the eight eyes, clustered on the nose
+        ...[[0, 0, 0.07], [0.12, -0.03, 0.06], [-0.1, 0.05, 0.05], [0.05, 0.1, 0.05], [0.2, 0.06, 0.04], [-0.05, -0.1, 0.04], [0.16, -0.12, 0.035], [-0.15, -0.06, 0.035]].map(([dx, dy, r]) => circ(n - 0.5 + dx * 1.6, -0.32 + dy * 1.6, r * 1.5, 'red')),
       ];
     },
   }],
@@ -396,6 +454,7 @@ export const TOYS = group('toys', [
     ],
   }],
   ['bone-speedster', 'Bone Speedster', 'Низький спідстер із хребта й ребер.', 'formula', ['#e8dcc0', '#2a2a2a'], {
+    axles: [1.15, 0.85],
     o: o({ mat: 'bone' }),
     skin: (f) => [
       ...path([[f.tail.x + 0.1, 0.06], [f.nose.x - 0.25, 0.04]], 0.16, 'bone'),
@@ -418,7 +477,8 @@ export const TOYS = group('toys', [
     ],
   }],
   ['big-head-racer', 'Big Head Racer', 'Вінтажний болід, у якому водій більший за машину.', 'formula', ['#c08a2a', '#2a2a2a'], {
-    o: o({ rim: 'spokes' }),
+    // A tiny car: the head keeps its full size, so the driver ends up bigger than the car.
+    s: 0.68, o: o({ rim: 'spokes', wheel: 1.15 }),
     skin: (f) => [
       ell(0.0, 0.0, f.nose.x - 0.15, 0.3, 'body', {}, 28), stripe(-1.0, f.nose.x - 0.6, 0.14, 0.05, 'red'),
       ...[0, 1, 2, 3].map((i) => rect(-0.85 + i * 0.15, -0.14, -0.8 + i * 0.15, 0.06, 'dark', { flat: true })),
@@ -467,7 +527,12 @@ export const TOYS = group('toys', [
   }],
   ['volt-spike', 'Volt Spike', 'Електричний болід із шипами.', 'sports', ['#2a2a3a', '#ffd23f'], {
     parts: ['spikes'],
-    skin: (f) => [...wedge(f), poly([[-1.0, -0.14], [-0.5, -0.14], [-0.7, 0.0], [-0.2, 0.0], [-0.9, 0.24], [-0.7, 0.08], [-1.1, 0.08]], 'accent', { flat: true }), ...spikesAlong(-1.4, -0.6, -0.2, 3, 0.15, 'accent')],
+    skin: (f) => [
+      ...wedge(f), poly([[-1.0, -0.14], [-0.5, -0.14], [-0.7, 0.0], [-0.2, 0.0], [-0.9, 0.24], [-0.7, 0.08], [-1.1, 0.08]], 'accent', { flat: true }), ...spikesAlong(-1.4, -0.6, -0.2, 3, 0.15, 'accent'),
+      // electricity: a tesla coil behind the driver and arcs crackling between the spikes
+      rr(-1.0, -0.62, -0.85, -0.18, 0.03, 'grey'), ...[-0.55, -0.48, -0.41].map((y) => rr(-1.06, y, -0.79, y + 0.04, 0.02, 'gold')), circ(-0.92, -0.7, 0.1, 'sky'),
+      ...([[[-0.92, -0.75], [-0.6, -0.95], [-0.7, -0.8], [-0.35, -0.95]], [[f.nose.x - 0.4, -0.25], [f.nose.x - 0.1, -0.45], [f.nose.x - 0.2, -0.3], [f.nose.x + 0.1, -0.45]]] as [number, number][][]).flatMap((pts) => path(pts, 0.04, 'sky')),
+    ],
   }],
   ['toaster-racer', 'Toaster Racer', 'Тостер на колесах. Стріляє гарячими тостами.', 'box', ['#c0c8d0', '#c08a4a'], {
     gun: (f) => ({ at: [[f.roof.x0 + 0.42, f.roof.y - 0.38], [f.roof.x0 + 0.92, f.roof.y - 0.32]], aim: 72 }),

@@ -88,16 +88,31 @@ export const SOCCER = group('soccer', [
     ],
   }],
   ['soccer-shoe', 'Soccer Shoe', 'Бутса на роликах: шнурки, шипи і удар з розгону.', 'sports', ['#1a1a1a', '#ffffff'], {
-    parts: ['hump'], noLights: true, hideParts: true,
-    skin: (f) => [
-      blob([[f.tail.x, 0.18], [f.tail.x - 0.08, -0.3], [f.tail.x + 0.05, -0.85], [-0.55, -0.9], [-0.45, -0.45], [0.3, -0.35], [1.0, -0.25], [f.nose.x + 0.05, -0.05], [f.nose.x, 0.18]], 'body', {}, 2),
-      rr(f.tail.x + 0.05, -0.95, -0.5, -0.82, 0.05, 'accent'),
-      rr(f.tail.x - 0.05, 0.08, f.nose.x + 0.05, 0.28, 0.08, 'white'),
-      ...[f.tail.x + 0.2, -0.8, 0.4, 1.0].map((x) => poly([[x - 0.08, 0.27], [x + 0.08, 0.27], [x, 0.4]], 'white')),
-      ...[0, 1, 2].map((i) => poly([[-0.2 + i * 0.22, -0.4], [-0.08 + i * 0.22, -0.4], [-0.3 + i * 0.22, 0.08], [-0.42 + i * 0.22, 0.08]], 'white', { flat: true })),
-      ...[-1.1, -0.9, -0.7].map((x, i) => seg([x, -0.75 + i * 0.12], [x + 0.35, -0.6 + i * 0.12], 0.05, 'white')),
-      ...[-1.1, -0.9, -0.7].map((x, i) => circ(x, -0.75 + i * 0.12, 0.04, 'chrome')), rect(f.tail.x + 0.1, -0.3, f.tail.x + 0.4, -0.2, 'red', { flat: true }),
-    ],
+    // A real boot silhouette on small roller wheels: tall ankle shaft around the rider, instep with laces sloping to the toe.
+    o: o({ wheel: 0.75 }), parts: ['hump'], noLights: true, hideParts: true, hideWheels: [0, 1],
+    skin: (f) => {
+      const g = f.wheels[0].y + f.wheels[0].r, sole = g - 0.5, hx = f.head.x;
+      const rollers = [f.tail.x + 0.35, f.tail.x + 0.95, 0.45, f.nose.x - 0.45];
+      return [
+        // the boot upper: heel counter and ankle collar behind and around the rider, instep down to a rounded toe
+        blob([[f.tail.x + 0.15, sole], [f.tail.x - 0.02, sole - 0.2], [f.tail.x + 0.1, -0.42], [hx - 0.42, -0.5], [hx - 0.5, -1.02], [hx + 0.38, -1.02], [hx + 0.48, -0.62], [0.6, -0.5], [1.15, -0.38], [f.nose.x + 0.1, -0.3], [f.nose.x + 0.15, sole - 0.12], [f.nose.x - 0.1, sole]], 'body', {}, 2),
+        // padded collar and the dark opening the rider sits in
+        rr(hx - 0.56, -1.12, hx + 0.44, -0.98, 0.07, 'accent'),
+        // three stripes on the side, a red heel tab
+        ...[0, 1, 2].map((i) => poly([[0.0 + i * 0.22, -0.52], [0.12 + i * 0.22, -0.5], [-0.12 + i * 0.22, sole - 0.04], [-0.24 + i * 0.22, sole - 0.04]], 'white', { flat: true })),
+        rr(hx - 0.6, -0.95, hx - 0.46, -0.6, 0.04, 'red'), ell(f.tail.x + 0.35, -0.2, 0.22, 0.1, 'accent', { flat: true }),
+        // laces criss-crossing the instep, eyelets along the edge
+        ...[0, 1, 2, 3].flatMap((i) => {
+          const x = hx + 0.45 + i * 0.2, y = -0.62 + i * 0.05;
+          return [seg([x, y], [x + 0.18, y + 0.06], 0.045, 'white'), seg([x + 0.18, y], [x, y + 0.06], 0.045, 'white'), circ(x, y + 0.03, 0.03, 'chrome')];
+        }),
+        // thick white sole with screw-in studs
+        blob([[f.tail.x - 0.05, sole - 0.06], [f.nose.x - 0.3, sole - 0.06], [f.nose.x + 0.15, sole - 0.2], [f.nose.x + 0.12, sole - 0.06], [f.nose.x - 0.25, sole + 0.12], [f.tail.x, sole + 0.12]], 'white', {}, 1),
+        // roller-skate plate with four little wheels under the sole
+        rr(f.tail.x + 0.15, sole + 0.1, f.nose.x - 0.25, sole + 0.2, 0.03, 'chrome'),
+        ...rollers.flatMap((x) => [rect(x - 0.04, sole + 0.15, x + 0.04, g - 0.16, 'grey'), circ(x, g - 0.17, 0.17, 'rubber'), circ(x, g - 0.17, 0.08, 'red'), circ(x, g - 0.17, 0.03, 'chrome')]),
+      ];
+    },
   }],
 ]);
 

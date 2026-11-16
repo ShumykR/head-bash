@@ -1,9 +1,9 @@
 import { tailgate } from '../art';
 import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows } from '../draw';
-import { bike, boxy, carriage, fenders, rocket, sedan, tracks, truckCab } from '../skins';
+import { bike, boxy, fenders, rocket, sedan, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
-import { quadruped } from '../critters';
+import { quadruped, steed } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -68,6 +68,10 @@ export const WINTER = group('winter', [
         stripe(-1.2, 1.0, -0.06, 0.07, 'accent'),
         headlight(f.nose.x - 0.05, -0.04, 0.07),
         rr(f.tail.x - 0.1, -0.42, f.tail.x + 0.35, -0.3, 0.03, 'accent'),
+      // track lugs and road wheels that read against the snow, and a tall windscreen
+      ...Array.from({ length: 6 }, (_, i) => rect(f.tail.x + 0.05 + i * 0.17, a.y + a.r - 0.04, f.tail.x + 0.11 + i * 0.17, a.y + a.r + 0.03, 'rubber')),
+      ...[f.tail.x + 0.2, -0.65, -0.3].map((x) => circ(x, a.y + a.r - 0.25, 0.06, 'grey')),
+      blob([[0.25, -0.3], [0.45, -0.78], [0.7, -0.76], [0.62, -0.28]], 'glass', {}, 1),
       ];
     },
   }],
@@ -148,6 +152,22 @@ export const WINTER = group('winter', [
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
     float: 0.8, cargo: ['gift', 3],
+    // As in Drive Ahead, two reindeer pull the sleigh, on little wheels under their hooves. They are one
+    // real piece, hitched to the sleigh's nose: you can hit them and they bump over the ground.
+    links: () => {
+      const g = 0.27 - 0.2, w = (x: number) => ({ x, y: g + 0.1, r: 0.1, rim: 'disc' as const, drive: false });
+      return [{
+        at: [1.45, -0.25], swing: [-12, 12], spring: 10, density: 0.25,
+        wheels: [w(1.75), w(2.45), w(2.35), w(3.05)],
+        hit: [rect(1.75, g - 0.78, 2.55, g - 0.42), rect(2.35, g - 0.74, 3.2, g - 0.42), rect(3.05, g - 1.1, 3.45, g - 0.8)],
+        art: [
+          ...steed(2.75, g, { mat: 'brown', deer: true, s: 0.95 }),
+          ...path([[1.45, -0.3], [2.5, -0.65], [2.95, -0.72]], 0.035, 'gold'),
+          ...steed(2.15, g + 0.02, { mat: 'brown', deer: true, nose: 'red', s: 1.0 }),
+          ...path([[1.45, -0.25], [2.1, -0.6]], 0.035, 'gold'),
+        ],
+      }];
+    },
     skin: () => [
       ...path([[-1.6, 0.12], [-1.55, 0.2], [1.15, 0.2], [1.45, 0.1], [1.6, -0.15], [1.52, -0.38], [1.32, -0.42], [1.24, -0.28]], 0.1, 'gold'),
       ...[-1.1, -0.2, 0.7].map((x) => seg([x, 0.2], [x + 0.05, 0.02], 0.08, 'gold')),
@@ -236,17 +256,21 @@ export const WINTER = group('winter', [
     ],
   }],
   ['snowcycle', 'Snowcycle', 'Зимовий мотоцикл: лижа спереду, гусениця ззаду.', 'bike', ['#3a3ad8', '#e0e0e0'], {
-    o: o({ rim: 'monster' }), hideWheels: [1],
+    o: o({ rim: 'monster' }), hideWheels: [0, 1],
     skin: (f) => {
       const a = f.wheels[0], b = f.wheels[1];
+      const t0 = a.x - a.r - 0.05, t1 = a.x + a.r + 0.55, ty0 = a.y - a.r * 0.75, ty1 = a.y + a.r;
       return [
-        // rear track loop with lugs and road wheels
-        rr(a.x - a.r - 0.1, a.y - a.r - 0.1, a.x + a.r + 0.4, a.y + a.r + 0.06, a.r + 0.06, 'rubber'),
-        ...Array.from({ length: 7 }, (_, i) => rect(a.x - a.r + i * ((2 * a.r + 0.35) / 7), a.y - a.r - 0.14, a.x - a.r + i * ((2 * a.r + 0.35) / 7) + 0.07, a.y - a.r - 0.06, 'rubber')),
-        ...[a.x - 0.15, a.x + 0.2].map((x) => circ(x, a.y + 0.05, 0.12, 'grey')),
+        // rear track loop (the physics wheel is hidden inside it): lugs all round, bogie wheels, a drive sprocket
+        rr(t0, ty0, t1, ty1, (ty1 - ty0) / 2, 'rubber'),
+        ...Array.from({ length: 9 }, (_, i) => rect(t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) - 0.04, ty1 - 0.02, t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) + 0.04, ty1 + 0.05, 'rubber')),
+        ...Array.from({ length: 9 }, (_, i) => rect(t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) - 0.04, ty0 - 0.05, t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) + 0.04, ty0 + 0.02, 'rubber')),
+        rr(t0 + 0.12, ty0 + 0.1, t1 - 0.12, ty1 - 0.1, (ty1 - ty0) / 2 - 0.1, 'dark'),
+        ...[t0 + 0.28, (t0 + t1) / 2, t1 - 0.28].map((x) => circ(x, (ty0 + ty1) / 2 + 0.05, 0.15, 'grey')),
+        ...[t0 + 0.28, (t0 + t1) / 2, t1 - 0.28].map((x) => circ(x, (ty0 + ty1) / 2 + 0.05, 0.06, 'chrome')),
         ...bike(f, { style: 'sport' }),
         // front ski on a strut where the front wheel would be
-        ...path([[b.x - 0.05, -0.1], [b.x, b.y]], 0.1, 'dark'),
+        ...path([[b.x - 0.35, -0.2], [b.x - 0.1, b.y + 0.1], [b.x, b.y + b.r - 0.05]], 0.12, 'chrome'),
         ...path([[b.x - 0.45, b.y + b.r - 0.02], [b.x + 0.4, b.y + b.r - 0.02], [b.x + 0.58, b.y + b.r - 0.15], [b.x + 0.55, b.y + b.r - 0.28]], 0.09, 'chrome'),
       ];
     },
@@ -262,16 +286,33 @@ export const WINTER = group('winter', [
       stripe(0.06, 0.8, -0.9, 0.06, 'accent'),
     ],
   }],
-  ['snow-coach', 'Snow Coach', 'Пасажирський зимовий диліжанс із засніженим дахом.', 'carriage', ['#6a3a2a', '#e0c080'], {
-    o: o({ len: 1.2 }),
-    skin: (f) => [
-      ...carriage(f, { trim: 'accent' }),
-      snowCap(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y - 0.06, 0.14),
-      ...windows(-0.75, 0.75, f.roof.y + 0.18, f.roof.y + 0.55, 2, 0.15),
-      rect(-0.08, f.roof.y + 0.15, 0.08, 0.1, 'accent', { flat: true }),
-      ...icicles(-1.0, 1.0, f.roof.y + 0.05, 8),
-      rr(-0.7, f.roof.y - 0.4, -0.1, f.roof.y - 0.12, 0.04, 'brown'), rr(0.0, f.roof.y - 0.34, 0.45, f.roof.y - 0.12, 0.04, 'red'), rect(-0.42, f.roof.y - 0.4, -0.38, f.roof.y - 0.12, 'gold', { flat: true }),
-    ],
+  ['snow-coach', 'Snow Coach', 'Гусеничний снігобус: довгий обтічний кузов із рядом вікон, гусениця ззаду, лижа спереду.', 'carriage', ['#2a3a5a', '#e0c040'], {
+    // After Drive Ahead's Snow Coach: a Bombardier-style tracked snow bus. Both physics wheels hide inside the track.
+    o: o({ len: 1.2 }), hideWheels: [0, 1],
+    skin: (f) => {
+      const a = f.wheels[0], b = f.wheels[1], g = a.y + a.r;
+      const t0 = a.x - a.r - 0.1, t1 = b.x - 0.25, ty0 = g - 0.62;
+      return [
+        // rubber track under the rear two thirds, with lugs, bogies and a sprocket
+        rr(t0, ty0, t1, g, 0.31, 'rubber'),
+        ...Array.from({ length: 11 }, (_, i) => rect(t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) - 0.04, g - 0.02, t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) + 0.04, g + 0.05, 'rubber')),
+        rr(t0 + 0.1, ty0 + 0.1, t1 - 0.1, g - 0.1, 0.21, 'dark'),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.15, 'grey')),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.05, 'chrome')),
+        // front ski on a sprung leg
+        ...path([[b.x - 0.1, ty0 + 0.05], [b.x + 0.05, g - 0.08]], 0.11, 'dark'),
+        ...path([[b.x - 0.4, g - 0.04], [b.x + 0.35, g - 0.04], [b.x + 0.55, g - 0.16], [b.x + 0.55, g - 0.3]], 0.09, 'chrome'),
+        // the long rounded body: low nose with a grille, domed roof with a row of round-topped windows
+        blob([[f.tail.x + 0.05, ty0 + 0.05], [f.tail.x, f.roof.y + 0.3], [f.tail.x + 0.35, f.roof.y], [b.x - 0.6, f.roof.y], [b.x - 0.2, f.roof.y + 0.35], [f.nose.x + 0.1, f.roof.y + 0.6], [f.nose.x + 0.15, ty0 - 0.05], [f.nose.x - 0.05, ty0 + 0.08]], 'body', {}, 2),
+        stripe(f.tail.x + 0.05, f.nose.x + 0.1, ty0 - 0.12, 0.08, 'accent'),
+        ...Array.from({ length: 5 }, (_, i) => { const x = f.tail.x + 0.4 + i * 0.42; return rr(x, f.roof.y + 0.14, x + 0.3, f.roof.y + 0.46, 0.1, 'glass'); }),
+        rr(f.nose.x - 0.25, f.roof.y + 0.62, f.nose.x + 0.08, ty0 - 0.2, 0.04, 'dark'),
+        ...[0, 1, 2].map((i) => rect(f.nose.x - 0.2, f.roof.y + 0.68 + i * 0.1, f.nose.x + 0.04, f.roof.y + 0.72 + i * 0.1, 'grey', { flat: true })),
+        circ(f.nose.x - 0.05, f.roof.y + 0.5, 0.09, 'light'),
+        snowCap(f.tail.x + 0.3, b.x - 0.55, f.roof.y - 0.04, 0.12),
+        rect(f.tail.x + 0.1, f.roof.y - 0.25, f.tail.x + 0.5, f.roof.y - 0.02, 'black'), rect(f.tail.x + 0.15, f.roof.y - 0.33, f.tail.x + 0.45, f.roof.y - 0.25, 'brown'),
+      ];
+    },
   }],
   ['dual-snowballer', 'Dual Snowballer', 'Здвоєна сніжкова установка на гусеницях.', 'tracked', ['#7ab0e0', '#ffffff'], {
     gun: () => ({ at: [[1.58, -0.91], [1.43, -1.22]], aim: 23 }),
@@ -293,6 +334,11 @@ export const WINTER = group('winter', [
       ...icicles(f.tail.x + 0.2, f.nose.x - 0.2, 0.28, 10),
       ...[[-1.0, 0.0], [0.6, 0.05], [-0.2, -0.05]].map(([x, y]) => starShape(x, y, 0.09, 'white')),
       ...path([[f.nose.x - 0.1, -0.15], [f.nose.x - 0.5, -0.1], [f.nose.x - 0.7, -0.2], [f.nose.x - 0.6, -0.3]], 0.04, 'white'),
+      // frost breath rolling off the nose, icicles along the roof edge and an ice crust on the hood
+      ...[[f.nose.x + 0.35, -0.1, 0.2, 0.13], [f.nose.x + 0.7, -0.18, 0.16, 0.11], [f.nose.x + 0.95, -0.12, 0.11, 0.08]].map(([x, y, rx, ry]) => ell(x, y, rx, ry, 'white', { flat: true })),
+      ...[0.15, 0.32, 0.5].map((dy, i) => starShape(f.nose.x + 0.45 + i * 0.25, -0.12 - dy * 0.3, 0.05, 'sky')),
+      ...icicles(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y + 0.06, 6),
+      blob([[f.roof.x1 + 0.1, f.nose.y0 - 0.02], [f.nose.x - 0.4, f.nose.y0 - 0.1], [f.nose.x - 0.1, f.nose.y0 - 0.02]], 'white', {}, 1),
     ],
   }],
   ['sleigh', 'Sleigh', 'Класичні дерев\'яні сани із загнутими полозами.', 'sled', ['#a0603a', '#e0c060'], {
@@ -386,8 +432,14 @@ export const WINTER = group('winter', [
     ],
   }],
   ['penguin-prisoner', 'Penguin Prisoner', 'Візок із пінгвіном у клітці. Пінгвін може вистрибнути!', 'cart', ['#3a3a4a', '#ffa020'], {
-    parts: ['cage'], cargo: ['penguin', 1], noLights: true,
+    // The penguin rides in a barred cage at the back, the driver sits up front.
+    o: o({ len: 1.35 }), cargo: ['penguin', 1], noLights: true, wheelie: 0.6,
+    cargoAt: (f) => [f.tail.x + 0.12, f.tail.x + 0.62, f.deck.y],
+    head: (f) => [f.nose.x - 0.42, f.deck.y - 0.32],
     skin: (f) => [
+      // the cage: roof and bars in front of the penguin (the penguin itself is the cargo, it can hop out)
+      rr(f.tail.x - 0.02, f.deck.y - 0.86, f.tail.x + 0.76, f.deck.y - 0.76, 0.03, 'accent'),
+      ...[0.02, 0.37, 0.7].map((dx) => rect(f.tail.x + dx, f.deck.y - 0.78, f.tail.x + dx + 0.05, f.deck.y, 'grey')),
       rr(f.tail.x, f.deck.y, f.nose.x, 0.18, 0.05, 'body'),
       stripe(f.tail.x, f.nose.x, f.deck.y + 0.2, 0.08, 'accent'),
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.1 + i * 0.32, 0.12], [f.tail.x + 0.25 + i * 0.32, 0.12], [f.tail.x + 0.35 + i * 0.32, f.deck.y + 0.08], [f.tail.x + 0.2 + i * 0.32, f.deck.y + 0.08]], 'yellow', { flat: true })),

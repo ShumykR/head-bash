@@ -46,23 +46,31 @@ export const CNY = group('cny', [
   }],
   ['emperor-carriage', 'The Emperor\'s Carriage', 'Золотий імператорський паланкін з ліхтарями.', 'carriage', ['#e0b020', '#c02a2a'], {
     parts: ['lantern'], hideParts: true, hideWheels: [0, 1],
+    // The porters are solid too: you bump into them, not through them.
+    art: (f) => [f.tail.x - 0.12, f.nose.x + 0.12].map((x) => ({ ...rect(x - 0.17, -0.62, x + 0.17, 0.05, 'blue', { density: 0.2 }), deco: false, hide: true })),
     // No wheels: two porters in conical hats carry the palanquin on long poles (their feet are the wheels).
     skin: (f) => [
+      // one long carrying pole through the base, resting on the porters' shoulders
+      rr(f.tail.x - 0.45, -0.2, f.nose.x + 0.45, -0.1, 0.04, 'wood'),
       ...carriage({ ...f, wheels: [] }, { trim: 'red' }),
       poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 - 0.05, f.roof.y - 0.28], [f.roof.x0 + 0.05, f.roof.y - 0.28]], 'accent'),
       poly([[f.roof.x0 - 0.35, f.roof.y + 0.02], [f.roof.x0 - 0.1, f.roof.y - 0.12], [f.roof.x0 - 0.5, f.roof.y - 0.2]], 'accent'), poly([[f.roof.x1 + 0.35, f.roof.y + 0.02], [f.roof.x1 + 0.1, f.roof.y - 0.12], [f.roof.x1 + 0.5, f.roof.y - 0.2]], 'accent'),
       circ(0, f.roof.y - 0.38, 0.1, 'gold'),
       rr(-0.45, f.roof.y + 0.2, 0.45, f.roof.y + 0.62, 0.04, 'red'), ...[-0.3, -0.1, 0.1, 0.3].map((x) => rect(x - 0.02, f.roof.y + 0.2, x + 0.02, f.roof.y + 0.62, 'gold', { flat: true })),
       ...lantern(f.tail.x + 0.4, -0.05, 0.8), ...lantern(f.nose.x - 0.4, -0.05, 0.8),
-      ...[f.tail.x - 0.1, f.nose.x + 0.1].map((x) => rr(x - 0.4, 0.02, x + 0.4, 0.1, 0.03, 'wood')),
-      ...f.wheels.flatMap((w) => [
-        rr(w.x - 0.12, w.y + w.r - 0.12, w.x + 0.14, w.y + w.r, 0.03, 'black'),
-        ...path([[w.x - 0.05, w.y + w.r - 0.1], [w.x - 0.02, w.y - 0.15], [w.x, -0.2]], 0.13, 'blue'),
-        ...path([[w.x + 0.08, w.y + w.r - 0.1], [w.x + 0.06, w.y - 0.15]], 0.12, 'blue'),
-        rr(w.x - 0.17, -0.85, w.x + 0.17, -0.15, 0.06, 'blue'), rect(w.x - 0.17, -0.42, w.x + 0.17, -0.36, 'gold', { flat: true }),
-        circ(w.x + 0.02, -1.0, 0.14, 'tan'),
-        poly([[w.x - 0.32, -1.05], [w.x + 0.36, -1.05], [w.x + 0.02, -1.32]], 'gold'),
-      ]),
+      // the porters stand clear of the box at both pole ends, striding forward
+      ...[f.tail.x - 0.12, f.nose.x + 0.12].flatMap((x, i) => {
+        const g = f.wheels[i].y + f.wheels[i].r, s = i ? 0.1 : -0.1;
+        return [
+          ...path([[x - 0.02, -0.02], [x - 0.12 - s, g - 0.3], [x - 0.2 - s, g - 0.06]], 0.11, 'blue'),
+          ...path([[x + 0.04, -0.02], [x + 0.12 + s, g - 0.3], [x + 0.18 + s, g - 0.06]], 0.11, 'blue'),
+          rr(x - 0.3 - s, g - 0.08, x - 0.08 - s, g, 0.03, 'black'), rr(x + 0.08 + s, g - 0.08, x + 0.3 + s, g, 0.03, 'black'),
+          rr(x - 0.17, -0.42, x + 0.17, 0.06, 0.06, 'blue'), rect(x - 0.17, -0.06, x + 0.17, 0.0, 'gold', { flat: true }),
+          ...path([[x + 0.1, -0.32], [x + 0.2, -0.2], [x + 0.08, -0.14]], 0.07, 'blue'), circ(x + 0.06, -0.15, 0.05, 'tan'),
+          circ(x + 0.03, -0.56, 0.14, 'tan'), circ(x + 0.1, -0.56, 0.025, 'black'),
+          poly([[x - 0.3, -0.6], [x + 0.36, -0.6], [x + 0.03, -0.86]], 'gold'),
+        ];
+      }),
     ],
   }],
   ['cloud', 'Cloud', 'Чарівна хмаринка: пливе над ареною.', 'blob', ['#f4f8ff', '#ffd23f'], {
@@ -172,8 +180,11 @@ export const CNY = group('cny', [
       ...path([[f.tail.x - 0.6, f.deck.y + 0.55], [f.tail.x + 0.2, f.deck.y + 0.3]], 0.16, 'wood'),
       blob([[f.tail.x + 0.05, 0.3], [f.tail.x + 0.1, f.deck.y + 0.15], [f.nose.x - 0.1, f.deck.y - 0.05], [f.nose.x, 0.0], [f.nose.x - 0.2, 0.3]], 'wood', {}, 1),
       rect(-0.62, 0.32, 0.62, 0.42, 'dark'),
-      ...path([[0.0, f.deck.y - 0.1], [0.95, f.deck.y - 0.5]], 0.3, 'dark'), ...path([[0.9, f.deck.y - 0.48], [1.05, f.deck.y - 0.54]], 0.38, 'dark'),
-      ...[0.25, 0.55].map((dx) => seg([dx - 0.03, f.deck.y - 0.35 - dx * 0.4], [dx + 0.06, f.deck.y + 0.08 - dx * 0.4], 0.06, 'gold')),
+      // the bronze barrel: thick at the breech, banded, with a flared muzzle and a cascabel knob
+      circ(-0.42, f.deck.y + 0.08, 0.14, 'gold'),
+      ...path([[-0.3, f.deck.y + 0.02], [0.95, f.deck.y - 0.5]], 0.44, 'gold'), ...path([[0.9, f.deck.y - 0.48], [1.1, f.deck.y - 0.56]], 0.52, 'gold'),
+      circ(1.12, f.deck.y - 0.57, 0.13, 'black'),
+      ...[-0.05, 0.3, 0.65].map((dx) => seg([dx - 0.06, f.deck.y - 0.24 - dx * 0.4], [dx + 0.06, f.deck.y + 0.2 - dx * 0.4], 0.07, 'brown')),
       circ(f.tail.x + 0.25, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.48, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.36, f.deck.y - 0.3, 0.1, 'black'),
       stripe(-0.4, 0.4, f.deck.y + 0.15, 0.06, 'red'),
       ...[0.1, 0.45, 0.8].map((dx) => circ(dx, f.deck.y - 0.25 - dx * 0.4, 0.035, 'gold')), poly([[-0.1, f.deck.y - 0.35], [0.05, f.deck.y - 0.55], [0.15, f.deck.y - 0.3]], 'red'),

@@ -51,6 +51,10 @@ export const RIFT = group('rift', [
       ...[-1.2, -0.7, -0.2, 0.3].map((x) => poly([[x - 0.08, 0.3], [x + 0.08, 0.3], [x, 0.48]], 'white')),
       ...[0.5, 0.75].map((x) => ell(x, f.roof.y - 0.1, 0.1, 0.06, 'white')),
       poly([[-0.4, -0.72], [-0.22, -0.42], [-0.58, -0.42]], 'yellow'), rect(-0.42, -0.62, -0.38, -0.5, 'black', { flat: true }),
+      // frost on the nitrogen tank, a big snowflake badge and cold vapour spilling off the nozzle
+      ...[[-1.5, -0.82], [-0.85, -0.85], [-0.3, -0.82]].map(([x, y]) => ell(x, y, 0.16, 0.05, 'white', { flat: true })),
+      starShape(-1.3, -0.58, 0.16, 'white'), starShape(-1.3, -0.58, 0.08, 'sky'),
+      ...[[0.35, -1.05, 0.12], [0.55, -1.12, 0.1], [0.72, -1.05, 0.08]].map(([x, y, r]) => circ(x, y, r, 'white', { flat: true })),
     ],
   }],
   ['harpoon', 'Harpoon', 'Платформа з гарпунною гарматою: б\'є і притягує суперника.', 'pickup', ['#3e6a9a', '#ffd23f'], {
@@ -89,14 +93,25 @@ export const RIFT = group('rift', [
     ],
   }],
   ['bat-holder', 'Bat Holder', 'Візок-сідало, повний кажанів.', 'cart', ['#3a2a4a', '#a050e0'], {
-    parts: ['wings'], noLights: true, hideParts: true,
+    o: o({ len: 1.6 }), parts: ['wings'], noLights: true, hideParts: true, wheelie: 0.6,
     skin: (f) => [
       blob([[f.tail.x, f.deck.y], [f.nose.x, f.deck.y], [f.nose.x - 0.18, 0.16], [f.tail.x + 0.18, 0.16]], 'body', {}, 1),
       ...path([[f.tail.x + 0.1, f.deck.y], [f.tail.x + 0.1, f.deck.y - 0.7], [f.nose.x - 0.1, f.deck.y - 0.7], [f.nose.x - 0.1, f.deck.y]], 0.07, 'wood'),
-      ...[-0.5, 0.0, 0.5].map((x) => [
-        poly([[x - 0.25, f.deck.y - 0.55], [x - 0.05, f.deck.y - 0.62], [x, f.deck.y - 0.45], [x + 0.05, f.deck.y - 0.62], [x + 0.25, f.deck.y - 0.55], [x + 0.12, f.deck.y - 0.35], [x, f.deck.y - 0.3], [x - 0.12, f.deck.y - 0.35]], 'black'),
-        circ(x - 0.04, f.deck.y - 0.45, 0.025, 'red'), circ(x + 0.04, f.deck.y - 0.45, 0.025, 'red'),
-      ]).flat(),
+      // bats hang upside down from the perch either side of the driver, more roost on top of it
+      ...[f.tail.x + 0.3, f.tail.x + 0.75, f.nose.x - 0.75, f.nose.x - 0.3].filter((x) => Math.abs(x - f.head.x) > 0.42).flatMap((x) => {
+        const y = f.deck.y - 0.62;
+        return [
+          seg([x, y - 0.08], [x, y], 0.03, 'black'),
+          poly([[x - 0.26, y + 0.05], [x - 0.1, y + 0.02], [x - 0.08, y + 0.3], [x - 0.2, y + 0.22]], 'accent'),
+          poly([[x + 0.26, y + 0.05], [x + 0.1, y + 0.02], [x + 0.08, y + 0.3], [x + 0.2, y + 0.22]], 'accent'),
+          ell(x, y + 0.17, 0.09, 0.15, 'dark'), circ(x - 0.04, y + 0.25, 0.025, 'red'), circ(x + 0.04, y + 0.25, 0.025, 'red'),
+          poly([[x - 0.06, y + 0.33], [x - 0.02, y + 0.3], [x - 0.05, y + 0.38]], 'dark'), poly([[x + 0.06, y + 0.33], [x + 0.02, y + 0.3], [x + 0.05, y + 0.38]], 'dark'),
+        ];
+      }),
+      ...[f.tail.x + 0.55, f.nose.x - 0.6].flatMap((x) => {
+        const y = f.deck.y - 0.8;
+        return [poly([[x - 0.22, y - 0.12], [x - 0.06, y - 0.02], [x, y - 0.1], [x + 0.06, y - 0.02], [x + 0.22, y - 0.12], [x + 0.1, y + 0.04], [x - 0.1, y + 0.04]], 'accent'), ell(x, y - 0.03, 0.07, 0.08, 'dark'), circ(x - 0.025, y - 0.05, 0.02, 'red'), circ(x + 0.025, y - 0.05, 0.02, 'red')];
+      }),
       stripe(f.tail.x + 0.1, f.nose.x - 0.1, f.deck.y + 0.25, 0.06, 'accent'),
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'body')),
       ...path([[f.nose.x - 0.1, f.deck.y - 0.7], [f.nose.x + 0.15, f.deck.y - 0.85]], 0.04, 'wood'), ell(f.nose.x + 0.18, f.deck.y - 0.7, 0.08, 0.11, 'light'),
@@ -135,9 +150,16 @@ export const RIFT = group('rift', [
     skin: (f) => [
       ...carriage(f, { trim: 'accent' }),
       crystal(-0.5, f.roof.y - 0.05, 0.6, 0.3, 'accent'), crystal(-0.2, f.roof.y - 0.05, 0.4, 0.22, 'sky'),
-      ...path([[f.roof.x1 - 0.2, f.roof.y + 0.1], [f.roof.x1 + 0.3, f.roof.y - 0.3], [f.roof.x1 + 0.6, f.roof.y - 0.6]], 0.2, 'accent'),
-      blob([[f.roof.x1 + 0.45, f.roof.y - 0.7], [f.roof.x1 + 0.85, f.roof.y - 0.78], [f.roof.x1 + 1.1, f.roof.y - 0.55], [f.roof.x1 + 0.55, f.roof.y - 0.45]], 'accent', {}, 1),
-      circ(f.roof.x1 + 0.75, f.roof.y - 0.65, 0.05, 'white'), ...fangs(f.roof.x1 + 0.7, f.roof.x1 + 1.05, -0.0 + f.roof.y - 0.52, 3, 0.07),
+      // the summoned ghost dragon: a pale, glowing body coiling up out of the crystals, wings spread, fire from its jaws
+      ...path([[-0.9, f.roof.y + 0.05], [-1.3, f.roof.y - 0.35], [-1.0, f.roof.y - 0.75], [-0.6, f.roof.y - 0.6]], 0.14, 'sky'),
+      poly([[-0.5, f.roof.y - 0.55], [-1.2, f.roof.y - 1.35], [-0.75, f.roof.y - 1.15], [-0.45, f.roof.y - 1.45], [-0.2, f.roof.y - 1.05], [0.1, f.roof.y - 1.25], [0.1, f.roof.y - 0.6]], 'teal'),
+      ...[[-1.2, -1.35], [-0.45, -1.45], [0.1, -1.25]].map(([x, y]) => seg([-0.3, f.roof.y - 0.6], [x, f.roof.y + y], 0.035, 'white')),
+      ...path([[-0.4, f.roof.y - 0.45], [0.2, f.roof.y - 0.75], [f.roof.x1 + 0.3, f.roof.y - 0.8], [f.roof.x1 + 0.6, f.roof.y - 0.95]], 0.3, 'sky'),
+      blob([[f.roof.x1 + 0.45, f.roof.y - 1.1], [f.roof.x1 + 0.95, f.roof.y - 1.18], [f.roof.x1 + 1.3, f.roof.y - 0.9], [f.roof.x1 + 0.6, f.roof.y - 0.78]], 'sky', {}, 1),
+      ...path([[f.roof.x1 + 0.6, f.roof.y - 1.1], [f.roof.x1 + 0.45, f.roof.y - 1.35]], 0.05, 'white'),
+      circ(f.roof.x1 + 0.82, f.roof.y - 1.0, 0.05, 'teal'), ...fangs(f.roof.x1 + 0.85, f.roof.x1 + 1.25, f.roof.y - 0.88, 3, 0.07),
+      poly([[f.roof.x1 + 1.25, f.roof.y - 0.95], [f.roof.x1 + 1.9, f.roof.y - 1.15], [f.roof.x1 + 1.75, f.roof.y - 0.85], [f.roof.x1 + 2.0, f.roof.y - 0.7], [f.roof.x1 + 1.3, f.roof.y - 0.82]], 'orange'),
+      poly([[f.roof.x1 + 1.28, f.roof.y - 0.92], [f.roof.x1 + 1.7, f.roof.y - 0.98], [f.roof.x1 + 1.35, f.roof.y - 0.84]], 'yellow'),
       ...[-0.6, 0.0, 0.6].map((x) => [circ(x, f.roof.y + 0.45, 0.11, 'dark'), circ(x, f.roof.y + 0.45, 0.07, 'accent')]).flat(),
       ...[[-0.9, f.roof.y - 0.4], [0.4, f.roof.y - 0.6]].map(([x, y]) => starShape(x, y, 0.07, 'accent')),
     ],
@@ -232,6 +254,10 @@ export const RIFT = group('rift', [
       ...[-0.8, -0.4, 0.0].map((x) => [circ(x, 0.28, 0.12, 'black'), seg([x, 0.16], [x + 0.06, 0.08], 0.03, 'tan')]).flat(),
       poly([[1.0, -0.2], [1.35, -0.12], [1.3, -0.05], [1.0, -0.1]], 'yellow'), circ(1.2, -0.12, 0.03, 'black'),
       poly([[-0.6, 0.0], [0.6, 0.0], [-0.5, 0.4], [-0.9, 0.4]], 'body'), ...[-0.4, 0.0].map((x) => circ(x, -0.15, 0.04, 'grey')), circ(-0.65, 0.2, 0.08, 'white'), rect(-0.67, 0.16, -0.63, 0.24, 'red', { flat: true }),
+      // bomber wings over the hull, and the bomb bay: big round bombs with lit fuses hanging underneath
+      poly([[-0.9, -0.42], [0.5, -0.42], [0.2, -0.62], [-0.6, -0.62]], 'grey'), poly([[-1.0, -0.45], [-0.75, -0.62], [-0.65, -0.45]], 'accent'),
+      rr(-1.05, 0.12, 0.25, 0.22, 0.04, 'dark'),
+      ...[-0.8, -0.4, 0.0].flatMap((x) => [circ(x, 0.4, 0.16, 'black'), circ(x - 0.05, 0.35, 0.05, 'grey'), seg([x + 0.05, 0.26], [x + 0.12, 0.18], 0.035, 'tan'), starShape(x + 0.13, 0.16, 0.05, 'orange')]),
     ],
   }],
   ['specimen-x', 'Specimen X', 'Колба з мутантом на гусеницях. Мутант дивиться на тебе.', 'tracked', ['#5a6a7a', '#7aff3a'], {
@@ -268,6 +294,10 @@ export const RIFT = group('rift', [
       ...path([[-0.85, -0.2], [-0.65, -0.95], [0.25, -0.95]], 0.08, 'accent'), seg([0.62, -0.15], [0.48, -0.42], 0.08, 'accent'),
       circ(f.nose.x - 0.15, -0.1, 0.07, 'light'),
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'body')), stripe(f.tail.x + 0.2, f.nose.x - 0.2, -0.1, 0.04, 'accent'),
+      // the void portal it hops through: a glowing ring behind the rover, sparks, and springy jump legs
+      ell(f.tail.x - 0.35, -0.45, 0.22, 0.55, 'accent'), ell(f.tail.x - 0.35, -0.45, 0.14, 0.44, 'black'), ell(f.tail.x - 0.35, -0.45, 0.07, 0.3, 'purple'),
+      ...[[f.tail.x + 0.1, -0.95], [0.5, -0.75], [f.nose.x + 0.15, -0.45]].map(([x, y]) => starShape(x, y, 0.06, 'accent')),
+      ...[-0.35, 0.35].flatMap((x) => [seg([x, -0.2], [x + 0.1, -0.35], 0.04, 'grey'), seg([x + 0.1, -0.35], [x, -0.5], 0.04, 'grey')]),
     ],
   }],
   ['rift-monster', 'Rift Monster', 'Істота з порталу: зникає й з\'являється ближче до тебе.', 'monster', ['#3a1a4a', '#ff3aa0'], {
@@ -297,6 +327,9 @@ export const RIFT = group('rift', [
       ...[0, 1, 2, 3, 4, 5].map((i) => seg([-0.3 + Math.cos(i * 1.05) * 0.38, -0.45 + Math.sin(i * 1.05) * 0.38], [-0.3 + Math.cos(i * 1.05) * 0.48, -0.45 + Math.sin(i * 1.05) * 0.48], 0.06, 'accent')),
       stripe(f.tail.x, f.nose.x, -0.02, 0.05, 'accent'),
       ...[f.tail.x + 0.2, f.tail.x + 0.5].map((x) => rect(x, f.roof.y + 0.15, x + 0.05, f.nose.y1 - 0.15, 'accent', { flat: true })),
+      // warp exhaust: a purple vortex streaming out behind, energy arcs around the rift drive
+      ...[[f.tail.x - 0.35, -0.5, 0.2], [f.tail.x - 0.7, -0.55, 0.15], [f.tail.x - 0.98, -0.5, 0.1]].flatMap(([x, y, r]) => [ell(x, y, r * 0.6, r, 'accent'), ell(x, y, r * 0.35, r * 0.6, 'black')]),
+      ...[0, 1, 2, 3].map((i) => seg([-0.3 + Math.cos(i * 1.6) * 0.38, -0.45 + Math.sin(i * 1.6) * 0.38], [-0.3 + Math.cos(i * 1.6 + 0.5) * 0.5, -0.45 + Math.sin(i * 1.6 + 0.5) * 0.5], 0.035, 'white')),
     ],
   }],
   ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол: найсильніший удар клешнею у світі.', 'creature', ['#e04a3a', '#5ad0f0'], {
@@ -376,6 +409,11 @@ export const RIFT = group('rift', [
       ...eyeball(0.55, -0.32, 0.08, 'purple'), ...eyeball(0.85, -0.3, 0.07, 'purple'),
       poly([[-0.6, 0.15], [-0.42, 0.15], [-0.52, 0.32], [-0.38, 0.32], [-0.68, 0.6], [-0.58, 0.38], [-0.72, 0.38]], 'yellow'), ell(-0.3, -0.75, 0.25, 0.08, 'white', { flat: true }),
       ...[[-0.8, -0.55], [0.0, -0.85]].map(([x, y]) => poly([[x, y], [x + 0.08, y - 0.12], [x + 0.04, y], [x + 0.12, y - 0.02], [x + 0.0, y + 0.15]], 'yellow', { flat: true })),
+      // a proper thunderhead: dark storm belly, a second lightning bolt and rain
+      ell(0.0, -0.05, 1.1, 0.16, 'purple'),
+      // the lightning it calls down: a big bolt striking ahead of the cloud
+      poly([[1.05, -0.2], [1.35, -0.2], [1.18, 0.12], [1.42, 0.12], [0.98, 0.7], [1.1, 0.3], [0.88, 0.3]], 'yellow'), poly([[1.12, -0.12], [1.25, -0.12], [1.12, 0.18], [1.05, 0.18]], 'white'),
+      ...[[-0.3, 0.25], [0.5, 0.3], [0.85, 0.15], [-1.0, 0.2]].map(([x, y]) => seg([x, y], [x - 0.04, y + 0.14], 0.035, 'sky')),
     ],
   }],
   ['bat-eyes', 'Bat Eyes', 'Кажан-спостерігач із палаючими очима.', 'blob', ['#2a1a3a', '#ff3a3a'], {
