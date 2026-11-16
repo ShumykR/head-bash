@@ -27,6 +27,8 @@ export interface CarPoly {
   ring?: boolean;
   /** Flat shading (no top highlight / bottom shadow): decals, stripes, lettering. */
   flat?: boolean;
+  /** Glass that stays even right under the driver (who looks out of a roof hatch above it). */
+  keep?: boolean;
 }
 
 export interface WheelDef {
@@ -223,4 +225,13 @@ export interface CarDef {
   swims?: boolean;
   /** Gravity scale for the whole car (<1 = floaty hover/flying vehicles). */
   float?: number;
+  /** Animated decoration (smoke, steam, sparks, beams…): drawn only, never part of the sprite or the physics. */
+  fx?: FxDef[];
 }
+
+export type FxKind = 'smoke' | 'steam' | 'wisp' | 'spark' | 'bubble' | 'frost' | 'flame' | 'trail' | 'rain' | 'bolt' | 'beam';
+/**
+ * One animated effect on a car, in car-local metres (facing +x). Particles leave `at`
+ * heading `dir` (degrees: 0 forward, -90 up, 180 back); `bolt` and `beam` run from `at` to `to`.
+ */
+export interface FxDef { kind: FxKind; at: Pt; to?: Pt; dir?: number; size?: number; mat?: CarMat; rate?: number }

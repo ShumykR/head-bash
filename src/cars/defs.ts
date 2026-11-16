@@ -253,6 +253,7 @@ const ORIGINALS: CarDef[] = [
     name: 'Comet',
     archetype: 'rocket',
     blurb: 'Ракетний прискорювач: тримай «вперед» для ривка.',
+    fx: [{ kind: 'flame', at: [-2.2, -0.36], dir: 180, size: 0.14 }],
     palette: { body: '#f0f0f8', accent: '#ff4a5a', dark: '#1e1e30', glass: '#7fd0ff', light: '#fffad0' },
     body: [
       poly([[-1.3, -0.22], [1.0, -0.25], [1.6, 0.0], [1.54, 0.3], [-1.3, 0.3]]),
@@ -511,6 +512,7 @@ const ORIGINALS: CarDef[] = [
     name: 'Jet',
     archetype: 'rocket',
     blurb: 'Подвійні ракети: короткий, але шалений ривок.',
+    fx: [{ kind: 'flame', at: [-2.26, -0.42], dir: 180, size: 0.16 }],
     palette: { body: '#4a6aff', accent: '#ffffff', dark: '#141a40', glass: '#a0f0ff', light: '#fffad0' },
     body: [
       poly([[-1.4, -0.2], [0.6, -0.3], [1.62, -0.05], [1.62, 0.22], [-1.4, 0.22]]),
@@ -608,7 +610,7 @@ function openCockpit(def: CarDef): CarDef {
   };
   return {
     ...def,
-    body: def.body.filter((p) => !(p.mat === 'glass' && p.deco && near(p.pts))),
+    body: def.body.filter((p) => !(p.mat === 'glass' && p.deco && !p.keep && near(p.pts))),
     windows: def.windows?.filter((w) => !near(w)),
   };
 }
@@ -621,7 +623,7 @@ function openCockpit(def: CarDef): CarDef {
  * on two wheels (or on mismatched axles) depends on the wheels they have are left alone.
  */
 function chunkyWheels(def: CarDef): CarDef {
-  if (['farm-tractor', 'motocross-bike', 'motorbike', 'space-bike', 'personal-transporter'].includes(def.id)) return def;
+  if (['motocross-bike', 'motorbike', 'space-bike', 'personal-transporter'].includes(def.id)) return def;
   let sum = 0, n = 0;
   const wheels = def.wheels.map((w, i) => {
     if (w.hidden) return w;

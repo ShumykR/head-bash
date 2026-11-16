@@ -1,7 +1,7 @@
-import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, starShape, stripe } from '../draw';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stripe } from '../draw';
 import { carriage, rocket, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
-import { browEye, dims, quadruped, saddle } from '../critters';
+import { browEye, crew, dims, quadruped, saddle } from '../critters';
 import { group, o } from './util';
 
 /** Paper lantern hanging from a pole. */
@@ -66,9 +66,8 @@ export const CNY = group('cny', [
           ...path([[x + 0.04, -0.02], [x + 0.12 + s, g - 0.3], [x + 0.18 + s, g - 0.06]], 0.11, 'blue'),
           rr(x - 0.3 - s, g - 0.08, x - 0.08 - s, g, 0.03, 'black'), rr(x + 0.08 + s, g - 0.08, x + 0.3 + s, g, 0.03, 'black'),
           rr(x - 0.17, -0.42, x + 0.17, 0.06, 0.06, 'blue'), rect(x - 0.17, -0.06, x + 0.17, 0.0, 'gold', { flat: true }),
-          ...path([[x + 0.1, -0.32], [x + 0.2, -0.2], [x + 0.08, -0.14]], 0.07, 'blue'), circ(x + 0.06, -0.15, 0.05, 'tan'),
-          circ(x + 0.03, -0.56, 0.14, 'tan'), circ(x + 0.1, -0.56, 0.025, 'black'),
-          poly([[x - 0.3, -0.6], [x + 0.36, -0.6], [x + 0.03, -0.86]], 'gold'),
+          // drawn like the player: a red helmet with a porter's conical straw brim on top
+          ...crew(x + 0.02, -0.6, 0.2, { helm: 'red', stripe: null, suit: 'blue', style: 'conical' }),
         ];
       }),
     ],
@@ -152,11 +151,11 @@ export const CNY = group('cny', [
   }],
   ['rocket-ride', 'Rocket Ride', 'Святкова новорічна ракета з ліхтариком.', 'rocket', ['#e02a2a', '#ffd23f'], {
     parts: ['booster', 'lantern'], hideParts: true,
+    fx: (f) => [{ kind: 'spark', at: [f.tail.x - 0.3, 0.0], dir: 180, size: 0.18 }],
     skin: (f) => [
       ...rocket(f, { nose: 'gold', fin: 'gold' }),
       ...[0, 1, 2, 3].map((i) => poly([[-1.35 + i * 0.5, -0.32], [-1.15 + i * 0.5, -0.32], [-1.4 + i * 0.5, 0.32], [-1.6 + i * 0.5, 0.32]], 'accent', { flat: true })),
       ...lantern(-0.6, -0.32, 0.7),
-      ...[[f.tail.x - 0.4, -0.12], [f.tail.x - 0.55, 0.06], [f.tail.x - 0.35, 0.12]].map(([x, y]) => starShape(x, y, 0.06, 'yellow')),
       rr(-1.2, 0.26, 1.0, 0.38, 0.04, 'dark'),
     ],
   }],

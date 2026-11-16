@@ -2,6 +2,7 @@ import { CAR_PPM } from '../physics/constants';
 import { RGB, hex, shade, mix } from '../render/color';
 import { PixelGrid, makeGrid, gget, gset, fillPoly } from '../render/grid';
 import type { CarDef, CarMat, CarPalette, WheelDef } from './types';
+import { fxSnapshot } from './fx';
 
 /*
  * Car palette: index 0 is transparent, 1 is the outline; then every material gets a
@@ -75,6 +76,12 @@ export function carBounds(def: CarDef) {
   for (const w of def.windows ?? []) for (const [x, y] of w) add(x, y);
   if (x0 === Infinity) for (const p of def.body) for (const [x, y] of p.pts) add(x, y);
   return { x0, y0, x1, y1 };
+}
+
+/** One still frame of the car's animated effects (garage and sheets), or null when it has none. Same origin as the body grid. */
+export function generateFxGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
+  const body = fxSnapshot(def);
+  return body.length ? generateCarGrid({ ...def, body, windows: [], stripe: undefined, lights: false }, ppm) : null;
 }
 
 /**
@@ -295,35 +302,62 @@ export function generateWheelGrid(wd: WheelDef, ppm = CAR_PPM): PixelGrid {
 }
 
 /** Driver helmet palette: player colour based. */
-export const DP = { NONE: 0, OUTLINE: 1, HELM_D: 2, HELM: 3, HELM_L: 4, VISOR: 5, VISOR_L: 6, SKIN: 7, SUIT: 8, SUIT_D: 9 } as const;
+export const DP = {
+  NONE: 0, OUTLINE: 1, HELM_D: 2, HELM: 3, HELM_L: 4, VISOR: 5, VISOR_L: 6, SKIN: 7, SUIT: 8, SUIT_D: 9,
+  STRIPE: 10, GLOVE: 11, SUIT_L: 12, HELM_DD: 13,
+} as const;
 
 export function driverPalette(playerColor: string): (RGB | null)[] {
   const c = hex(playerColor);
-  return [null, [16, 14, 24], shade(c, 0.65), c, shade(c, 1.4), [30, 34, 52], [130, 200, 240], [236, 184, 140], shade(c, 0.85), shade(c, 0.5)];
+  return [
+    null, [16, 14, 24], mix(shade(c, 0.66), COOL, 0.15), c, mix(shade(c, 1.35), WARM, 0.18), [22, 24, 40], [150, 214, 246],
+    [236, 184, 140], [46, 48, 66], [28, 28, 42], [244, 246, 252], [24, 22, 30], mix([46, 48, 66], c, 0.35), mix(shade(c, 0.42), COOL, 0.3),
+  ];
 }
 
 /** How much bigger the helmet is drawn than the head it protects. */
 export const HELMET_SCALE = 1.2;
 
-/** Helmet facing +x. Origin is the head center. */
+/**
+ * Full-face racing helmet facing +x, origin at the head centre: a round shell lit from the
+ * upper left with a white racing stripe over the crown, a wide dark visor with a sky glint,
+ * a chin bar with a vent, and the shell cut flat at the back of the neck.
+ */
 export function generateHeadGrid(r: number, ppm = CAR_PPM): PixelGrid {
   // The helmet is drawn a size up on the head: the driver is what the eye should find first.
   const R = Math.max(3, Math.round(r * ppm * HELMET_SCALE));
   const size = R * 2 + 1;
   const g = makeGrid(size, size, R, R);
+  const px = 1 / R;
+  const inside = (x: number, y: number) => {
+    const u = (x - R) / R, v = (y - R) / R;
+    if (Math.hypot(u, v) > 1 + 0.3 * px) return false;
+    // flat neck opening under the back of the shell
+    return !(v > 1 - 1.6 * px && u < 0.25);
+  };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const dx = x - R, dy = y - R;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d > R + 0.3) continue;
-      let c: number = d > R - 0.8 ? DP.OUTLINE : DP.HELM;
-      if (c === DP.HELM) {
-        if (dy < -R * 0.4 && dx < R * 0.2) c = DP.HELM_L;
-        if (dy > R * 0.45) c = DP.HELM_D;
-        // visor on the front half
-        if (dx > -R * 0.05 && dy > -R * 0.35 && dy < R * 0.3) c = dy < -R * 0.15 && dx < R * 0.6 ? DP.VISOR_L : DP.VISOR;
-        // stripe over the top
-        if (Math.abs(dx + R * 0.15) < R * 0.18 && dy < -R * 0.2) c = DP.HELM_D;
+      if (!inside(x, y)) continue;
+      const u = (x - R) / R, v = (y - R) / R, d = Math.hypot(u, v);
+      let c: number = DP.HELM;
+      if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) c = DP.OUTLINE;
+      else {
+        if (u + v < -0.75) c = DP.HELM_L;
+        if (v > 0.45 || (u < -0.45 && v > 0.2)) c = DP.HELM_D;
+        if (v > 0.7 && u < 0.1) c = DP.HELM_DD;
+        // thin racing stripe over the crown, just inside the outline
+        if (d > 1 - 1.9 * px && v < -0.45 && u > -0.55 && u < 0.3) c = DP.STRIPE;
+        // visor: wide dark band on the front half, rimmed at the back, a short glint on top
+        const vt = -0.36, vb = 0.2;
+        if (u > 0.02 && v > vt && v < vb) {
+          c = DP.VISOR;
+          if (u < 0.02 + px) c = DP.OUTLINE;
+          else if (v < vt + px && u < 0.02 + 3 * px) c = DP.VISOR_L;
+        } else if (u > 0.02 && v >= vb && v < vb + px) c = DP.HELM_DD;
+        // chin vent
+        if (u > 0.42 && u < 0.75 && Math.abs(v - 0.52) < 0.5 * px) c = DP.HELM_DD;
+        // specular dot on the shell
+        if (Math.abs(u + 0.5) < 0.55 * px && Math.abs(v + 0.4) < 0.55 * px) c = DP.STRIPE;
       }
       gset(g, x, y, c);
     }
@@ -331,19 +365,46 @@ export function generateHeadGrid(r: number, ppm = CAR_PPM): PixelGrid {
   return g;
 }
 
-/** Torso + arm sitting under the head (render only). Origin at neck. */
+/**
+ * Racing suit under the helmet (render only), origin at the neck. Fits the old torso box:
+ * rounded shoulders, a collar, a stripe down the side in the player's colour and an arm
+ * reaching forward to the wheel with a black glove. Most of it hides behind the bodywork.
+ */
 export function generateTorsoGrid(r: number, ppm = CAR_PPM): PixelGrid {
   const R = Math.max(3, Math.round(r * ppm));
   const w = Math.round(R * 1.7), h = Math.round(R * 1.6);
   const g = makeGrid(w, h, Math.floor(w / 2), 0);
+  const cx = Math.floor(w / 2);
+  // rounded shoulders, then straight down; the chest leans a pixel forward
+  const body = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return false;
+    if (y === 0) return x >= cx - 1 && x <= cx + 1;
+    if (y === 1) return x >= 1 && x <= w - 2;
+    return x >= 0 && x <= w - 1 - (y > h - 3 ? 1 : 0);
+  };
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1;
-      let c: number = edge ? DP.OUTLINE : DP.SUIT;
-      if (!edge && x > w * 0.6) c = DP.SUIT_D;
-      if (!edge && y === 1) c = DP.SKIN;
+      if (!body(x, y)) continue;
+      let c: number = DP.SUIT;
+      if (!body(x - 1, y) || !body(x + 1, y) || !body(x, y - 1) || !body(x, y + 1)) c = DP.OUTLINE;
+      else {
+        if (x <= 2) c = DP.SUIT_L;
+        if (y <= 2 && x >= cx - 1 && x <= cx + 1) c = DP.HELM_D; // collar
+        if (x === 2 && y > 2) c = DP.HELM; // side stripe in the player's colour
+      }
       gset(g, x, y, c);
     }
   }
+  // arm: shoulder forward and down to the wheel, sleeve in the player's colour, black glove
+  const ax0 = cx, ay0 = 3, ax1 = w - 2, ay1 = Math.max(ay0 + 2, Math.round(h * 0.6));
+  const n = Math.max(ax1 - ax0, ay1 - ay0);
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(ax0 + ((ax1 - ax0) * i) / n), y = Math.round(ay0 + ((ay1 - ay0) * i) / n);
+    gset(g, x, y, DP.HELM);
+    gset(g, x, y + 1, DP.HELM_D);
+    gset(g, x, y + 2, DP.OUTLINE);
+    if (gget(g, x, y - 1) !== DP.HELM && gget(g, x, y - 1) !== DP.HELM_D) gset(g, x, y - 1, DP.OUTLINE);
+  }
+  for (const [x, y] of [[ax1, ay1], [ax1 + 1, ay1], [ax1, ay1 + 1], [ax1 + 1, ay1 + 1]]) gset(g, x, y, DP.GLOVE);
   return g;
 }

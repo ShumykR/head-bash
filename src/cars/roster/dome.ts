@@ -1,6 +1,6 @@
 import { blob, circ, ell, fender, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
 import { arc, bike, boxy, frontLamp, rearLamp, truckCab } from '../skins';
-import { fishCar } from '../critters';
+import { crew, fishCar } from '../critters';
 import { group, o } from './util';
 
 export const DOME = group('dome', [
@@ -14,8 +14,8 @@ export const DOME = group('dome', [
       blob([[-1.65, -0.95], [-1.0, -1.3], [-0.4, -0.95]], 'accent', {}, 1), ...[-1.45, -1.2, -0.95, -0.7].map((x) => poly([[x - 0.08, -0.97], [x + 0.08, -0.97], [x, -0.86]], 'yellow')),
       rect(-1.45, -0.12, -0.6, -0.06, 'gold', { flat: true }), starShape(-1.0, 0.02, 0.09, 'gold'), circ(-1.0, -1.32, 0.05, 'gold'),
       // the passenger in the back, under the umbrella (Drive Ahead's rickshaw carries a second person)
-      rr(-1.22, -0.72, -0.82, -0.38, 0.08, 'blue'), circ(-1.0, -0.82, 0.13, 'tan'), circ(-0.95, -0.84, 0.025, 'black'),
-      poly([[-1.2, -0.9], [-0.8, -0.9], [-1.0, -1.02]], 'tan'), rr(-0.88, -0.62, -0.68, -0.52, 0.04, 'tan'),
+      // drawn like the player, the helmet in the rickshaw's red with a gold crown stripe
+      ...crew(-1.02, -0.68, 0.24, { helm: 'red', stripe: 'gold', suit: 'blue' }),
     ],
   }],
   ['quad-bike', 'Quad Bike', 'Маневрений квадроцикл із багажником.', 'buggy', ['#e02a2a', '#2a2a2a'], {
@@ -85,11 +85,12 @@ export const DOME = group('dome', [
         hit: [rect(x - 1.45, g - 0.3, x - 0.7, g - 0.04)],
         art: [
           ...Array.from({ length: 5 }, (_, i) => ell(x - 0.12 - i * 0.13, 0.05 + i * ((g - 0.22 - 0.05) / 5), 0.07, 0.04, 'grey')),
-          // lying on his back, feet first: striped suit, cuffs, a sour face
+          // lying on his back, feet first: striped suit, cuffs
           rr(x - 1.25, g - 0.28, x - 0.72, g - 0.06, 0.08, 'white'),
           ...[0, 1, 2, 3].map((i) => rect(x - 1.18 + i * 0.13, g - 0.28, x - 1.12 + i * 0.13, g - 0.06, 'black', { flat: true })),
           rr(x - 0.78, g - 0.24, x - 0.62, g - 0.1, 0.04, 'black'),
-          circ(x - 1.35, g - 0.18, 0.13, 'tan'), rect(x - 1.47, g - 0.31, x - 1.22, g - 0.24, 'black'), circ(x - 1.4, g - 0.2, 0.025, 'black'),
+          // his helmet like the player's, in prison stripes, visor up to the sky
+          ...crew(x - 1.38, g - 0.19, 0.17, { helm: 'white', style: 'stripes', body: false, rot: -Math.PI / 2 }),
         ],
       }];
     },

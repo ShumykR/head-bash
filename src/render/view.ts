@@ -4,7 +4,8 @@ import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
 import type { CarDef, CarPalette } from '../cars/types';
-import { carPalette, driverPalette, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, wheelPalette } from '../cars/sprite';
+import { carPalette, driverPalette, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, tone, wheelPalette } from '../cars/sprite';
+import { FX_MAT, boltPts, fxDir } from '../cars/fx';
 import { generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import type { MapDef } from '../maps/types';
 import { PROP_PAL, crateGrid, hazardStripGrid, lavaGrid, lavaSurfaceGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid, waterGrid, waterSurfaceGrid } from '../maps/props';
@@ -22,6 +23,19 @@ import { drawPhysicsDebug } from './debug';
 
 export const PLAYER_COLORS = ['#3ec1ff', '#ff5a6e'];
 export const PLAYER_NAMES = ['P1', 'P2'];
+
+/** How each kind of car effect moves (per particle; rate is per second at fx.rate 1). */
+const FX_PARAMS: Record<string, { rate: number; speed: number; jitter: number; life: number; size: number; g: number; drag: number; grow: number; spin: number; alpha: number; carry: number }> = {
+  smoke: { rate: 9, speed: 1.4, jitter: 0.5, life: 1.3, size: 0.9, g: -0.8, drag: 1.2, grow: 1.6, spin: 2, alpha: 0.85, carry: 0.2 },
+  steam: { rate: 12, speed: 1.8, jitter: 0.6, life: 0.9, size: 0.9, g: -1.2, drag: 1.4, grow: 2, spin: 2, alpha: 0.8, carry: 0.2 },
+  wisp: { rate: 14, speed: 1.6, jitter: 0.8, life: 0.8, size: 0.7, g: -0.4, drag: 1, grow: 1.2, spin: 1, alpha: 0.6, carry: 0.1 },
+  spark: { rate: 10, speed: 2.2, jitter: 3, life: 0.35, size: 0.4, g: 2, drag: 2, grow: 0, spin: 8, alpha: 1, carry: 0.6 },
+  bubble: { rate: 7, speed: 0.9, jitter: 0.8, life: 1.1, size: 0.5, g: -1.5, drag: 1, grow: 0.6, spin: 0, alpha: 0.75, carry: 0.5 },
+  frost: { rate: 12, speed: 1.3, jitter: 0.7, life: 0.8, size: 0.6, g: 0.4, drag: 1.5, grow: 1.4, spin: 2, alpha: 0.7, carry: 0.4 },
+  flame: { rate: 30, speed: 4, jitter: 0.8, life: 0.22, size: 0.9, g: 0, drag: 2, grow: 0, spin: 6, alpha: 1, carry: 0.8 },
+  trail: { rate: 40, speed: 0.2, jitter: 0.1, life: 0.55, size: 0.45, g: 0, drag: 3, grow: 0, spin: 0, alpha: 0.9, carry: 0 },
+  rain: { rate: 26, speed: 7, jitter: 0.3, life: 0.35, size: 0.25, g: 6, drag: 0, grow: 0, spin: 0, alpha: 0.85, carry: 0.8 },
+};
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** Shots drawn rotated along their flight. */
@@ -75,6 +89,10 @@ class CarView {
   readonly head: Sprite;
   readonly torso: Sprite;
   readonly flame: Sprite;
+  /** Flickering lightning and pulsing light beams (car-local, inside the body). */
+  readonly fxGfx = new Graphics();
+  /** Colours of the car's effects: [base, light] per fx. */
+  readonly fxCol: [number, number][];
   readonly marker: Sprite;
   readonly flail: Sprite | null = null;
   readonly chain = new Graphics();
@@ -107,7 +125,9 @@ class CarView {
     this.flame.tint = 0xffa030;
     this.flame.visible = false;
 
-    this.body.addChild(this.flame, this.torso, s, this.head);
+    this.body.addChild(this.flame, this.torso, s, this.head, this.fxGfx);
+    const cpal = carPalette(pal);
+    this.fxCol = (def.fx ?? []).map((e) => { const m = e.mat ?? FX_MAT[e.kind]; return [toHex(cpal[tone(m, 2)]!), toHex(cpal[tone(m, 4)]!)]; });
     this.body.scale.x = car.facing;
 
     for (const wd of def.wheels) {
@@ -215,6 +235,36 @@ class CarView {
       this.flame.height = 0.22 + Math.random() * 0.08;
       this.flame.tint = Math.random() > 0.5 ? 0xffd040 : 0xff7020;
     } else this.flame.visible = false;
+    this.drawFx(time);
+  }
+
+  /** Lightning re-forks a few times a second and blinks; beams breathe. Hidden while the car is invisible. */
+  private drawFx(time: number) {
+    const fx = this.car.def.fx;
+    if (!fx) return;
+    const g = this.fxGfx.clear();
+    if (!this.car.alive || this.car.invisT > 0) return;
+    fx.forEach((e, i) => {
+      const [col, hi] = this.fxCol[i], s = e.size ?? 0.2;
+      const to = e.to ?? [e.at[0] + fxDir(e)[0], e.at[1] + fxDir(e)[1]];
+      if (e.kind === 'bolt') {
+        const tick = Math.floor(time * 9 + i * 3.7);
+        if (Math.sin(tick * 2.17) < -0.35) return;
+        const pts = boltPts(e.at, to, 5, s * 0.8, tick);
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+        g.stroke({ width: s * 0.45, color: col, alpha: 0.9 });
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+        g.stroke({ width: s * 0.18, color: 0xffffff, alpha: 1 });
+      } else if (e.kind === 'beam') {
+        const dx = to[0] - e.at[0], dy = to[1] - e.at[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        const w0 = s * 0.4, w1 = s * (1.5 + 0.15 * Math.sin(time * 5));
+        g.poly([e.at[0] + nx * w0, e.at[1] + ny * w0, to[0] + nx * w1, to[1] + ny * w1, to[0] - nx * w1, to[1] - ny * w1, e.at[0] - nx * w0, e.at[1] - ny * w0])
+          .fill({ color: col, alpha: 0.28 + 0.12 * Math.sin(time * 7) });
+        g.circle(to[0], to[1], w1 * 0.6).fill({ color: hi, alpha: 0.18 });
+      }
+    });
   }
 }
 
@@ -1110,11 +1160,37 @@ export class GameView {
       const p = c.chassis.getWorldPoint({ x: -1.45 * c.facing, y: 0.1 });
       this.particles.spawn(p.x, p.y, { vx: -c.facing * 1.5, vy: -0.8, life: 0.7, size: 0.22, color: 0x9a96a4, drag: 1.5, g: -2 });
     }
+    if (c.alive && c.def.fx && c.invisT <= 0) this.emitFx(c, dt);
     if (c.boosting && Math.random() < 0.8) {
       const fwd = c.chassis.getWorldVector({ x: c.facing, y: 0 });
       const p = c.chassis.getWorldPoint({ x: -1.6 * c.facing, y: 0 });
       this.particles.spawn(p.x, p.y, { vx: -fwd.x * 8, vy: -fwd.y * 8 + (Math.random() - 0.5) * 2, life: 0.35, size: 0.2, color: Math.random() > 0.5 ? 0xffc040 : 0xff6020, drag: 3 });
     }
+  }
+
+  /** Particles of a car's animated effects: smoke and steam swell and rise, wisps stream back, trails hang in the air. */
+  private emitFx(c: Car, dt: number) {
+    const cv = this.carViews[c.player];
+    c.def.fx!.forEach((e, i) => {
+      if (e.kind === 'bolt' || e.kind === 'beam') return;
+      const P = FX_PARAMS[e.kind];
+      const rate = (e.rate ?? 1) * P.rate;
+      if (Math.random() > rate * dt) return;
+      const s = e.size ?? 0.2;
+      const [ux, uy] = fxDir(e);
+      let lx = e.at[0], ly = e.at[1];
+      if (e.kind === 'rain' && e.to) { const k = Math.random(); lx += (e.to[0] - lx) * k; ly += (e.to[1] - ly) * k; }
+      const p = c.chassis.getWorldPoint(new Vec2(lx * c.facing, ly));
+      const d = c.chassis.getWorldVector(new Vec2(ux * c.facing, uy));
+      const v = c.chassis.getLinearVelocity();
+      const sp = P.speed * (0.7 + Math.random() * 0.6), j = (Math.random() - 0.5) * P.jitter;
+      const [col, hi] = cv?.fxCol[i] ?? [0xffffff, 0xffffff];
+      this.particles.spawn(p.x + (Math.random() - 0.5) * s * 0.4, p.y + (Math.random() - 0.5) * s * 0.4, {
+        vx: d.x * sp - d.y * j + v.x * P.carry, vy: d.y * sp + d.x * j + v.y * P.carry,
+        life: P.life * (0.8 + Math.random() * 0.4), size: s * P.size, color: Math.random() < 0.5 ? col : hi,
+        g: P.g, drag: P.drag, grow: P.grow, shrink: P.grow === 0, spin: P.spin * (Math.random() - 0.5), alpha: P.alpha,
+      });
+    });
   }
 
   private renderHud(dt: number) {

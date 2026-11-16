@@ -1,7 +1,7 @@
 import { tailgate } from '../art';
 import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank } from '../draw';
-import { arc, bike, frontLamp, hover, monsterChassis, pickup, saucer, tracks, truckCab } from '../skins';
-import type { CarPoly } from '../types';
+import { arc, bike, hover, monsterTruck, pickup, saucer, tracks, truckCab } from '../skins';
+import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
 import { dims } from '../critters';
 import { group, o } from './util';
@@ -46,13 +46,15 @@ export const ALIEN = group('alien', [
       ...[0, 1, 2].map((i) => rr(f.nose.x - 0.85 + i * 0.16, -0.24, f.nose.x - 0.73 + i * 0.16, -0.1, 0.03, 'glass')),
       rect(-0.5, -0.24, 0.1, -0.12, 'red', { flat: true }), rect(-0.5, -0.24, -0.3, -0.12, 'blue', { flat: true }),
       ...[-1.0, -0.5, 0.0, 0.5].map((x) => rect(x, -0.3, x + 0.03, 0.12, 'grey', { flat: true })),
-      poly([[f.tail.x - 0.25, -0.2], [f.tail.x - 0.6, -0.1], [f.tail.x - 0.25, 0.0]], 'orange'), poly([[f.tail.x - 0.25, 0.08], [f.tail.x - 0.55, 0.15], [f.tail.x - 0.25, 0.22]], 'orange'),
       stripe(f.tail.x + 0.05, f.tail.x + 0.5, -0.75, 0.08, 'red'),
     ],
+    fx: (f) => [{ kind: 'flame', at: [f.tail.x - 0.25, -0.1], dir: 180, size: 0.13 }, { kind: 'flame', at: [f.tail.x - 0.25, 0.15], dir: 180, size: 0.11 }],
   }],
   ['flying-saucer', 'Flying Saucer', 'Тарілка прибульців із мигалками. Злітає й ширяє.', 'saucer', ['#a0a8b8', '#7aff7a'], {
     noLights: true,
-    skin: (f) => [...saucer(f, { lights: 'accent' }), poly([[-0.35, 0.28], [0.35, 0.28], [0.5, 0.7], [-0.5, 0.7]], 'accent', { flat: true })],
+    // the tractor beam under the dish pulses (animated, no collision)
+    fx: () => [{ kind: 'beam', at: [0, 0.26], to: [0, 0.75], size: 0.25, mat: 'accent' }],
+    skin: (f) => [...saucer(f, { lights: 'accent' })],
   }],
   ['skater-cow', 'Skater Cow', 'Корова на скейті. Швидкі низькі стрибки майже без перезарядки.', 'creature', ['#f4f4f4', '#3a8ad8'], {
     o: o({ wheel: 0.6, tall: 1.15 }), noLights: true,
@@ -113,19 +115,27 @@ export const ALIEN = group('alien', [
       ...[0, 1, 2, 3, 4, 5].map((i) => poly([[-1.6 + i * 0.5, -0.12], [-1.4 + i * 0.5, -0.12], [-1.55 + i * 0.5, 0.0], [-1.75 + i * 0.5, 0.0]], 'yellow', { flat: true })),
     ],
   }],
-  ['monster-cannon', 'Monster Cannon', 'Самохідна гармата на колесах монстр-трака.', 'monster', ['#4f7f30', '#ffd23f'], {
+  ['monster-cannon', 'Monster Cannon', 'Монстр-пікап на дуже пружних колесах із гарматою в кузові: б\'є вперед, понад кабіною.', 'monster', ['#4f7f30', '#ffd23f'], {
     o: o({ open: true }),
-    gun: (f) => ({ at: [[f.deck.x0 + 1.68, -1.5]], aim: 27 }),
+    // A monster pickup (as in Drive Ahead the player rides at the back): a cab up front, and in the
+    // bed behind it a cannon on a pedestal mount firing forward over the cab roof.
+    gun: (f) => ({ at: [[f.roof.x1 + 0.35, f.roof.y - 0.62]], aim: 12 }),
     parts: ['cannon'], hideParts: true,
-    skin: (f) => [
-      ...monsterChassis(f),
-      rr(f.tail.x, -0.55, f.nose.x, 0.08, 0.12, 'body'),
-      circ(f.deck.x0 + 0.3, -0.75, 0.38, 'body'), ...path([[f.deck.x0 + 0.3, -0.8], [f.deck.x0 + 1.6, -1.45]], 0.22, 'grey'), ...path([[f.deck.x0 + 1.5, -1.4], [f.deck.x0 + 1.65, -1.48]], 0.3, 'dark'),
-      ...armyStar(0.45, -0.25, 0.14),
-      rr(f.nose.x - 0.25, -0.5, f.nose.x + 0.08, 0.05, 0.04, 'grey'), ...frontLamp(f.nose.x + 0.08, -0.4),
-      rect(f.tail.x + 0.1, -0.1, f.nose.x - 0.3, -0.05, 'dark', { flat: true }), ...[-0.9, -0.3, 0.3, 0.9].map((x) => circ(x, -0.45, 0.035, 'dark')),
-      rr(f.deck.x0 + 1.5, -1.58, f.deck.x0 + 1.72, -1.38, 0.04, 'black'), rr(f.deck.x0 + 0.1, -1.2, f.deck.x0 + 0.5, -1.1, 0.03, 'dark'),
-    ],
+    skin: (f) => {
+      const px = f.tail.x + 0.32, py = f.roof.y - 0.3, mx = f.roof.x1 + 0.3, my = f.roof.y - 0.6;
+      return [
+        ...monsterTruck(f, { frame: 'black', bar: 'dark' }),
+        ...armyStar(f.roof.x0 + 0.35, -0.3, 0.13),
+        rect(f.tail.x + 0.1, -0.1, f.nose.x - 0.3, -0.05, 'dark', { flat: true }),
+        // the pedestal mount in the bed, the breech and a long barrel with a muzzle brake
+        rr(px - 0.16, py, px + 0.16, f.deck.y + 0.02, 0.04, 'dark'), rr(px - 0.28, f.deck.y - 0.1, px + 0.28, f.deck.y + 0.02, 0.03, 'grey'),
+        circ(px, py, 0.22, 'body'), circ(px, py, 0.1, 'dark'),
+        ...path([[px + 0.05, py - 0.05], [mx, my]], 0.18, 'grey'), seg([px + 0.3, py - 0.1], [mx - 0.2, my + 0.03], 0.05, 'chrome', { flat: true }),
+        rr(mx - 0.12, my - 0.14, mx + 0.08, my + 0.14, 0.04, 'black'),
+        // an ammo box by the gun
+        rr(px + 0.2, f.deck.y - 0.25, px + 0.55, f.deck.y, 0.03, 'body', { ring: true }), rect(px + 0.3, f.deck.y - 0.18, px + 0.45, f.deck.y - 0.14, 'yellow', { flat: true }),
+      ];
+    },
   }],
   ['army-bike', 'Army Bike', 'Армійський мотоцикл із кулеметом на кермі.', 'trike', ['#4f7f30', '#2a2a2a'], {
     axles: [0.8, 0.8, 0.8],
@@ -157,19 +167,34 @@ export const ALIEN = group('alien', [
       circ(f.deck.x0 + 0.2, -0.6, 0.2, 'dark'), ...path([[f.deck.x0 + 0.2, -0.65], [f.deck.x0 + 0.9, -0.95]], 0.12, 'grey'),
     ],
   }],
-  ['rocket-launcher', 'Rocket Launcher', 'Система залпового вогню: ракети вибухають і відкидають суперника.', 'truck', ['#4f7f30', '#e02a2a'], {
-    gun: (f) => ({ at: [0, 1, 2].map((i) => [f.deck.x1 + 0.12, f.deck.y - 1.0 - i * 0.12]), aim: +((Math.atan2(0.68, f.deck.x1 - f.deck.x0 - 0.2) * 180) / Math.PI).toFixed(1) }),
+  ['rocket-launcher', 'Rocket Launcher', 'Армійська вантажівка з великою ракетою на пусковій рейці над кабіною: ракета прикриває голову водія, а пуск дає залп малих ракет.', 'truck', ['#4f7f30', '#e02a2a'], {
+    // As in Drive Ahead: one big rocket lies on top, over the driver, on a launch rail raised from the
+    // bed by two hydraulic rams; the volley leaves from its nose.
+    gun: (f) => ({ at: [0, 1, 2].map((i) => [f.roof.x1 + 0.55, f.roof.y - 0.55 - i * 0.08] as Pt), aim: 14 }),
     parts: ['launcher'], hideParts: true,
     skin: (f) => {
       const d = f.deck;
+      const A: Pt = [d.x0 + 0.15, d.y - 0.5], B: Pt = [f.roof.x1 + 0.2, f.roof.y - 0.22];
+      const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uy = (B[1] - A[1]) / L, nx = uy, ny = -ux;
+      const at = (t: number, h = 0): Pt => [A[0] + ux * t + nx * h, A[1] + uy * t + ny * h];
+      const band = (t0: number, t1: number, h0: number, h1: number, mat: CarMat, x: Partial<CarPoly> = {}) => poly([at(t0, h0), at(t1, h0), at(t1, h1), at(t0, h1)], mat, x);
+      const r = 0.2, c = 0.24;
       return [
         ...truckCab(f),
-        rr(d.x0 + 0.1, d.y - 0.3, d.x0 + 0.9, d.y + 0.05, 0.04, 'dark'),
-        poly([[d.x0 + 0.1, d.y - 0.25], [d.x1 - 0.1, d.y - 0.95], [d.x1, d.y - 0.75], [d.x0 + 0.2, d.y - 0.05]], 'body'),
-        ...[0, 1, 2].map((i) => seg([d.x0 + 0.3 + i * 0.05, d.y - 0.32 - i * 0.12], [d.x1 + 0.1, d.y - 1.0 - i * 0.12], 0.1, 'red')),
+        // bed with a turntable at the back, the two hydraulic rams lifting the rail
+        rr(d.x0 - 0.05, d.y - 0.1, d.x1, d.y + 0.08, 0.03, 'dark'),
+        rr(d.x0 + 0.05, d.y - 0.32, d.x0 + 0.75, d.y - 0.08, 0.05, 'body', { ring: true }),
+        ...[[d.x0 + 0.95, L * 0.42], [d.x1 - 0.2, L * 0.62]].flatMap(([x, t]) => [seg([x, d.y - 0.08], at(t, -0.05), 0.12, 'dark'), seg([x, d.y - 0.08], at(t * 0.92, -0.05), 0.06, 'chrome')]),
+        // the launch rail: a long girder from the bed out over the cab
+        band(-0.05, L + 0.05, -0.06, 0.04, 'dark'), ...[0.3, 0.9, 1.5, 2.1].filter((t) => t < L).map((t) => band(t, t + 0.08, -0.04, c - r + 0.04, 'grey')),
+        // the big rocket: olive body with a white band, red nose cone, fins, a nozzle at the back
+        band(0.05, L - 0.05, c - r, c + r, 'body'), band(L * 0.55, L * 0.62, c - r, c + r, 'white', { flat: true }),
+        poly([at(L - 0.05, c - r), at(L + 0.5, c), at(L - 0.05, c + r)], 'accent'),
+        poly([at(0.05, c + r), at(0.35, c + r), at(-0.08, c + r + 0.25)], 'accent'), poly([at(0.05, c - r), at(0.35, c - r), at(0.0, c - r - 0.12)], 'accent'),
+        band(-0.12, 0.05, c - r * 0.6, c + r * 0.6, 'grey'),
+        ...armyStar(...at(L * 0.35, c), 0.1),
         ...armyStar(f.nose.x - 0.5, -0.4, 0.12),
-        ...[0, 1, 2].map((i) => circ(d.x1 + 0.1, d.y - 1.0 - i * 0.12, 0.05, 'dark')),
-        rr(d.x0 - 0.05, d.y - 0.1, d.x1, d.y + 0.08, 0.03, 'dark'), ...[d.x0 + 0.1, d.x1 - 0.3].map((x) => [rect(x, d.y, x + 0.07, d.y + 0.35, 'dark'), rr(x - 0.08, d.y + 0.32, x + 0.15, d.y + 0.38, 0.02, 'black')]).flat(),
+        ...[d.x0 + 0.1, d.x1 - 0.3].map((x) => [rect(x, d.y, x + 0.07, d.y + 0.35, 'dark'), rr(x - 0.08, d.y + 0.32, x + 0.15, d.y + 0.38, 0.02, 'black')]).flat(),
       ];
     },
   }],
@@ -185,24 +210,31 @@ export const ALIEN = group('alien', [
       rr(0.45, -0.66, 0.75, -0.5, 0.04, 'dark'), rr(-1.1, -0.5, -0.85, -0.35, 0.03, 'tan'), rr(-1.15, -0.62, -0.88, -0.5, 0.03, 'tan'),
     ],
   }],
-  ['space-bike', 'Space Bike', 'Світловий мотоцикл зі смугами неону.', 'bike', ['#1a1a2a', '#5ef0ff'], {
-    axles: [0.8, 0.8],
-    o: o({ rim: 'disc' }), speed: 1.15,
-    skin: (f) => [
-      blob([[f.wheels[0].x - 0.3, 0.1], [-0.6, -0.3], [0.4, -0.35], [f.wheels[1].x + 0.35, 0.0], [f.wheels[1].x, 0.15], [-0.2, 0.25]], 'body', {}, 2),
-      stripe(-0.9, 0.9, -0.05, 0.06, 'accent'), stripe(-0.6, 0.6, 0.12, 0.04, 'accent'),
-      blob([[0.35, -0.3], [0.7, -0.5], [0.85, -0.25]], 'glass', {}, 1),
-      rr(-0.55, -0.42, 0.0, -0.3, 0.05, 'black'),
-      ...[f.wheels[0], f.wheels[1]].map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.05, Math.PI * 1.95, 0.08, 'accent')),
-      rr(f.wheels[1].x + 0.15, -0.12, f.wheels[1].x + 0.4, -0.02, 0.03, 'light'),
-      // light-cycle shell: one dark capsule over both wheels, neon edges, a tail fin and a glowing trail behind
-      ...[0, 1, 2].map((i) => rr(f.wheels[0].x - 0.6 - i * 0.45, -0.05 + i * 0.02, f.wheels[0].x - 0.3 - i * 0.45, 0.02 + i * 0.02, 0.02, 'accent', { flat: true })),
-      blob([[f.wheels[0].x - 0.45, 0.05], [f.wheels[0].x - 0.35, -0.38], [-0.4, -0.5], [0.5, -0.45], [f.wheels[1].x + 0.45, -0.12], [f.wheels[1].x + 0.45, 0.05]], 'body', {}, 2),
-      ...path([[f.wheels[0].x - 0.4, -0.3], [-0.4, -0.46], [0.5, -0.42], [f.wheels[1].x + 0.42, -0.1]], 0.04, 'accent'),
-      ...path([[f.wheels[0].x - 0.4, 0.02], [f.wheels[1].x + 0.42, 0.02]], 0.035, 'accent'),
-      ...[f.wheels[0], f.wheels[1]].map((w) => circ(w.x, w.y, w.r * 0.55, 'accent', { flat: true })),
-      blob([[0.3, -0.42], [0.65, -0.62], [0.85, -0.38]], 'glass', {}, 1),
-    ],
+  ['space-bike', 'Space Bike', 'Світловий мотоцикл: суцільний обтічний корпус, колеса-кільця з неоновим ободом і світний слід позаду.', 'bike', ['#1a1a2a', '#5ef0ff'], {
+    axles: [1.15, 1.15],
+    o: o({ rim: 'disc' }), speed: 1.15, hideWheels: [0, 1], air: 1.4,
+    // A light cycle: big hubless ring wheels with neon rims, one sleek shell wrapping over both of
+    // them and dipping low where the rider lies along it, neon seams, and a ribbon of light behind.
+    fx: (f) => [{ kind: 'trail', at: [f.wheels[0].x - f.wheels[0].r * 0.6, f.wheels[0].y + f.wheels[0].r * 0.4], dir: 180, size: 0.24, mat: 'accent' }],
+    skin: (f) => {
+      const [rw, fw] = f.wheels;
+      const ring = (w: typeof rw) => [circ(w.x, w.y, w.r, 'black'), circ(w.x, w.y, w.r - 0.06, 'accent', { flat: true }), circ(w.x, w.y, w.r - 0.17, 'black', { flat: true }), circ(w.x, w.y, 0.07, 'accent', { flat: true })];
+      const shell: Pt[] = [
+        [rw.x - rw.r - 0.1, rw.y - 0.05], [rw.x - rw.r * 0.8, rw.y - rw.r - 0.06], [rw.x + 0.2, rw.y - rw.r - 0.14], [-0.05, -0.36],
+        [fw.x - 0.3, fw.y - fw.r - 0.14], [fw.x + fw.r * 0.8, fw.y - fw.r - 0.02], [fw.x + fw.r + 0.12, fw.y - 0.05], [fw.x, fw.y - 0.02], [0.0, 0.02], [rw.x, rw.y - 0.02],
+      ];
+      return [
+        blob(shell, 'body', {}, 2),
+        // the ring wheels show whole through the shell's open sides, under fender arcs
+        ...ring(rw), ...ring(fw),
+        ...[rw, fw].flatMap((w) => [arc(w.x, w.y, w.r + 0.05, Math.PI * 1.08, Math.PI * 1.92, 0.12, 'body'), arc(w.x, w.y, w.r + 0.1, Math.PI * 1.1, Math.PI * 1.9, 0.035, 'accent', { flat: true })]),
+        // neon seam along the spine, the low canopy over the front, a tail light
+        ...path([[rw.x + 0.2, rw.y - rw.r - 0.1], [-0.05, -0.32], [fw.x - 0.3, fw.y - fw.r - 0.1]], 0.035, 'accent'),
+        ...path([[rw.x + rw.r + 0.05, rw.y - 0.12], [fw.x - fw.r - 0.05, fw.y - 0.12]], 0.035, 'accent'),
+        blob([[fw.x - 0.5, fw.y - fw.r - 0.12], [fw.x - 0.15, fw.y - fw.r - 0.32], [fw.x + 0.25, fw.y - fw.r - 0.12]], 'glass', {}, 1),
+        rr(rw.x - rw.r - 0.16, rw.y - 0.16, rw.x - rw.r - 0.06, rw.y - 0.04, 0.02, 'accent'),
+      ];
+    },
   }],
   ['alien-drone', 'Alien Attack Drone', 'Бойовий дрон прибульців із червоним оком-лазером.', 'saucer', ['#3a3a4a', '#ff3a3a'], {
     s: 0.85, parts: ['antenna'], noLights: true, hideParts: true,

@@ -1,4 +1,4 @@
-import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, FlailDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
+import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
 import { estimateMass } from './stats';
 
 /*
@@ -1067,6 +1067,8 @@ export interface CarSpec {
   head?: (f: Frame) => Pt;
   /** The drawn barrel / launcher: muzzle point(s) and launch angle in degrees above forward. */
   gun?: (f: Frame) => { at: Pt[]; aim: number };
+  /** Animated decoration (smoke, steam, sparks, beams…): drawn only, outside the sprite and the physics. */
+  fx?: (f: Frame) => FxDef[];
   /** Wheels (by index) that stay physics only: the skin draws a ski, track or foot there instead. */
   hideWheels?: number[];
   /**
@@ -1222,6 +1224,7 @@ export function buildCar(spec: CarSpec): CarDef {
     const g = spec.gun(f);
     def.gun = { at: g.at.map((q) => scalePt(q, s)), aim: +((g.aim * Math.PI) / 180).toFixed(3) };
   }
+  if (spec.fx) def.fx = spec.fx(f).map((e) => ({ ...e, at: scalePt(e.at, s), ...(e.to ? { to: scalePt(e.to, s) } : {}), size: +((e.size ?? 0.2) * s).toFixed(3) }));
   // Frame limbs first (so a car's own links can hang off them: a jaw on a neck), then the car's, then its parts'.
   const nLimb = f.limbs?.length ?? 0;
   const linkSpecs = [...autoLinks.slice(0, nLimb), ...(spec.links?.(f) ?? []), ...autoLinks.slice(nLimb)];

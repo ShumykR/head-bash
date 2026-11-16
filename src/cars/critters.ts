@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt } from './types';
-import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr } from './draw';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr } from './draw';
 
 /*
  * Animal anatomy for creature cars. The animal *is* the vehicle (as in hand-drawn arcade
@@ -224,4 +224,53 @@ export function steed(x: number, g: number, o: { mat?: CarMat; mane?: CarMat; de
     out.push(...path([P(0.3, -0.78), P(0.4, -0.98), P(0.48, -1.12)], 0.07 * s, mn));
   }
   return out;
+}
+
+export interface CrewOpts {
+  /** Helmet shell, visor, crown stripe (null = none) and suit materials. */
+  helm?: CarMat; visor?: CarMat; stripe?: CarMat | null; suit?: CarMat;
+  /** Helmet styled for the car: a SWAT visor band, a porter's conical brim, prison stripes, a sun peak. */
+  style?: 'race' | 'swat' | 'conical' | 'stripes' | 'peak';
+  /** Draw the suit under the helmet (false: only the helmet pokes out). */
+  body?: boolean;
+  /** Turn the whole figure about the helmet centre (radians, y down), e.g. lying on its back. */
+  rot?: number;
+}
+
+/**
+ * A crew member drawn the way the player is: a full-face racing helmet (round shell, wide dark
+ * visor with a glint, a stripe over the crown, a chin vent) on a racing suit with the arm
+ * reaching forward and a black glove. Faces +x; (x, y) is the helmet centre, r its radius.
+ * Every person on a car is one of these, with the helmet styled for that car.
+ */
+export function crew(x: number, y: number, r: number, o: CrewOpts = {}): CarPoly[] {
+  const helm = o.helm ?? 'body', suit = o.suit ?? 'black', st = o.style ?? 'race';
+  const out: CarPoly[] = [];
+  if (o.body !== false) {
+    out.push(
+      rr(x - 0.8 * r, y + 0.55 * r, x + 0.7 * r, y + 2.1 * r, 0.3 * r, suit),
+      rr(x - 0.35 * r, y + 0.55 * r, x + 0.3 * r, y + 0.85 * r, 0.1 * r, helm, { flat: true }),
+      rect(x - 0.55 * r, y + 0.9 * r, x - 0.4 * r, y + 2.0 * r, helm, { flat: true }),
+      ...path([[x + 0.05 * r, y + 1.0 * r], [x + 0.75 * r, y + 1.55 * r], [x + 1.05 * r, y + 1.4 * r]], 0.32 * r, helm),
+      circ(x + 1.1 * r, y + 1.38 * r, 0.2 * r, 'black'),
+    );
+  }
+  out.push(circ(x, y, r, helm));
+  const band = st === 'stripes' ? 'white' : o.stripe === undefined ? 'white' : o.stripe;
+  if (st === 'stripes') {
+    // prison stripes round the shell
+    for (const v of [-0.62, -0.05, 0.5]) out.push(rect(x - Math.sqrt(1 - v * v) * r * 0.95, y + (v - 0.13) * r, x + Math.sqrt(1 - v * v) * r * 0.95, y + (v + 0.13) * r, 'black', { flat: true }));
+  } else if (band && st !== 'swat') out.push(arc(x, y, r * 0.84, Math.PI * 1.18, Math.PI * 1.62, r * 0.2, band, { flat: true }));
+  // the visor and its glint, a chin vent below it
+  out.push(
+    poly([[x + 0.04 * r, y - 0.38 * r], [x + 0.9 * r, y - 0.38 * r], [x + 1.0 * r, y - 0.05 * r], [x + 0.95 * r, y + 0.22 * r], [x + 0.04 * r, y + 0.22 * r]], o.visor ?? 'black'),
+    rect(x + 0.14 * r, y - 0.36 * r, x + 0.5 * r, y - 0.24 * r, 'sky', { flat: true }),
+    rect(x + 0.45 * r, y + 0.45 * r, x + 0.8 * r, y + 0.55 * r, 'black', { flat: true }),
+  );
+  if (st === 'swat') out.push(rect(x - 0.95 * r, y - 0.08 * r, x + 0.04 * r, y + 0.1 * r, 'black', { flat: true }), rr(x - 0.75 * r, y - 0.85 * r, x - 0.1 * r, y - 0.6 * r, 0.1 * r, 'white', { flat: true }));
+  if (st === 'conical') out.push(poly([[x - 1.45 * r, y - 0.55 * r], [x + 1.45 * r, y - 0.55 * r], [x + 0.1 * r, y - 1.45 * r]], 'gold'), rect(x - 1.45 * r, y - 0.62 * r, x + 1.45 * r, y - 0.5 * r, 'brown', { flat: true }));
+  if (st === 'peak') out.push(poly([[x + 0.2 * r, y - 0.62 * r], [x + 1.45 * r, y - 0.5 * r], [x + 1.3 * r, y - 0.38 * r], [x + 0.2 * r, y - 0.42 * r]], o.stripe ?? 'white'));
+  if (!o.rot) return out;
+  const c = Math.cos(o.rot), s = Math.sin(o.rot);
+  return out.map((p) => ({ ...p, pts: p.pts.map(([px, py]) => [+(x + (px - x) * c - (py - y) * s).toFixed(3), +(y + (px - x) * s + (py - y) * c).toFixed(3)] as Pt) }));
 }

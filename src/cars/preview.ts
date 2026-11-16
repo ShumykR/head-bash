@@ -1,7 +1,7 @@
 import { CAR_PPM } from '../physics/constants';
 import { gridToRGBA, PixelGrid } from '../render/grid';
 import type { RGB } from '../render/color';
-import { carPalette, driverPalette, generateCarGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, wheelPalette } from './sprite';
+import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, wheelPalette } from './sprite';
 import type { CarDef, CarPalette } from './types';
 import { ITEMS, cargoSlots } from '../game/abilities';
 import { DECOR_PAL, flailGrid, itemGrid } from '../maps/decor';
@@ -42,6 +42,8 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
   });
   linkItems(true);
   items.push({ g: body, c: gridCanvas(body, carPalette(palette)), x: -body.ox, y: -body.oy });
+  const fxg = generateFxGrid(def);
+  if (fxg) items.push({ g: fxg, c: gridCanvas(fxg, carPalette(palette)), x: -fxg.ox, y: -fxg.oy });
   items.push({ g: head, c: gridCanvas(head, dpal), x: def.head.x * CAR_PPM - head.ox, y: def.head.y * CAR_PPM - head.oy });
   def.wheels.forEach((w, i) => !w.hidden && items.push({ g: wheels[i], c: gridCanvas(wheels[i], wheelPalette(palette)), x: w.x * CAR_PPM - wheels[i].ox, y: w.y * CAR_PPM - wheels[i].oy }));
   linkItems(false);

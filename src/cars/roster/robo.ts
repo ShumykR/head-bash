@@ -75,11 +75,11 @@ export const ROBO = group('robo', [
       circ(-0.2, 0.05, 0.2, 'brown'), circ(-0.2, 0.05, 0.08, 'gold'), ...[0, 1, 2, 3, 4, 5].map((i) => circ(-0.2 + Math.cos(i * 1.05) * 0.22, 0.05 + Math.sin(i * 1.05) * 0.22, 0.04, 'brown')),
       circ(0.25, 0.0, 0.12, 'brown'), ...bolts([0.0, 0.2, 0.4], -0.22),
       ...path([[0.6, -0.4], [0.75, -0.6], [0.95, -0.55]], 0.06, 'gold'), ell(0.98, -0.52, 0.06, 0.1, 'gold'),
-      // a big brass headlamp up front, a riveted boiler and a trail of smoke from the stack (as in Drive Ahead)
+      // a big brass headlamp up front and a riveted boiler; the trail of smoke from the stack is animated (fx)
       rr(0.75, -0.48, 1.05, -0.2, 0.08, 'gold'), circ(1.02, -0.34, 0.11, 'light'), circ(1.02, -0.34, 0.06, 'white'),
       rr(-0.35, -0.42, 0.45, -0.2, 0.1, 'gold'), ...[-0.2, 0.05, 0.3].map((x) => circ(x, -0.31, 0.03, 'brown')),
-      ...[[-0.65, -0.9, 0.1], [-0.85, -1.05, 0.13], [-1.15, -1.12, 0.16]].map(([x, y, r]) => circ(x, y, r, 'grey', { flat: true })),
     ],
+    fx: () => [{ kind: 'smoke', at: [-0.55, -0.78], dir: -140, size: 0.2 }],
   }],
   ['laser-tank', 'Laser Tank', 'Футуристичний танк із лазерною гарматою.', 'tracked', ['#2a2a3a', '#5ef0ff'], {
     gun: () => ({ at: [[1.8, -0.93]], aim: 16 }),
