@@ -81,7 +81,7 @@ export type ProjectileKind =
   | 'bone' | 'missile' | 'water' | 'ice' | 'fire' | 'urn' | 'zap' | 'cork' | 'burger' | 'web'
   | 'golf' | 'bullet' | 'bigsnow' | 'bat' | 'penguin' | 'mega' | 'torpedo' | 'volley' | 'tea' | 'plasma'
   | 'seeker' | 'fist' | 'railgun' | 'atom' | 'hook' | 'quill' | 'ink'
-  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot' | 'bigrocket';
+  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot' | 'bigrocket' | 'tankshell';
 
 /** Loose things a car carries (start in the bed and spill out), drops, or an arena scatters around. */
 export type ItemKind =

@@ -194,7 +194,7 @@ export const WINTER = group('winter', [
     ],
   }],
   ['firework-truck', 'Firework Truck', 'Вантажівка з батареєю феєрверків. Стріляє петардами.', 'truck', ['#3a3ad8', '#ffd23f'], {
-    gun: (f) => ({ at: [0, 1, 2, 3, 4].map((i) => [f.deck.x0 + 0.675 + i * 0.4, f.deck.y - 1.55 + i * 0.07]), aim: 62 }),
+    gun: (f) => ({ at: [0, 1, 2, 3, 4].map((i) => [f.deck.x0 + 0.675 + i * 0.4, f.deck.y - 1.55 + i * 0.07]), aim: 72 }),
     parts: ['launcher'], hideParts: true,
     skin: (f) => {
       const d = f.deck;

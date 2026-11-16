@@ -721,6 +721,17 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
       p.ell(R * 2, R, R, R, C.LG, iron(C.W, C.LG, C.G));
       break;
     }
+    case 'tankshell': {
+      // a long modern tank round: brass case, red driving band, pointed steel nose
+      const L = R * 6;
+      p = new Pen(L, D);
+      p.rect(0, 0, R * 3.4, D, C.GO);
+      p.rect(0, 0, R * 3.4, Math.max(1, Math.round(R * 0.5)), C.Y);
+      p.rect(R * 3.4, 0, Math.max(1, Math.round(R * 0.4)), D, C.R);
+      p.poly([[R * 3.8, 0], [R * 4.6, 0], [L, R], [R * 4.6, D], [R * 3.8, D]], C.G);
+      p.rect(R * 3.8, 0, R * 0.8, Math.max(1, Math.round(R * 0.5)), C.LG);
+      break;
+    }
     case 'web': {
       p = new Pen(D, D);
       p.ell(R, R, R, R, C.W, (dx, dy) => {

@@ -27,7 +27,7 @@ export const PLAYER_NAMES = ['P1', 'P2'];
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** Shots drawn rotated along their flight. */
-const ALONG = new Set<string>(['laser', 'zap', 'bullet', 'tracer', 'firework', 'missile', 'harpoon', 'cork', 'volley', 'bigrocket', 'popshell', 'seeker', 'torpedo', 'railgun', 'hook', 'quill', 'bat', 'penguin', 'fist']);
+const ALONG = new Set<string>(['laser', 'zap', 'bullet', 'tracer', 'firework', 'missile', 'harpoon', 'cork', 'volley', 'bigrocket', 'popshell', 'tankshell', 'seeker', 'torpedo', 'railgun', 'hook', 'quill', 'bat', 'penguin', 'fist']);
 /** A sagging rope (tow hook, tether). */
 function fxRope(g: Graphics, x0: number, y0: number, x1: number, y1: number) {
   const n = 10;

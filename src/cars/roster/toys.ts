@@ -445,7 +445,7 @@ export const TOYS = group('toys', [
   }],
   ['mini-tank', 'Mini Tank', 'Мініатюрний танк із короткою гарматою.', 'tracked', ['#3a8a3a', '#ffd23f'], {
     gun: () => ({ at: [[1.3, -0.76]], aim: 12 }),
-    s: 0.9, parts: [['cannon', 0.7]], hideParts: true,
+    o: o({ wheel: 1.35 }), s: 0.68, parts: [['cannon', 0.7]], hideParts: true,
     skin: (f) => [
       ...tracks(f),
       blob([[-1.6, 0.0], [-1.5, -0.32], [1.2, -0.36], [1.7, -0.05], [1.5, 0.05]], 'body', {}, 1),

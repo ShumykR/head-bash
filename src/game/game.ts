@@ -1053,7 +1053,7 @@ export class Game {
       if (s.dead || age > pr.life || pos.y > this.map.killY) {
         if (pr.effect === 'boom') {
           const r = pr.blast ?? 3.2;
-          this.shockwave(s.owner, r, s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8, { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb');
+          this.shockwave(s.owner, r, pr.power ?? (s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8), { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb');
         } else if (s.dead) this.emit({ type: 'shotHit', x: pos.x, y: pos.y, proj: s.proj });
         this.world.destroyBody(s.body);
         this.shots.splice(i, 1);
