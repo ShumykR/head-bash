@@ -1,4 +1,4 @@
-import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stripe } from '../draw';
+import { arc, blob, circ, ell, eyeball, path, poly, rect, rr, seg, smooth, spikesAlong, stripe } from '../draw';
 import { rocket, tracks, monsterTruck } from '../skins';
 import type { CarPoly } from '../types';
 import { dims, dragonHead, quadruped, saddle } from '../critters';
@@ -96,47 +96,46 @@ export const CNY = group('cny', [
       ];
     },
   }],
-  ['chinese-dragon', 'Chinese Dragon', 'Довгий східний дракон із вусами. Дихає полум\'ям.', 'creature', ['#2a6ad8', '#3aa84a'], {
+  ['chinese-dragon', 'Chinese Dragon', 'Довгий східний дракон із вусами. Дихає полум\'ям.', 'creature', ['#d82a2a', '#ffc828'], {
     o: o({ neck: 'raptor', len: 1.3, wheel: 0.8 }), parts: ['plates', 'tail', 'mohawk'], noLights: true, hideParts: true,
     // the fire leaves the open jaws
-    gun: () => ({ at: [[2.1, -0.78]], aim: 4 }),
+    gun: () => ({ at: [[2.3, -0.82]], aim: 4 }),
     // the player rides high on the hump between the loops
     head: () => [0.0, -1.12],
-    // After Drive Ahead's New Year dragon: a thick body bent into a square wave, each loop standing
-    // on a wheel and the player riding the hump between them; a white shine along the top, green
-    // bristles along the edges, a finned tail, and a blocky head with a white horn and a green mane.
+    // After Drive Ahead's New Year dragon: a thick red body rolling in round waves, each loop
+    // standing on a wheel and the player riding the hump between them; a shine along the top,
+    // gold bristles along the edges, a finned tail, and the temple-dragon head in red and gold.
     skin: (f) => {
       const { rear, front } = dims(f);
-      const top = -0.78, bot = -0.04, T = 0.34, w = 0.34;
-      const pts: [number, number][] = [[-1.95, top], [rear - w, top], [rear - w, bot], [rear + w, bot], [rear + w, top], [front - w, top], [front - w, bot], [front + w, bot], [front + w, top], [1.3, -0.8]];
-      // bristles: green ticks along the outside of every run
-      const ticks: CarPoly[] = [];
+      const top = -0.78, bot = -0.04, T = 0.36, w = 0.36;
+      const pts = smooth([[-1.95, top], [rear - w, top], [rear - w, bot], [rear + w, bot], [rear + w, top], [front - w, top], [front - w, bot], [front + w, bot], [front + w, top], [1.3, -0.82]], 3, false) as [number, number][];
+      // bristles: gold ticks standing up along the tops of the humps, and a shine there
+      const ticks: CarPoly[] = [], shine: CarPoly[] = [];
+      let acc = 0;
       for (let i = 0; i + 1 < pts.length; i++) {
-        const [ax, ay] = pts[i], [bx, by] = pts[i + 1], l = Math.hypot(bx - ax, by - ay), n = Math.floor(l / 0.14);
+        const [ax, ay] = pts[i], [bx, by] = pts[i + 1], l = Math.hypot(bx - ax, by - ay);
+        if (!l) continue;
         const nx = (by - ay) / l, ny = -(bx - ax) / l;
-        for (let k = 1; k < n; k++) {
-          const x = ax + ((bx - ax) * k) / n, y = ay + ((by - ay) * k) / n;
-          ticks.push(seg([x + nx * T * 0.4, y + ny * T * 0.4], [x + nx * T * 0.95, y + ny * T * 0.95], 0.07, 'accent'));
+        if (Math.abs(by - ay) < Math.abs(bx - ax) * 0.4 && ny < 0 && ay < top + 0.15) shine.push(seg([ax + nx * T * 0.3, ay + ny * T * 0.3], [bx + nx * T * 0.3, by + ny * T * 0.3], 0.05, 'white', { flat: true }));
+        acc += l;
+        while (acc >= 0.15) {
+          acc -= 0.15;
+          const t = 1 - acc / l, x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
+          if (ny < -0.5 && y < top + 0.15) ticks.push(seg([x + nx * T * 0.4, y + ny * T * 0.4], [x + nx * T * 0.9, y + ny * T * 0.9], 0.07, 'accent'));
         }
       }
       return [
         ...ticks,
         // the finned tail
-        ...[[-2.4, -0.75], [-2.45, -0.45], [-2.35, -0.2]].map(([x, y]) => poly([[-1.9, top - 0.12], [-1.9, top + 0.12], [x, y]], 'accent')),
-        // the body: a thick blue tube with a white shine on top and a dark green underside
+        ...[[-2.4, -0.95], [-2.45, -0.75], [-2.35, -0.55]].map(([x, y]) => poly([[-1.9, top - 0.12], [-1.9, top + 0.12], [x, y]], 'accent')),
+        // the body: a thick red tube rolling in waves, a dark underside, the shine on top
         ...path(pts, T, 'body'),
         ...path(pts.map(([x, y]) => [x, y + T * 0.36] as [number, number]), 0.05, 'dark'),
-        ...[[-1.95, rear - w], [rear + w, front - w], [front + w, 1.2]].map(([a, b]) => rect(a, top - T / 2 + 0.03, b, top - T / 2 + 0.08, 'white', { flat: true })),
+        ...shine,
         // the feet: white claws over the wheels
         ...[rear, front].flatMap((x) => [-0.2, 0.0, 0.2].map((d) => poly([[x + d - 0.06, bot + T / 2 - 0.02], [x + d + 0.06, bot + T / 2 - 0.02], [x + d, bot + T / 2 + 0.1]], 'white'))),
-        // the head: green mane, a white horn sweeping back, a blocky blue skull, open jaws
-        rr(1.05, -1.22, 1.55, -0.66, 0.1, 'accent'), ...[[0.95, -1.2], [0.9, -0.95], [0.95, -0.72]].map(([x, y]) => poly([[1.1, y - 0.06], [1.1, y + 0.06], [x, y]], 'accent')),
-        ...path([[1.45, -1.14], [1.25, -1.39], [1.05, -1.54]], 0.08, 'white'),
-        rr(1.35, -1.16, 2.05, -0.84, 0.08, 'body'), rect(1.4, -1.14, 1.95, -1.1, 'white', { flat: true }),
-        rr(1.95, -1.1, 2.12, -0.9, 0.04, 'white'),
-        ell(1.62, -1.0, 0.06, 0.035, 'black', { flat: true }), rect(1.52, -1.08, 1.72, -1.05, 'accent', { flat: true }),
-        rect(1.5, -0.84, 2.06, -0.7, 'black', { flat: true }), ...fangs(1.62, 2.02, -0.84, 3, 0.08),
-        rr(1.48, -0.71, 1.98, -0.6, 0.04, 'body'), ...[1.55, 1.7, 1.85].map((x) => rect(x, -0.6, x + 0.06, -0.52, 'accent')),
+        // the head, as on Dragon Monster: a gold skull, its mane in orange and red to suit the body
+        ...dragonHead(1.25, -0.86, 0.95, { mane: ['orange', 'red'], spikes: 'accent', maneLen: 0.45 }),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
