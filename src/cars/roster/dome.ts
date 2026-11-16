@@ -13,6 +13,9 @@ export const DOME = group('dome', [
       ...path([[-1.45, -0.45], [-1.4, -1.0]], 0.05, 'chrome'), ...path([[-0.6, -0.45], [-0.65, -1.0]], 0.05, 'chrome'),
       blob([[-1.65, -0.95], [-1.0, -1.3], [-0.4, -0.95]], 'accent', {}, 1), ...[-1.45, -1.2, -0.95, -0.7].map((x) => poly([[x - 0.08, -0.97], [x + 0.08, -0.97], [x, -0.86]], 'yellow')),
       rect(-1.45, -0.12, -0.6, -0.06, 'gold', { flat: true }), starShape(-1.0, 0.02, 0.09, 'gold'), circ(-1.0, -1.32, 0.05, 'gold'),
+      // the passenger in the back, under the umbrella (Drive Ahead's rickshaw carries a second person)
+      rr(-1.22, -0.72, -0.82, -0.38, 0.08, 'blue'), circ(-1.0, -0.82, 0.13, 'tan'), circ(-0.95, -0.84, 0.025, 'black'),
+      poly([[-1.2, -0.9], [-0.8, -0.9], [-1.0, -1.02]], 'tan'), rr(-0.88, -0.62, -0.68, -0.52, 0.04, 'tan'),
     ],
   }],
   ['quad-bike', 'Quad Bike', 'Маневрений квадроцикл із багажником.', 'buggy', ['#e02a2a', '#2a2a2a'], {
@@ -29,6 +32,10 @@ export const DOME = group('dome', [
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.05, Math.PI * 1.95, 0.1, 'body')),
       ...path([[f.nose.x - 0.1, -0.25], [f.nose.x + 0.1, -0.35], [f.nose.x + 0.15, -0.1]], 0.05, 'black'), circ(f.nose.x + 0.02, -0.18, 0.06, 'light'),
       ell(-0.35, -0.05, 0.12, 0.09, 'white'), rect(-0.38, -0.11, -0.32, 0.01, 'black', { flat: true }),
+      // luggage racks front and back: tubular rails with a strapped box behind and a bag up front
+      rr(f.tail.x - 0.05, -0.42, -0.6, -0.36, 0.02, 'black'), ...[f.tail.x + 0.05, -0.7].map((x) => rect(x, -0.42, x + 0.05, -0.25, 'black')),
+      rr(f.tail.x + 0.0, -0.78, -0.65, -0.42, 0.05, 'tan'), rect(f.tail.x + 0.0, -0.64, -0.65, -0.58, 'brown', { flat: true }),
+      rr(0.55, -0.42, f.nose.x + 0.05, -0.36, 0.02, 'black'), rr(0.6, -0.62, f.nose.x - 0.05, -0.42, 0.06, 'green'),
     ],
   }],
   ['compensator-bike', 'Compensator Bike', 'Надмірно довгий чопер: вилка до неба.', 'bike', ['#c0c0c8', '#e02a2a'], {
@@ -69,6 +76,23 @@ export const DOME = group('dome', [
   }],
   ['prison-van', 'Prison Van', 'Броньований автозак із ґратами на вікнах і тараном.', 'van', ['#e0e0e0', '#3a3a6a'], {
     parts: ['ram'], hideParts: true,
+    // As in Drive Ahead: a "criminal" in a striped suit is dragged behind the van on a chain. He is a loose,
+    // swinging piece with a body of his own, so he can clobber whoever is tailgating.
+    links: (f) => {
+      const x = f.tail.x, g = f.wheels[0].y + f.wheels[0].r;
+      return [{
+        at: [x - 0.02, 0.05], swing: [-75, 55], spring: 2, density: 0.3,
+        hit: [rect(x - 1.45, g - 0.3, x - 0.7, g - 0.04)],
+        art: [
+          ...Array.from({ length: 5 }, (_, i) => ell(x - 0.12 - i * 0.13, 0.05 + i * ((g - 0.22 - 0.05) / 5), 0.07, 0.04, 'grey')),
+          // lying on his back, feet first: striped suit, cuffs, a sour face
+          rr(x - 1.25, g - 0.28, x - 0.72, g - 0.06, 0.08, 'white'),
+          ...[0, 1, 2, 3].map((i) => rect(x - 1.18 + i * 0.13, g - 0.28, x - 1.12 + i * 0.13, g - 0.06, 'black', { flat: true })),
+          rr(x - 0.78, g - 0.24, x - 0.62, g - 0.1, 0.04, 'black'),
+          circ(x - 1.35, g - 0.18, 0.13, 'tan'), rect(x - 1.47, g - 0.31, x - 1.22, g - 0.24, 'black'), circ(x - 1.4, g - 0.2, 0.025, 'black'),
+        ],
+      }];
+    },
     skin: (f) => [
       ...boxy(f, { round: 0.06, bumper: 'grey' }),
       ...windows(f.tail.x + 0.2, f.tail.x + 1.3, f.roof.y + 0.12, f.roof.y + 0.48, 2, 0.15, 'dark'),
@@ -145,6 +169,11 @@ export const DOME = group('dome', [
       rr(f.head.x - 0.35, -0.55, f.head.x - 0.1, -0.15, 0.06, 'grey'),
       rr(-0.3, -0.38, 0.3, -0.26, 0.05, 'wood'), ...path([[-0.2, 0.0], [-0.3, -0.25]], 0.1, 'wood'),
       ...[f.wheels[0], f.wheels[1]].map((w) => arc(w.x, w.y, w.r + 0.06, Math.PI * 1.1, Math.PI * 1.9, 0.08, 'wood')),
+      // a stone slab seat lashed to a log axle, a club and a rock hood ornament: a proper stone-age cart
+      rr(-0.95, -0.42, 0.95, -0.22, 0.08, 'grey'), ...[-0.6, 0.0, 0.55].map((x) => ell(x, -0.36, 0.1, 0.04, 'dark', { flat: true })),
+      ...path([[f.wheels[0].x, f.wheels[0].y], [f.wheels[1].x, f.wheels[1].y]], 0.14, 'wood'),
+      ...[f.wheels[0].x, f.wheels[1].x].map((x) => rr(x - 0.1, -0.3, x + 0.1, f.wheels[0].y - 0.05, 0.03, 'tan')),
+      ...path([[0.45, -0.45], [0.85, -0.95]], 0.07, 'wood'), ell(0.9, -1.02, 0.12, 0.1, 'wood'),
     ],
   }],
   ['tow-truck', 'Tow Truck', 'Евакуатор із гаком на тросі: чіпляє суперника й тягне до себе.', 'truck', ['#f0a020', '#2a2a2a'], {

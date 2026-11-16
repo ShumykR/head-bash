@@ -46,6 +46,8 @@ export const CNY = group('cny', [
   }],
   ['emperor-carriage', 'The Emperor\'s Carriage', 'Золотий імператорський паланкін з ліхтарями.', 'carriage', ['#e0b020', '#c02a2a'], {
     parts: ['lantern'], hideParts: true, hideWheels: [0, 1],
+    // The porters are solid too: you bump into them, not through them.
+    art: (f) => [f.tail.x - 0.12, f.nose.x + 0.12].map((x) => ({ ...rect(x - 0.17, -0.62, x + 0.17, 0.05, 'blue', { density: 0.2 }), deco: false, hide: true })),
     // No wheels: two porters in conical hats carry the palanquin on long poles (their feet are the wheels).
     skin: (f) => [
       // one long carrying pole through the base, resting on the porters' shoulders
@@ -178,8 +180,11 @@ export const CNY = group('cny', [
       ...path([[f.tail.x - 0.6, f.deck.y + 0.55], [f.tail.x + 0.2, f.deck.y + 0.3]], 0.16, 'wood'),
       blob([[f.tail.x + 0.05, 0.3], [f.tail.x + 0.1, f.deck.y + 0.15], [f.nose.x - 0.1, f.deck.y - 0.05], [f.nose.x, 0.0], [f.nose.x - 0.2, 0.3]], 'wood', {}, 1),
       rect(-0.62, 0.32, 0.62, 0.42, 'dark'),
-      ...path([[0.0, f.deck.y - 0.1], [0.95, f.deck.y - 0.5]], 0.3, 'dark'), ...path([[0.9, f.deck.y - 0.48], [1.05, f.deck.y - 0.54]], 0.38, 'dark'),
-      ...[0.25, 0.55].map((dx) => seg([dx - 0.03, f.deck.y - 0.35 - dx * 0.4], [dx + 0.06, f.deck.y + 0.08 - dx * 0.4], 0.06, 'gold')),
+      // the bronze barrel: thick at the breech, banded, with a flared muzzle and a cascabel knob
+      circ(-0.42, f.deck.y + 0.08, 0.14, 'gold'),
+      ...path([[-0.3, f.deck.y + 0.02], [0.95, f.deck.y - 0.5]], 0.44, 'gold'), ...path([[0.9, f.deck.y - 0.48], [1.1, f.deck.y - 0.56]], 0.52, 'gold'),
+      circ(1.12, f.deck.y - 0.57, 0.13, 'black'),
+      ...[-0.05, 0.3, 0.65].map((dx) => seg([dx - 0.06, f.deck.y - 0.24 - dx * 0.4], [dx + 0.06, f.deck.y + 0.2 - dx * 0.4], 0.07, 'brown')),
       circ(f.tail.x + 0.25, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.48, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.36, f.deck.y - 0.3, 0.1, 'black'),
       stripe(-0.4, 0.4, f.deck.y + 0.15, 0.06, 'red'),
       ...[0.1, 0.45, 0.8].map((dx) => circ(dx, f.deck.y - 0.25 - dx * 0.4, 0.035, 'gold')), poly([[-0.1, f.deck.y - 0.35], [0.05, f.deck.y - 0.55], [0.15, f.deck.y - 0.3]], 'red'),

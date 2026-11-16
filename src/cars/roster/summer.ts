@@ -39,8 +39,17 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['sports-bike', 'Sports Bike', 'Шосейний спортбайк з обтічником.', 'bike', ['#e02a2a', '#ffffff'], {
+    axles: [0.82, 0.8],
     speed: 1.2, accel: 1.2,
-    skin: (f) => [...bike(f, { style: 'sport' })],
+    skin: (f) => [
+      ...bike(f, { style: 'sport' }),
+      // full racing fairing: one red shell from the front wheel to under the rider, a tinted screen, number and stripe
+      blob([[-0.35, 0.18], [-0.5, -0.2], [0.2, -0.4], [0.75, -0.62], [1.05, -0.35], [1.0, 0.0], [0.55, 0.22]], 'body', {}, 2),
+      stripe(-0.35, 0.95, -0.12, 0.07, 'accent'),
+      blob([[0.6, -0.6], [0.85, -0.82], [0.95, -0.6]], 'glass', {}, 1),
+      circ(0.35, 0.02, 0.13, 'white'), rect(0.32, -0.05, 0.38, 0.09, 'black', { flat: true }),
+      rr(0.85, -0.3, 1.05, -0.2, 0.03, 'light'),
+    ],
   }],
   ['off-road-truck', 'Off-Road Truck', 'Експедиційний трак з ящиками спорядження в кузові.', 'pickup', ['#e0a020', '#2a2a2a'], {
     o: o({ wheel: 1.25 }), cargo: ['tire', 3],
@@ -129,6 +138,13 @@ export const SUMMER = group('summer', [
       ...[0, 1, 2].map((i) => rect(f.nose.x + 0.05, f.nose.y0 + 0.15 + i * 0.15, f.nose.x + 0.25, f.nose.y0 + 0.2 + i * 0.15, 'grey', { flat: true })),
       ...[-0.9, -0.5, -0.1, 0.3].map((x) => circ(x, 0.2, 0.04, 'chrome')),
       circ(-0.4, -0.3, 0.13, 'gold'), starShape(-0.4, -0.3, 0.09, 'body'), rect(f.tail.x + 0.06, f.roof.y + 0.08, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }),
+      // two SWAT officers riding on the roof with their rifles (as in Drive Ahead's Swat Van)
+      ...[f.tail.x + 0.35, f.tail.x + 0.85].flatMap((x) => [
+        rr(x - 0.13, f.roof.y - 0.42, x + 0.13, f.roof.y - 0.02, 0.05, 'dark'), rect(x - 0.13, f.roof.y - 0.3, x + 0.13, f.roof.y - 0.22, 'white', { flat: true }),
+        circ(x, f.roof.y - 0.55, 0.13, 'tan'), blob([[x - 0.15, f.roof.y - 0.58], [x - 0.12, f.roof.y - 0.72], [x + 0.12, f.roof.y - 0.72], [x + 0.16, f.roof.y - 0.58]], 'black', {}, 1),
+        rect(x + 0.02, f.roof.y - 0.58, x + 0.14, f.roof.y - 0.52, 'dark', { flat: true }),
+        rr(x - 0.05, f.roof.y - 0.36, x + 0.45, f.roof.y - 0.29, 0.02, 'black'), rect(x + 0.12, f.roof.y - 0.3, x + 0.18, f.roof.y - 0.2, 'black'),
+      ]),
     ],
   }],
   ['dune-buggy', 'Dune Buggy', 'Легкий багі для дюн із прапорцем на щоглі.', 'buggy', ['#ff8a1a', '#2a2a2a'], {

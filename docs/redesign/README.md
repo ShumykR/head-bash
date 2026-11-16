@@ -214,3 +214,47 @@
 Усі 270 авто після виправлень: **3.77 → 3.83**.
 
 **Ще слабкі (підсумок 3), наступні кандидати:** Army Bike, Brass Bike, Broom Bike, Bumper Concept, Cannon Carriage, Dark Phantom, Doom Bomber, Dracula's Carriage, Freezer, Frosty Car, Ghost Bike, Ghost Dragon Summoner, Horned Pickup, Night Bat Rod, Pebble, Quad Bike, Rattle Bones, Rift Cloud, Robo Bike, Rock Wheel, Snowmobile, Soda Popper, Space Bike, Spider Speedster, Sports Bike, Star Coupe, Stinger Buggy, Toxic Waste Truck, Turbo Taxi, Void Engine, Void Hopper, Volt Spike. Здебільшого це дрібні мотоцикли й тематичні боліди, де головну деталь з опису (сяйво, блискавку, бомби, вісім лап) майже не видно.
+
+### Доопрацювання 32 найслабших авто і деталей із фандому
+
+`compare/round3-weak-1.png` … `-3.png` (зверху до, знизу після).
+
+**Деталі з текстів фандому, тепер і фізичні:**
+
+- **Chariot:** кінь — окрема фізична частина. Він причеплений до дишла на пружному шарнірі, має тіло для зіткнень і приховане колесо під копитами, тож крізь нього не проїхати.
+- **Santa's Sleigh:** двоє оленів — одна фізична частина на шарнірі з маленькими колесами під копитами, як у фандомі.
+- **The Emperor's Carriage:** тулуби носіїв тепер тверді.
+- **Spiky Car:** гравець прив'язаний високо на дерев'яній балці, що хитається (шарнірна частина, голова на ній). У кабіні водій у шоломі з черепа бика.
+- **Prison Van:** за фургоном на ланцюгу тягнеться «злочинець» у смугастому — шарнірна частина, що б'є переслідувача.
+- **Rickshaw:** під парасолькою сидить пасажир.
+- **Swat Van:** двоє бійців зі зброєю на даху.
+
+**32 найслабші авто:** кожне отримало головну деталь зі свого опису (і з тексту фандому, де він є).
+
+- **Мотоцикли (Army, Brass, Ghost, Robo, Space, Sports Bike):** менші колеса (×0.8), щоб корпус читався, плюс своя деталь:
+  - Army Bike — камуфляж і кулемет зі стрічкою;
+  - Brass Bike — латунний ліхтар і дим;
+  - Ghost Bike — примарні пасма;
+  - Robo Bike — велике око-сенсор;
+  - Space Bike — неонова капсула зі слідом;
+  - Sports Bike — суцільний обтічник.
+- **Broom Bike** — справжня мітла. **Quad Bike** — багажники.
+- **Інші авто:**
+  - Bumper Concept — гумове коло;
+  - Cannon Carriage — бронзовий ствол;
+  - Frosty Car — морозне дихання;
+  - Ghost Dragon Summoner — великий примарний дракон;
+  - Night Bat Rod — кажанові крила;
+  - Rattle Bones — решітка-череп;
+  - Rift Cloud — блискавка;
+  - Snowmobile — гусениця й скло;
+  - Soda Popper — етикетка й піна;
+  - Star Coupe — зоряний бластер;
+  - Toxic Waste Truck — токсичний слиз;
+  - Turbo Taxi — табличка TAXI;
+  - Void Hopper — портал;
+  - Volt Spike — котушка Тесли й розряди.
+- **Слабше вийшли:** у Dark Phantom, Doom Bomber, Dracula's Carriage, Freezer, Horned Pickup, Rock Wheel, Spider Speedster, Stinger Buggy і Void Engine нова деталь є, але читається дрібно.
+- **Pebble не змінено:** машинка надто мала, і спіраль-«дзиґа» ховалась під головою водія.
+
+32 найслабші авто: **3.0 → 3.83**. Усі 270: **3.83 → 3.94**. З підсумком нижче 3.5 лишився тільки Pebble.

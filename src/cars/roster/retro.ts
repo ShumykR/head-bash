@@ -730,6 +730,10 @@ export const RETRO = group('retro', [
       ...[f.deck.x0 + 0.05, (f.deck.x0 + f.deck.x1) / 2, f.deck.x1 - 0.1].map((x) => rect(x, f.deck.y - 0.5, x + 0.06, f.deck.y, 'grey')), rect(f.deck.x0, f.deck.y - 0.52, f.deck.x1, f.deck.y - 0.47, 'grey'),
       ...[0, 1, 2, 3, 4, 5].map((i) => poly([[f.tail.x + 0.1 + i * 0.5, 0.3], [f.tail.x + 0.3 + i * 0.5, 0.3], [f.tail.x + 0.45 + i * 0.5, 0.1], [f.tail.x + 0.25 + i * 0.5, 0.1]], 'yellow', { flat: true })),
       circ(1.45, -0.2, 0.12, 'yellow'), ...[0, 1, 2].map((i) => poly([[1.45, -0.2], [1.45 + Math.cos(i * 2.1) * 0.11, -0.2 + Math.sin(i * 2.1) * 0.11], [1.45 + Math.cos(i * 2.1 + 0.8) * 0.11, -0.2 + Math.sin(i * 2.1 + 0.8) * 0.11]], 'black', { flat: true })),
+      // toxic goo slopping over the bed, dripping down the side, a radiation sign on the door
+      blob([[f.deck.x0 + 0.1, f.deck.y - 0.05], [f.deck.x0 + 0.5, f.deck.y - 0.18], [f.deck.x1 - 0.4, f.deck.y - 0.15], [f.deck.x1 - 0.05, f.deck.y - 0.05]], 'accent', {}, 1),
+      ...[f.deck.x0 + 0.3, f.deck.x0 + 0.9, f.deck.x1 - 0.5].flatMap((x, i) => [...path([[x, f.deck.y + 0.08], [x + 0.02, f.deck.y + 0.25 + i * 0.06]], 0.07, 'accent'), circ(x + 0.02, f.deck.y + 0.28 + i * 0.06, 0.05, 'accent')]),
+      ...[[f.deck.x0 + 0.6, f.deck.y - 0.35], [f.deck.x1 - 0.7, f.deck.y - 0.45]].map(([x, y]) => circ(x, y, 0.05, 'accent', { flat: true })),
     ],
   }],
   ['helmet-car', 'Helmet Car', 'Машина-шолом: візор, гребінь і шолом, який береже голову.', 'blob', ['#ffd23f', '#e02a2a'], {

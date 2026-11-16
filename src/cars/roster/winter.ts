@@ -68,6 +68,10 @@ export const WINTER = group('winter', [
         stripe(-1.2, 1.0, -0.06, 0.07, 'accent'),
         headlight(f.nose.x - 0.05, -0.04, 0.07),
         rr(f.tail.x - 0.1, -0.42, f.tail.x + 0.35, -0.3, 0.03, 'accent'),
+      // track lugs and road wheels that read against the snow, and a tall windscreen
+      ...Array.from({ length: 6 }, (_, i) => rect(f.tail.x + 0.05 + i * 0.17, a.y + a.r - 0.04, f.tail.x + 0.11 + i * 0.17, a.y + a.r + 0.03, 'rubber')),
+      ...[f.tail.x + 0.2, -0.65, -0.3].map((x) => circ(x, a.y + a.r - 0.25, 0.06, 'grey')),
+      blob([[0.25, -0.3], [0.45, -0.78], [0.7, -0.76], [0.62, -0.28]], 'glass', {}, 1),
       ];
     },
   }],
@@ -148,12 +152,23 @@ export const WINTER = group('winter', [
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
     float: 0.8, cargo: ['gift', 3],
-    // As in Drive Ahead, two reindeer pull the sleigh (art only), the leader with a glowing red nose.
+    // As in Drive Ahead, two reindeer pull the sleigh, on little wheels under their hooves. They are one
+    // real piece, hitched to the sleigh's nose: you can hit them and they bump over the ground.
+    links: () => {
+      const g = 0.27 - 0.2, w = (x: number) => ({ x, y: g + 0.1, r: 0.1, rim: 'disc' as const, drive: false });
+      return [{
+        at: [1.45, -0.25], swing: [-12, 12], spring: 10, density: 0.25,
+        wheels: [w(1.75), w(2.45), w(2.35), w(3.05)],
+        hit: [rect(1.75, g - 0.78, 2.55, g - 0.42), rect(2.35, g - 0.74, 3.2, g - 0.42), rect(3.05, g - 1.1, 3.45, g - 0.8)],
+        art: [
+          ...steed(2.75, g, { mat: 'brown', deer: true, s: 0.95 }),
+          ...path([[1.45, -0.3], [2.5, -0.65], [2.95, -0.72]], 0.035, 'gold'),
+          ...steed(2.15, g + 0.02, { mat: 'brown', deer: true, nose: 'red', s: 1.0 }),
+          ...path([[1.45, -0.25], [2.1, -0.6]], 0.035, 'gold'),
+        ],
+      }];
+    },
     skin: () => [
-      ...steed(2.75, 0.27, { mat: 'brown', deer: true, s: 0.95 }),
-      ...path([[1.45, -0.3], [2.5, -0.75], [2.95, -0.8]], 0.035, 'gold'),
-      ...steed(2.15, 0.22, { mat: 'brown', deer: true, nose: 'red', s: 1.0 }),
-      ...path([[1.45, -0.25], [2.1, -0.68]], 0.035, 'gold'),
       ...path([[-1.6, 0.12], [-1.55, 0.2], [1.15, 0.2], [1.45, 0.1], [1.6, -0.15], [1.52, -0.38], [1.32, -0.42], [1.24, -0.28]], 0.1, 'gold'),
       ...[-1.1, -0.2, 0.7].map((x) => seg([x, 0.2], [x + 0.05, 0.02], 0.08, 'gold')),
       blob([[-1.62, 0.06], [-1.66, -0.72], [-1.5, -0.98], [-1.25, -0.92], [-1.15, -0.55], [-0.95, -0.38], [0.05, -0.38], [0.55, -0.45], [0.95, -0.72], [1.2, -0.7], [1.22, -0.45], [0.95, 0.06]], 'body', {}, 2),
@@ -319,6 +334,11 @@ export const WINTER = group('winter', [
       ...icicles(f.tail.x + 0.2, f.nose.x - 0.2, 0.28, 10),
       ...[[-1.0, 0.0], [0.6, 0.05], [-0.2, -0.05]].map(([x, y]) => starShape(x, y, 0.09, 'white')),
       ...path([[f.nose.x - 0.1, -0.15], [f.nose.x - 0.5, -0.1], [f.nose.x - 0.7, -0.2], [f.nose.x - 0.6, -0.3]], 0.04, 'white'),
+      // frost breath rolling off the nose, icicles along the roof edge and an ice crust on the hood
+      ...[[f.nose.x + 0.35, -0.1, 0.2, 0.13], [f.nose.x + 0.7, -0.18, 0.16, 0.11], [f.nose.x + 0.95, -0.12, 0.11, 0.08]].map(([x, y, rx, ry]) => ell(x, y, rx, ry, 'white', { flat: true })),
+      ...[0.15, 0.32, 0.5].map((dy, i) => starShape(f.nose.x + 0.45 + i * 0.25, -0.12 - dy * 0.3, 0.05, 'sky')),
+      ...icicles(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y + 0.06, 6),
+      blob([[f.roof.x1 + 0.1, f.nose.y0 - 0.02], [f.nose.x - 0.4, f.nose.y0 - 0.1], [f.nose.x - 0.1, f.nose.y0 - 0.02]], 'white', {}, 1),
     ],
   }],
   ['sleigh', 'Sleigh', 'Класичні дерев\'яні сани із загнутими полозами.', 'sled', ['#a0603a', '#e0c060'], {
