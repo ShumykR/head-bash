@@ -332,26 +332,26 @@ export const HELMET_SCALE = 1.2;
 /**
  * The helmet, after Drive Ahead's: a slightly egg-shaped shell in the player's colour, a white cap
  * of light on the crown, a pale band down the back, and a black visor slanting across the upper
- * front with a lilac glint on its edge; the visor slants down to the front like a frown and the jaw ends
- * in a sharp chin. Drawn from a hand-made 14x14 template (facing +x) and
+ * front with a lilac glint on its edge; the visor dips a little to the front like a slight frown and
+ * the jaw ends in a firm chin. Drawn from a hand-made 14x14 template (facing +x) and
  * resampled to the helmet's size, so every size keeps the same pixel shapes.
  *   O outline  W white cap  L light  H shell  D shadow  V visor  G glint
  */
 const HELMET = [
-  '...OOOOO......',
-  '..OWWWWWOO....',
-  '.OLWWHHHHHO...',
-  '.OLHHHHHHHHO..',
-  'OLLHHHVVHHHGO.',
-  'OLHHHHVVVVVVGO',
+  '....OOOOO.....',
+  '...OWWWWWO....',
+  '..OLWWHHHHO...',
+  '.OLLHHHHHHHO..',
+  '.OLHHHHVVVHGO.',
+  'OLLHHHHVVVVVGO',
   'OLHHHHHVVVVVGO',
   'OLHHHHHVVVVVGO',
-  'OLHHHHHHHVVVGO',
-  'ODHHHHHHHHHVVO',
+  'OLHHHHHHVVVVGO',
+  'ODHHHHHHHHVVGO',
   'ODHHHHHHHHHHHO',
-  '.OODHHHHHHHHHO',
-  '...OODDDDHHHHO',
-  '.....OOOOOOOOO',
+  '.ODDHHHHHHHHHO',
+  '..OODDDDDHHHO.',
+  '....OOOOOOOO..',
 ];
 const HELMET_PX: Record<string, number> = { O: DP.OUTLINE, W: DP.STRIPE, L: DP.HELM_L, H: DP.HELM, D: DP.HELM_D, V: DP.VISOR, G: DP.VISOR_L };
 

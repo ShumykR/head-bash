@@ -292,11 +292,10 @@ export interface DragonHeadOpts {
 }
 
 /**
- * An eastern dragon's head, after a temple dragon: facing +x, drawn round its jaw hinge (x, y),
- * sized k (1 ≈ 1.2 m from mane to nose). A gold scaly skull with a green brow tuft, an orange
- * snout with a red nose knob, one round staring eye, a black horn curling back, the jaws gaping on
- * white fangs over red gums with the tongue lolling out, a gold whisker curling up off the snout,
- * a red beard, and a long mane of green and teal fronds with red spikes streaming back.
+ * An eastern dragon's head, after a temple dragon but kept simple and friendly: facing +x, drawn
+ * round its jaw hinge (x, y), sized k (1 ≈ 1.2 m from mane to nose). A gold skull with a green
+ * brow tuft, an orange snout with a red nose knob, a calm almond eye, a black horn curling back,
+ * jaws a little open on a few white teeth, a short gold whisker and a few mane fronds.
  */
 export function dragonHead(x: number, y: number, k = 1, o: DragonHeadOpts = {}): CarPoly[] {
   const m = o.mat ?? 'gold', [m1, m2] = o.mane ?? ['green', 'teal'], sp = o.spikes ?? 'red';
@@ -308,34 +307,28 @@ export function dragonHead(x: number, y: number, k = 1, o: DragonHeadOpts = {}):
     return fangs(a, b, y + yy * k, n, h * k, up);
   };
   const out: CarPoly[] = [];
-  // the mane: long fronds streaming back, red spikes between them
-  const fronds: [Pt, Pt][] = [[[0.05, -0.32], [-0.95, -0.72]], [[0.0, -0.18], [-1.15, -0.42]], [[0.0, -0.04], [-1.15, -0.12]], [[0.02, 0.1], [-1.05, 0.2]], [[0.08, 0.24], [-0.8, 0.5]], [[0.15, 0.32], [-0.45, 0.66]]];
+  // the mane: a few fronds streaming back, alternating colours, a red spike between two of them
   const ml = o.maneLen ?? 0.6;
+  const fronds: [Pt, Pt][] = [[[0.05, -0.3], [-0.95, -0.62]], [[0.0, -0.1], [-1.1, -0.2]], [[0.05, 0.1], [-0.95, 0.3]], [[0.15, 0.28], [-0.5, 0.6]]];
   fronds.forEach(([[bx, by], [tx0, ty0]], i) => {
     const tx = bx + (tx0 - bx) * ml, ty = by + (ty0 - by) * ml;
-    if (i < 5) out.push(poly(P([[bx + 0.1, by - 0.06], [bx + 0.1, by + 0.12], [bx + (tx - bx) * 0.75, (ty + by) / 2 + 0.06]]), sp));
-    out.push(poly(P([[bx, by - 0.07], [bx + 0.05, by + 0.07], [(bx + tx) / 2, (by + ty) / 2 + 0.06], [tx, ty], [(bx + tx) / 2, (by + ty) / 2 - 0.04]]), i % 2 ? m2 : m1));
+    if (i === 1) out.push(poly(P([[bx + 0.1, by - 0.1], [bx + 0.1, by + 0.1], [bx + (tx - bx) * 0.7, by + 0.04]]), sp));
+    out.push(poly(P([[bx, by - 0.09], [bx + 0.05, by + 0.09], [tx, ty]]), i % 2 ? m2 : m1));
   });
   // the horn curling back
-  out.push(...path(P([[0.3, -0.34], [0.15, -0.62], [-0.15, -0.78], [-0.42, -0.72], [-0.5, -0.58]]), 0.1 * k, o.horn ?? 'black'));
-  // the red beard under the jaw
-  out.push(...[0.25, 0.5, 0.75].map((bx, i) => poly(P([[bx - 0.1, 0.36], [bx + 0.1, 0.38], [bx - 0.22, 0.68]]), i % 2 ? m1 : sp)));
+  out.push(...path(P([[0.3, -0.34], [0.12, -0.62], [-0.18, -0.72]]), 0.1 * k, o.horn ?? 'black'));
   // the skull, the green brow tuft, the orange snout with its red nose knob
   out.push(blob(P([[-0.1, -0.25], [0.2, -0.44], [0.6, -0.4], [0.88, -0.26], [0.98, -0.1], [0.4, -0.04], [0.0, 0.02]]), m, {}, 1));
-  out.push(blob(P([[0.18, -0.4], [0.45, -0.52], [0.66, -0.38], [0.38, -0.32]]), m1, {}, 1));
-  out.push(blob(P([[0.76, -0.3], [1.1, -0.26], [1.22, -0.1], [0.82, -0.04]]), o.snout ?? 'orange', {}, 1));
-  out.push(circ(...at(1.12, -0.22), 0.075 * k, 'red'));
-  // the staring eye
-  out.push(circ(...at(0.6, -0.24), 0.105 * k, 'white', { flat: true }), circ(...at(0.63, -0.24), 0.065 * k, 'black', { flat: true }));
-  // the gaping mouth: red gums, white fangs, the tongue lolling out, the gold lower jaw
-  out.push(poly(P([[0.1, -0.02], [1.2, -0.04], [1.0, 0.26], [0.15, 0.16]]), 'black', { flat: true }));
-  out.push(poly(P([[0.15, -0.08], [1.2, -0.08], [1.18, -0.01], [0.18, 0.0]]), 'red', { flat: true }));
-  out.push(...teeth(0.35, 1.15, -0.01, 4, 0.13));
-  out.push(...path(P([[0.35, 0.14], [0.8, 0.18], [1.18, 0.36]]), 0.08 * k, 'pink'));
-  out.push(blob(P([[0.05, 0.16], [0.98, 0.24], [1.05, 0.36], [0.15, 0.34]]), m, {}, 1));
-  out.push(poly(P([[0.25, 0.25], [0.98, 0.32], [0.98, 0.34], [0.25, 0.28]]), 'red', { flat: true }));
-  out.push(...teeth(0.45, 0.95, 0.24, 3, 0.1, true));
+  out.push(blob(P([[0.18, -0.4], [0.45, -0.5], [0.66, -0.38], [0.38, -0.33]]), m1, {}, 1));
+  out.push(blob(P([[0.76, -0.3], [1.1, -0.26], [1.2, -0.1], [0.82, -0.04]]), o.snout ?? 'orange', {}, 1));
+  out.push(circ(...at(1.1, -0.21), 0.065 * k, 'red'));
+  // a calm almond eye under the tuft: no white showing round it
+  out.push(ell(...at(0.58, -0.24), 0.085 * k, 0.05 * k, 'black', { flat: true }), circ(...at(0.6, -0.255), 0.022 * k, 'white', { flat: true }));
+  // the mouth open just enough for the fire: a row of white teeth, the lower jaw
+  out.push(poly(P([[0.2, -0.02], [1.18, -0.05], [1.05, 0.16], [0.25, 0.12]]), 'black', { flat: true }));
+  out.push(...teeth(0.45, 1.12, -0.03, 3, 0.1));
+  out.push(blob(P([[0.1, 0.12], [1.02, 0.15], [0.98, 0.27], [0.2, 0.26]]), m, {}, 1));
   // the whisker curling up off the snout
-  if (o.whiskers !== null) out.push(...path(P([[1.1, -0.14], [1.32, -0.3], [1.22, -0.52], [1.42, -0.72], [1.3, -0.92]]), 0.055 * k, o.whiskers ?? 'gold'));
+  if (o.whiskers !== null) out.push(...path(P([[1.1, -0.14], [1.3, -0.32], [1.22, -0.52]]), 0.055 * k, o.whiskers ?? 'gold'));
   return out;
 }

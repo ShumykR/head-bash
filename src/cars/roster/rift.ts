@@ -153,7 +153,6 @@ export const RIFT = group('rift', [
       // the summoned ghost dragon: a pale glowing body coiling up out of the crystals, a wing spread
       // behind, and the head reared over the front, jaws open for the fire
       ...path([[-0.9, f.roof.y + 0.05], [-1.35, f.roof.y - 0.35], [-1.05, f.roof.y - 0.75], [-0.5, f.roof.y - 0.65], [0.1, f.roof.y - 0.8], [f.roof.x1 + 0.1, f.roof.y - 0.8]], 0.3, 'sky'),
-      ...[[-1.25, -0.5], [-0.8, -0.78], [-0.25, -0.75], [0.3, -0.9]].map(([x, y]) => poly([[x - 0.12, f.roof.y + y - 0.12], [x + 0.12, f.roof.y + y - 0.14], [x - 0.06, f.roof.y + y - 0.38]], 'white')),
       poly([[-0.5, f.roof.y - 0.7], [-1.25, f.roof.y - 1.5], [-0.8, f.roof.y - 1.3], [-0.45, f.roof.y - 1.6], [-0.2, f.roof.y - 1.2], [0.1, f.roof.y - 1.4], [0.05, f.roof.y - 0.8]], 'teal'),
       ...[[-1.25, -1.5], [-0.45, -1.6], [0.1, -1.4]].map(([x, y]) => seg([-0.3, f.roof.y - 0.75], [x, f.roof.y + y], 0.04, 'white')),
       ...dragonHead(f.roof.x1 + 0.25, f.roof.y - 0.7, 0.95, { mat: 'sky', snout: 'white', mane: ['teal', 'accent'], spikes: 'white', horn: 'white', whiskers: 'accent', maneLen: 0.45 }),
