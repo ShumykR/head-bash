@@ -1,5 +1,5 @@
 // Shooting accuracy: every shooter fires once at a parked car on flat ground from 5–20 m.
-//   npx tsx scripts/shothit.ts      (FOES=id,id to change the targets)
+//   npx tsx scripts/shothit.ts      (FOES=id,id to change the targets, ONLY=id,id to pick the shooters)
 // H = head hit (kill), c = touched the car, . = missed.
 import { Game } from '../src/game/game';
 import { CARS, CAR_BY_ID } from '../src/cars/defs';
@@ -11,6 +11,7 @@ const foes = (process.env.FOES ?? 'sparrow,bulldog,american-car').split(',');
 const out:any[] = [];
 for (const d of CARS as any[]) {
   if (d.ability?.kind !== 'shoot') continue;
+  if (process.env.ONLY && !process.env.ONLY.split(',').includes(d.id)) continue;
   const row:any = { id: d.id, proj: d.ability.projectile };
   let tot = 0;
   for (const D of DIST) {

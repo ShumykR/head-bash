@@ -35,7 +35,7 @@ describe('abilities', () => {
     expect(none).toBeLessThan(CARS.length * 0.75);
   });
   it('abilities fit the car', () => {
-    expect(abilityOf(CAR_BY_ID.tank)?.projectile).toBe('cannon');
+    expect(abilityOf(CAR_BY_ID.tank)?.projectile).toBe('tankshell');
     expect(abilityOf(CAR_BY_ID['toaster-racer'])?.projectile).toBe('toast');
     expect(abilityOf(CAR_BY_ID['snowball-cannon'])?.projectile).toBe('bigsnow');
     expect(abilityOf(CAR_BY_ID['flying-saucer'])?.kind).toBe('beam');
