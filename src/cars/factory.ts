@@ -1044,6 +1044,8 @@ export interface CarSpec {
   cargo?: [ItemKind, number];
   /** Where the cargo lies when not on the frame's deck (a trailer bed): [x0, x1, top]. */
   cargoAt?: (f: Frame) => [number, number, number];
+  /** Height of a closed hold above the bed (cargo counts as spilled only once above it). */
+  cargoDepth?: number;
   /** Weight on a chain, hung from a frame anchor. */
   flail?: { from: 'deck' | 'roof' | 'tail' | 'nose' | Pt; len: number; r: number; look: FlailDef['look']; on?: number };
   /** Extra drawing on top of the frame (render-only unless a poly sets deco: false). */
@@ -1215,6 +1217,7 @@ export function buildCar(spec: CarSpec): CarDef {
     const [kind, n] = spec.cargo;
     const [cx0, cx1, cy] = spec.cargoAt?.(f) ?? [f.deck.x0, f.deck.x1, f.deck.y];
     def.cargo = { kind, n, at: [+(cx0 * s).toFixed(3), +(cx1 * s).toFixed(3), +(cy * s).toFixed(3)] };
+    if (spec.cargoDepth) def.cargo.depth = +(spec.cargoDepth * s).toFixed(3);
   }
   if (spec.flail) {
     const fl = spec.flail;

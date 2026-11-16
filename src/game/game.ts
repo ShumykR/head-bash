@@ -1114,7 +1114,7 @@ export class Game {
     const lx = l.x * car.facing;
     const info = ITEMS[it.kind];
     const [x0, x1, top] = cg.at;
-    const up = Math.max(0.6, info.h * 2.2);
+    const up = Math.max(0.6, info.h * 2.2, (cg.depth ?? 0) + 0.1);
     if (lx < x0 - 0.15 || lx > x1 + 0.15 || l.y < top - up || l.y > top + 0.3) {
       // Spilled cargo stays on the field a while, then goes (the bed refills meanwhile).
       it.stowed = undefined;

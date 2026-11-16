@@ -63,7 +63,7 @@ describe('abilities', () => {
     expect(g.cars[1].flail).toBeNull();
   });
   it('a bed that lost its cargo fills up again, and the spilled load goes away later', () => {
-    for (const id of ['timber-lorry', 'landfill-truck', 'snow-truck', 'harvester', 'soccer-delivery']) {
+    for (const id of ['timber-lorry', 'landfill-truck', 'snow-truck', 'harvester', 'soccer-delivery', 'garbage-truck']) {
       expect(CAR_BY_ID[id].cargo, id).toBeDefined();
       expect(abilityOf(CAR_BY_ID[id]), id).toBeNull();
     }

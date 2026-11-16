@@ -126,6 +126,8 @@ export interface CargoDef {
   n: number;
   /** Bed span in car-local meters: x from..to, y = top of the bed. */
   at: [number, number, number];
+  /** How high the hold reaches above `at`'s top (a closed body); cargo above it has left. */
+  depth?: number;
 }
 
 /** A weight hanging on a chain (wrecking ball, mace tail). */

@@ -6,6 +6,8 @@ import type { Frame, LinkSpec } from '../factory';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
+/** Garbage truck: how far the open lid reaches forward from the back of the body, and the body's height. */
+const LID = 0.85, BIN = 1.25;
 
 /**
  * Semi-trailer behind a short tractor unit: its own body on a fifth-wheel hinge over the
@@ -89,20 +91,50 @@ export const RETRO = group('retro', [
       };
     })],
   }],
-  ['garbage-truck', 'Garbage Truck', 'Сміттєвоз. Вивалює мішки сміття під колеса суперникові.', 'truck', ['#3a8a5a', '#c0c8d0'], {
-    parts: [['cargo', 1]], hideParts: true,
-    skin: (f) => [
-      ...truckCab(f),
-      rr(f.deck.x0 + 0.1, f.deck.y - 0.95, f.deck.x1 + 0.02, f.deck.y + 0.12, 0.06, 'accent'),
-      ...[0.5, 1.0, 1.5, 2.0].map((dx) => rect(f.deck.x0 + dx, f.deck.y - 0.88, f.deck.x0 + dx + 0.05, f.deck.y + 0.05, 'grey', { flat: true })),
-      blob([[f.deck.x0 - 0.3, f.deck.y + 0.15], [f.deck.x0 - 0.35, f.deck.y - 0.75], [f.deck.x0 - 0.1, f.deck.y - 1.02], [f.deck.x0 + 0.2, f.deck.y - 1.02], [f.deck.x0 + 0.2, f.deck.y + 0.15]], 'body', {}, 1),
-      rect(f.deck.x0 - 0.28, f.deck.y - 0.25, f.deck.x0 + 0.05, f.deck.y + 0.08, 'black'),
-      stripe(f.deck.x0 + 0.25, f.deck.x1, f.deck.y - 0.42, 0.14, 'body'),
-      ...[0, 1, 2, 3, 4].map((i) => poly([[f.deck.x0 - 0.28, f.deck.y - 0.7 + i * 0.16], [f.deck.x0 + 0.18, f.deck.y - 0.78 + i * 0.16], [f.deck.x0 + 0.18, f.deck.y - 0.7 + i * 0.16], [f.deck.x0 - 0.28, f.deck.y - 0.62 + i * 0.16]], 'yellow', { flat: true })),
-      circ((f.deck.x0 + f.deck.x1) / 2 + 0.2, f.deck.y - 0.68, 0.16, 'white'), ...[0, 1, 2].map((i) => poly([[(f.deck.x0 + f.deck.x1) / 2 + 0.2 + Math.cos(i * 2.1) * 0.12, f.deck.y - 0.68 + Math.sin(i * 2.1) * 0.12], [(f.deck.x0 + f.deck.x1) / 2 + 0.2 + Math.cos(i * 2.1 + 0.9) * 0.12, f.deck.y - 0.68 + Math.sin(i * 2.1 + 0.9) * 0.12], [(f.deck.x0 + f.deck.x1) / 2 + 0.2, f.deck.y - 0.68]], 'green')),
-      rr(f.deck.x0 + 0.1, f.deck.y + 0.06, f.deck.x1, f.deck.y + 0.16, 0.03, 'dark'),
-      ...beacon(f.roof.x0 + 0.35, f.roof.y, 'orange', 0.14),
-    ],
+  ['garbage-truck', 'Garbage Truck', 'Сміттєвоз із закритим кузовом-баком і відкинутою кришкою ззаду: на ямах і під ударами мішки сміття вилітають крізь неї, а згодом бак знову повний.', 'truck', ['#3a8a5a', '#c0c8d0'], {
+    // A tall closed refuse body, hollow inside: bags of trash ride in it out of sight and can
+    // only fly out through the lid on the back of its roof, which stands open.
+    cargo: ['trash', 7],
+    cargoAt: (f) => [f.deck.x0 + 0.1, f.deck.x1 - 0.16, f.deck.y],
+    cargoDepth: BIN,
+    art: (f) => {
+      const d = f.deck;
+      return [
+        hidden(rect(d.x0 - 0.02, d.y - BIN, d.x0 + 0.08, d.y, 'body', { deco: false })), // back wall
+        hidden(rect(d.x1 - 0.14, d.y - BIN, d.x1 - 0.04, d.y, 'body', { deco: false })), // front wall
+        hidden(rect(LID + d.x0, d.y - BIN - 0.07, d.x1 - 0.04, d.y - BIN + 0.03, 'body', { deco: false })), // roof ahead of the lid
+      ];
+    },
+    skin: (f) => {
+      const d = f.deck, hx = d.x0 + LID, top = d.y - BIN;
+      return [
+        ...truckCab(f),
+        // the body: closed side panel with ribs, a rounded back
+        blob([[d.x0 - 0.3, d.y + 0.15], [d.x0 - 0.38, d.y - 0.8], [d.x0 - 0.16, top], [d.x1 + 0.02, top], [d.x1 + 0.02, d.y + 0.12]], 'accent', {}, 1),
+        rr(d.x0 + 0.08, top + 0.14, d.x1 - 0.1, d.y - 0.06, 0.03, 'body'),
+        ...[0.62, 1.22, 1.82].map((dx) => rect(d.x0 + dx, top + 0.14, d.x0 + dx + 0.07, d.y - 0.08, 'accent', { flat: true })),
+        circ((d.x0 + d.x1) / 2 + 0.25, d.y - 0.6, 0.16, 'white'),
+        ...[0, 1, 2].map((i) => poly([[(d.x0 + d.x1) / 2 + 0.25 + Math.cos(i * 2.1) * 0.12, d.y - 0.6 + Math.sin(i * 2.1) * 0.12], [(d.x0 + d.x1) / 2 + 0.25 + Math.cos(i * 2.1 + 0.9) * 0.12, d.y - 0.6 + Math.sin(i * 2.1 + 0.9) * 0.12], [(d.x0 + d.x1) / 2 + 0.25, d.y - 0.6]], 'green')),
+        // hazard stripes on the back
+        ...[0, 1, 2, 3].map((i) => poly([[d.x0 - 0.3, d.y - 0.55 + i * 0.16], [d.x0 + 0.02, d.y - 0.62 + i * 0.16], [d.x0 + 0.02, d.y - 0.55 + i * 0.16], [d.x0 - 0.3, d.y - 0.48 + i * 0.16]], 'yellow', { flat: true })),
+        rect(d.x0 - 0.28, d.y - 0.12, d.x0 + 0.05, d.y + 0.08, 'black'),
+        // the open hole in the roof and its lid swung up and back on a hinge
+        rect(d.x0 - 0.12, top - 0.01, hx, top + 0.09, 'black', { flat: true }),
+        // the lid: a thick plate swung up and back about its hinge, a pair of hazard stripes on it
+        ...((): CarPoly[] => {
+          const L = 0.9, t = 0.16, ux = -0.77, uy = -0.64, nx = 0.64, ny = -0.77;
+          const at = (a: number, b: number): Pt => [hx + ux * a + nx * b, top + uy * a + ny * b];
+          return [
+            poly([at(0, 0), at(L, 0), at(L, t), at(0, t)], 'body'),
+            poly([at(0.05, t * 0.65), at(L, t * 0.65), at(L, t), at(0.05, t)], 'accent', { flat: true }),
+            ...[0.3, 0.6].map((k) => poly([at(L * k, 0), at(L * k + 0.08, 0), at(L * k + 0.14, t * 0.65), at(L * k + 0.06, t * 0.65)], 'yellow', { flat: true })),
+          ];
+        })(),
+        circ(hx, top - 0.01, 0.06, 'dark'),
+        rr(d.x0 + 0.1, d.y + 0.06, d.x1, d.y + 0.16, 0.03, 'dark'),
+        ...beacon(f.roof.x0 + 0.35, f.roof.y, 'orange', 0.14),
+      ];
+    },
   }],
   ['minibus', 'Minibus', 'Пасажирський мікроавтобус на дев\'ять місць.', 'van', ['#f0c040', '#ffffff'], {
     o: o({ len: 1.4 }), axles: [0.8, 0.8],
