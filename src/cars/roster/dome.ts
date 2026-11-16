@@ -1,4 +1,4 @@
-import { blob, circ, ell, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
+import { blob, circ, ell, fender, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
 import { arc, bike, boxy, frontLamp, rearLamp, truckCab } from '../skins';
 import { fishCar } from '../critters';
 import { group, o } from './util';
@@ -32,12 +32,30 @@ export const DOME = group('dome', [
     ],
   }],
   ['compensator-bike', 'Compensator Bike', 'Надмірно довгий чопер: вилка до неба.', 'bike', ['#c0c0c8', '#e02a2a'], {
-    o: o({ len: 1.4 }),
-    skin: (f) => [
-      ...bike(f, { style: 'chopper' }),
-      ...path([[f.wheels[1].x, f.wheels[1].y], [1.15, -1.0]], 0.08, 'chrome'), ...path([[1.15, -1.0], [1.0, -1.15], [0.8, -1.12]], 0.07, 'black'),
-      ...flameDecal(0.6, -0.5, -0.12, 0.18),
-    ],
+    // Our description: a chopper with a fork up to the sky. Drive Ahead: half bike, half monster truck,
+    // a monster wheel up front, a normal one behind and two big exhaust stacks over the rear wheel.
+    o: o({ len: 1.4 }), axles: [0.9, 1.5],
+    skin: (f) => {
+      const rw = f.wheels[0], fw = f.wheels[1], hx = f.head.x;
+      const top: [number, number] = [fw.x - 0.75, -1.45];
+      return [
+        // two tall exhaust stacks rising over the rear wheel
+        ...[0, 0.16].flatMap((d) => [...path([[hx + 0.15, 0.2], [rw.x + 0.25 - d, 0.05], [rw.x + 0.05 - d, -0.95 - d]], 0.1, 'chrome'), rr(rw.x - 0.05 - d, -1.08 - d, rw.x + 0.15 - d, -0.95 - d, 0.03, 'dark')]),
+        // frame, seat, engine and tank
+        seg([rw.x, rw.y], [hx + 0.25, 0.15], 0.11, 'dark'), seg([hx - 0.2, -0.3], [top[0], top[1] + 0.35], 0.1, 'dark'),
+        rr(hx - 0.5, -0.4, hx + 0.1, -0.26, 0.06, 'black'),
+        rr(hx + 0.0, -0.05, hx + 0.65, 0.3, 0.07, 'grey'), ...[0, 1, 2].map((i) => rect(hx + 0.05, 0.0 + i * 0.09, hx + 0.6, 0.03 + i * 0.09, 'dark', { flat: true })),
+        blob([[hx + 0.05, -0.3], [hx + 0.2, -0.6], [top[0] + 0.1, -0.7], [top[0] + 0.2, -0.45], [hx + 0.6, -0.12]], 'body', {}, 1),
+        ...flameDecal(hx + 0.2, top[0], -0.42, 0.1),
+        fender(rw.x, rw.y, rw.r, 0.1, 'body'),
+        // the monster fork: twin chrome legs from the huge front hub right up into the sky
+        seg([fw.x, fw.y], top, 0.12, 'chrome'), seg([fw.x + 0.1, fw.y], [top[0] + 0.1, top[1]], 0.07, 'grey'),
+        fender(fw.x, fw.y, fw.r, 0.12, 'accent'),
+        ...path([[top[0], top[1]], [top[0] - 0.08, top[1] - 0.18], [top[0] - 0.4, top[1] - 0.2]], 0.07, 'chrome'), rect(top[0] - 0.48, top[1] - 0.25, top[0] - 0.32, top[1] - 0.16, 'black'),
+        circ(top[0] + 0.05, top[1] + 0.3, 0.1, 'chrome'), circ(top[0] + 0.07, top[1] + 0.3, 0.06, 'light'),
+        rearLamp(rw.x - 0.36, -0.1, 0.1),
+      ];
+    },
   }],
   ['lucky-shark', 'Lucky Shark Mobile', 'Машина-акула з плавником і зубатою пащею.', 'sports', ['#6a8ab0', '#ffffff'], {
     parts: ['fin'], noLights: true, hideParts: true,

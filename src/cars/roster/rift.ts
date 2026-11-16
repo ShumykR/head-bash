@@ -89,14 +89,25 @@ export const RIFT = group('rift', [
     ],
   }],
   ['bat-holder', 'Bat Holder', 'Візок-сідало, повний кажанів.', 'cart', ['#3a2a4a', '#a050e0'], {
-    parts: ['wings'], noLights: true, hideParts: true,
+    o: o({ len: 1.6 }), parts: ['wings'], noLights: true, hideParts: true, wheelie: 0.6,
     skin: (f) => [
       blob([[f.tail.x, f.deck.y], [f.nose.x, f.deck.y], [f.nose.x - 0.18, 0.16], [f.tail.x + 0.18, 0.16]], 'body', {}, 1),
       ...path([[f.tail.x + 0.1, f.deck.y], [f.tail.x + 0.1, f.deck.y - 0.7], [f.nose.x - 0.1, f.deck.y - 0.7], [f.nose.x - 0.1, f.deck.y]], 0.07, 'wood'),
-      ...[-0.5, 0.0, 0.5].map((x) => [
-        poly([[x - 0.25, f.deck.y - 0.55], [x - 0.05, f.deck.y - 0.62], [x, f.deck.y - 0.45], [x + 0.05, f.deck.y - 0.62], [x + 0.25, f.deck.y - 0.55], [x + 0.12, f.deck.y - 0.35], [x, f.deck.y - 0.3], [x - 0.12, f.deck.y - 0.35]], 'black'),
-        circ(x - 0.04, f.deck.y - 0.45, 0.025, 'red'), circ(x + 0.04, f.deck.y - 0.45, 0.025, 'red'),
-      ]).flat(),
+      // bats hang upside down from the perch either side of the driver, more roost on top of it
+      ...[f.tail.x + 0.3, f.tail.x + 0.75, f.nose.x - 0.75, f.nose.x - 0.3].filter((x) => Math.abs(x - f.head.x) > 0.42).flatMap((x) => {
+        const y = f.deck.y - 0.62;
+        return [
+          seg([x, y - 0.08], [x, y], 0.03, 'black'),
+          poly([[x - 0.26, y + 0.05], [x - 0.1, y + 0.02], [x - 0.08, y + 0.3], [x - 0.2, y + 0.22]], 'accent'),
+          poly([[x + 0.26, y + 0.05], [x + 0.1, y + 0.02], [x + 0.08, y + 0.3], [x + 0.2, y + 0.22]], 'accent'),
+          ell(x, y + 0.17, 0.09, 0.15, 'dark'), circ(x - 0.04, y + 0.25, 0.025, 'red'), circ(x + 0.04, y + 0.25, 0.025, 'red'),
+          poly([[x - 0.06, y + 0.33], [x - 0.02, y + 0.3], [x - 0.05, y + 0.38]], 'dark'), poly([[x + 0.06, y + 0.33], [x + 0.02, y + 0.3], [x + 0.05, y + 0.38]], 'dark'),
+        ];
+      }),
+      ...[f.tail.x + 0.55, f.nose.x - 0.6].flatMap((x) => {
+        const y = f.deck.y - 0.8;
+        return [poly([[x - 0.22, y - 0.12], [x - 0.06, y - 0.02], [x, y - 0.1], [x + 0.06, y - 0.02], [x + 0.22, y - 0.12], [x + 0.1, y + 0.04], [x - 0.1, y + 0.04]], 'accent'), ell(x, y - 0.03, 0.07, 0.08, 'dark'), circ(x - 0.025, y - 0.05, 0.02, 'red'), circ(x + 0.025, y - 0.05, 0.02, 'red')];
+      }),
       stripe(f.tail.x + 0.1, f.nose.x - 0.1, f.deck.y + 0.25, 0.06, 'accent'),
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.09, 'body')),
       ...path([[f.nose.x - 0.1, f.deck.y - 0.7], [f.nose.x + 0.15, f.deck.y - 0.85]], 0.04, 'wood'), ell(f.nose.x + 0.18, f.deck.y - 0.7, 0.08, 0.11, 'light'),

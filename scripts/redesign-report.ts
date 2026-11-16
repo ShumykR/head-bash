@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { CARS } from '../src/cars/defs';
 
 interface Score { z: number[]; k: number[]; p: number }
-interface Round3 { verdict: string; note: string; after: Score }
+interface Round3 { verdict: string; note: string; change?: string; after: Score }
 interface Eval { id: string; group: string; ref: string; before: Score; gap: string; redo: string; after?: Score; da?: string; round1?: unknown; r3?: Round3 }
 
 const DIR = 'docs/redesign/evals';
@@ -28,7 +28,7 @@ const fmt = (s?: Score) => (s ? `${s.z.join('')} · ${s.k.join('')} · ${s.p} �
 const lines = [
   '# Оцінка кожного авто',
   '',
-  'Згенеровано `npx tsx scripts/redesign-report.ts` з `evals/*.json`. Формат оцінки: `Z1..Z6 · K1..K3 · P → підсумок` (див. README). ² — перемальоване в другому раунді (референси з фандому Drive Ahead): «До» тут — підсумок першого раунду, а перший раунд збережено в `round1`. «Раунд 3» — повторна перевірка всіх авто з пропорціями коліс по осях: «осі» — змінено розміри коліс, «перемальовано» — новий малюнок, «без змін» — авто пройшло перевірку як є.',
+  'Згенеровано `npx tsx scripts/redesign-report.ts` з `evals/*.json`. Формат оцінки: `Z1..Z6 · K1..K3 · P → підсумок` (див. README). ² — перемальоване в другому раунді (референси з фандому Drive Ahead): «До» тут — підсумок першого раунду, а перший раунд збережено в `round1`. «Раунд 3» — окрема оцінка кожного авто за спрайтом, нашим описом, зображенням і текстом сторінки фандому та пропорціями коліс по осях: «оцінено» — без змін у малюнку, «осі» — змінено розміри коліс, «перемальовано» / «виправлено» — новий малюнок (у дужках — що змінено), далі — висновок оцінки.',
   '',
 ];
 let done = 0, sb = 0, sa = 0, s3 = 0;
@@ -41,7 +41,7 @@ for (const cat of cats) {
     const e = evals.get(c.id);
     if (!e) { lines.push(`| ${c.name} | | | | ще не оцінено | | | | | |`); continue; }
     if (e.after) { done++; sb += total(e.before); sa += total(e.after); s3 += total(e.r3?.after ?? e.after); }
-    const r3 = e.r3 ? `${e.r3.verdict}: ${e.r3.note}` : '—';
+    const r3 = e.r3 ? `**${e.r3.verdict}**${e.r3.change ? ` (${e.r3.change})` : ''}: ${e.r3.note}` : '—';
     lines.push(`| ${c.name}${e.round1 ? ' ²' : ''} | ${e.group} | ${e.ref} | ${e.da ?? '—'} | ${fmt(e.before)} | ${e.gap} | ${e.redo} | ${fmt(e.after)} | ${r3} | ${fmt(e.r3?.after ?? e.after)} |`);
   }
   lines.push('');

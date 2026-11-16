@@ -198,6 +198,9 @@ export const ALIEN = group('alien', [
       ...[-0.8, -0.4, 0.0].map((x) => poly([[x, -0.32], [x + 0.2, -0.32], [x + 0.1, -0.52]], 'red')),
       ...path([[-0.6, -0.75], [-0.8, -1.25]], 0.05, 'grey'), circ(-0.8, -1.3, 0.08, 'red'),
       ...path([[f.tail.x + 0.3, 0.2], [f.tail.x + 0.1, 0.5]], 0.07, 'grey'), ...path([[f.nose.x - 0.3, 0.2], [f.nose.x - 0.1, 0.5]], 0.07, 'grey'),
+      // two laser guns on the sides (as in Drive Ahead) and the drone's rotors on outriggers
+      ...[[f.tail.x - 0.05, -1], [f.nose.x + 0.05, 1]].flatMap(([x, d]) => [rr(Math.min(x, x + d * 0.45), -0.42, Math.max(x, x + d * 0.45), -0.28, 0.04, 'grey'), rr(Math.min(x + d * 0.4, x + d * 0.55), -0.4, Math.max(x + d * 0.4, x + d * 0.55), -0.3, 0.03, 'red')]),
+      ...[f.tail.x + 0.35, f.nose.x - 0.35].flatMap((x) => [seg([x, -0.45], [x, -0.82], 0.05, 'grey'), ell(x, -0.86, 0.38, 0.05, 'grey', { flat: true }), rect(x - 0.05, -0.92, x + 0.05, -0.82, 'dark')]),
     ],
   }],
   ['celestial-teapot', 'Celestial Teapot', 'Космічний чайник на реактивній тязі. Хлюпає окропом.', 'blob', ['#f0f0f0', '#4a8ad8'], {

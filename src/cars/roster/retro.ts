@@ -1,7 +1,7 @@
 import { tailgate } from '../art';
 import { beacon, blob, bumper, checkers, circ, door, ell, fender, flameDecal, grille, headlight, ladder, lightbar, pane, path, plus, poly, rect, rr, seat, seg, spare, stack, starShape, stripe, taillight, tank, truss, windows } from '../draw';
 import { dragsterBody, bike, boxy, carriage, fenders, formula, frontLamp, kart, monsterChassis, pickup, rearLamp, sedan, skirt, tracks, tractor, truckCab } from '../skins';
-import type { CarPoly, Pt } from '../types';
+import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame, LinkSpec } from '../factory';
 import { group, o } from './util';
 
@@ -109,7 +109,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['minibus', 'Minibus', 'Пасажирський мікроавтобус на дев\'ять місць.', 'van', ['#f0c040', '#ffffff'], {
-    o: o({ len: 1.1 }),
+    o: o({ len: 1.4 }), axles: [0.8, 0.8],
     skin: (f) => [
       ...boxy(f, { win: 3, winX: [f.tail.x + 0.15, f.nose.x - 0.55], winY: [f.roof.y + 0.12, f.roof.y + 0.45] }),
       stripe(f.tail.x, f.nose.x, -0.12, 0.1, 'accent'), stripe(f.tail.x, f.nose.x, 0.0, 0.05, 'dark'),
@@ -120,17 +120,26 @@ export const RETRO = group('retro', [
   }],
   ['tourist-bus', 'Tourist Bus', 'Двоповерховий екскурсійний автобус з відкритим верхом.', 'bus', ['#e84040', '#fff0c0'], {
     o: o({ tall: 1.45, wheels: 3 }),
+    // Open top (our description) with the rider up on the top deck (as in Drive Ahead), flame decal on the side.
+    head: (f) => [f.nose.x - 0.55, f.roof.y + 0.12],
     skin: (f) => {
-      const t = f.roof.y;
+      const t = f.roof.y, w = t + 0.42;
+      const posts = Array.from({ length: 7 }, (_, i) => f.tail.x + 0.12 + i * ((f.nose.x - f.tail.x - 0.35) / 6));
       return [
-        ...boxy(f, { slope: 0.2, slopeH: 0.3, screen: false, round: 0.12 }),
-        ...windows(f.tail.x + 0.15, f.nose.x - 0.25, t + 0.12, t + 0.5, 5),
+        // the open upper deck: tourists on the bench seats behind a handrail
+        ...([[0.35, 'red'], [0.95, 'yellow'], [1.55, 'green'], [2.15, 'blue']] as [number, CarMat][]).flatMap(([dx, c]) => {
+          const x = f.tail.x + dx;
+          return [rr(x - 0.15, t + 0.22, x + 0.15, w, 0.06, c), circ(x, t + 0.12, 0.13, 'tan'), rect(x - 0.13, t - 0.0, x + 0.13, t + 0.05, c)];
+        }),
+        ...posts.map((x) => rect(x - 0.03, t + 0.02, x + 0.03, w, 'chrome')),
+        rr(f.tail.x + 0.06, t - 0.02, f.nose.x - 0.2, t + 0.06, 0.03, 'chrome'),
+        ...boxy(f, { top: w, slope: 0.2, slopeH: 0.3, screen: false, round: 0.12 }),
+        ...flameDecal(f.tail.x + 0.3, f.nose.x - 1.2, 0.1, 0.16),
         ...windows(f.tail.x + 0.15, f.nose.x - 0.55, -0.5, -0.16, 4),
         rr(f.nose.x - 0.5, -0.55, f.nose.x - 0.04, -0.12, 0.05, 'glass'),
         stripe(f.tail.x, f.nose.x, -0.66, 0.1, 'accent'), stripe(f.tail.x, f.nose.x, 0.02, 0.08, 'accent'),
         rect(f.nose.x - 1.05, -0.5, f.nose.x - 0.62, 0.22, 'body', { ring: true }), rect(f.nose.x - 1.0, -0.45, f.nose.x - 0.67, -0.1, 'glass'),
-        rr(f.nose.x - 0.55, t - 0.02, f.nose.x - 0.1, t + 0.1, 0.03, 'black'), rect(f.nose.x - 0.5, t + 0.02, f.nose.x - 0.3, t + 0.07, 'yellow', { flat: true }),
-        rr(f.tail.x + 0.4, -0.86, f.nose.x - 1.3, -0.7, 0.03, 'white'), ...[0, 1, 2, 3].map((i) => rect(f.tail.x + 0.5 + i * 0.3, -0.82, f.tail.x + 0.7 + i * 0.3, -0.74, i % 2 ? 'blue' : 'red', { flat: true })),
+        rr(f.nose.x - 0.55, w + 0.04, f.nose.x - 0.1, w + 0.16, 0.03, 'black'), rect(f.nose.x - 0.5, w + 0.08, f.nose.x - 0.3, w + 0.13, 'yellow', { flat: true }),
         stripe(f.tail.x, f.nose.x, -0.58, 0.03, 'gold'),
       ];
     },
@@ -404,7 +413,8 @@ export const RETRO = group('retro', [
     ],
   }],
   ['american-car', 'American Car', 'Седан 70-х: хромовані бампери і хвостові плавники.', 'sedan', ['#4a6ad8', '#e0e0e0'], {
-    o: o({ len: 1.1 }),
+    axles: [0.8, 0.8],
+    o: o({ len: 1.25 }),
     skin: (f) => [
       ...sedan(f, { fins: true, roof: 'sedan', bumper: null }),
       poly([[f.tail.x - 0.02, -0.14], [f.tail.x + 0.55, -0.16], [f.tail.x + 0.02, -0.36]], 'body'),
@@ -735,11 +745,13 @@ export const RETRO = group('retro', [
     ],
   }],
   ['muscle-car', 'Muscle Car', 'Потужне купе з подвійними гоночними смугами.', 'coupe', ['#ff8a1a', '#1a1a1a'], {
-    axles: [1.12, 0.94],
+    axles: [0.9, 0.78], o: o({ len: 1.15 }),
     parts: ['wing'], speed: 1.1, accel: 1.1, hideParts: true,
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', bumper: 'chrome' }),
-      stripe(f.tail.x, f.nose.x - 0.1, -0.12, 0.05, 'accent'), stripe(f.tail.x, f.nose.x - 0.05, -0.04, 0.05, 'accent'),
+      stripe(f.tail.x + 0.05, f.nose.x - 0.1, -0.1, 0.07, 'white'), stripe(f.tail.x + 0.05, f.nose.x - 0.05, 0.01, 0.07, 'white'),
+      // the double racing stripes run over the roof too
+      rect(f.roof.x0 + 0.25, f.roof.y - 0.01, f.roof.x0 + 0.33, f.roof.y + 0.06, 'white', { flat: true }), rect(f.roof.x0 + 0.38, f.roof.y - 0.01, f.roof.x0 + 0.46, f.roof.y + 0.06, 'white', { flat: true }),
       rr(0.5, -0.36, 1.05, -0.14, 0.05, 'black'), rect(0.55, -0.3, 1.0, -0.26, 'dark', { flat: true }),
       ...path([[-0.2, 0.26], [f.tail.x - 0.15, 0.24]], 0.09, 'chrome'),
       seg([f.tail.x + 0.2, -0.14], [f.tail.x + 0.15, -0.34], 0.06, 'black'), rr(f.tail.x - 0.05, -0.42, f.tail.x + 0.45, -0.32, 0.03, 'black'),

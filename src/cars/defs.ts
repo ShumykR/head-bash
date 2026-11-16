@@ -469,8 +469,9 @@ const ORIGINALS: CarDef[] = [
       box(-0.88, -1.15, -0.78, -0.25, { mat: 'metal' }),
     ],
     wheels: [
-      { x: -0.65, y: 0.32, r: 0.3, rim: 'disc' },
-      { x: 0.65, y: 0.32, r: 0.3, rim: 'disc' },
+      // Hidden casters: the rubber skirt goes all the way down, as on a real bumper car.
+      { x: -0.65, y: 0.32, r: 0.3, rim: 'disc', hidden: true },
+      { x: 0.65, y: 0.32, r: 0.3, rim: 'disc', hidden: true },
     ],
     suspension: { hz: 5, damping: 0.6, travel: 0.12 },
     motor: { torque: 26, speed: 14 },

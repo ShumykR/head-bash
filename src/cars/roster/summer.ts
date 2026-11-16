@@ -93,13 +93,17 @@ export const SUMMER = group('summer', [
       stripe(f.tail.x, f.nose.x - 0.2, -0.28, 0.08, 'accent'), stripe(f.tail.x + 0.1, f.nose.x - 0.5, 0.0, 0.06, 'accent'),
       blob([[-0.6, -0.45], [-0.55, -0.88], [0.6, -0.9], [0.95, -0.45]], 'white', {}, 1), ...windows(-0.4, 0.6, -0.8, -0.58, 3, 0.08),
       circ(0.1, -0.68, 0.16, 'red'), circ(0.1, -0.68, 0.08, 'white'),
-      ...path([[0.3, -0.9], [0.3, -1.4]], 0.05, 'chrome'), poly([[0.33, -1.4], [0.33, -1.15], [0.75, -1.28]], 'accent'),
+      // the second deck: a flybridge with its own windows, a rail and the mast on top (two decks, as in Drive Ahead)
+      blob([[-0.25, -0.88], [-0.2, -1.2], [0.45, -1.22], [0.7, -0.88]], 'white', {}, 1), ...windows(-0.1, 0.5, -1.14, -0.98, 2, 0.06),
+      ...[-0.2, 0.15, 0.5].map((x) => rect(x - 0.02, -1.4, x + 0.02, -1.2, 'chrome')), rr(-0.25, -1.43, 0.55, -1.37, 0.02, 'chrome'),
+      ...path([[0.3, -1.2], [0.3, -1.8]], 0.05, 'chrome'), poly([[0.33, -1.8], [0.33, -1.55], [0.75, -1.68]], 'accent'),
       ...[-1.6, -1.3, -1.0].map((x) => [circ(x, -0.15, 0.08, 'chrome'), circ(x, -0.15, 0.055, 'glass')]).flat(),
       ...path([[f.tail.x + 0.1, -0.5], [-0.6, -0.55], [-0.6, -0.45]], 0.04, 'chrome'), ...path([[0.95, -0.48], [f.nose.x - 0.2, -0.55]], 0.04, 'chrome'),
       rr(-0.62, -0.95, 0.62, -0.88, 0.02, 'accent'),
     ],
   }],
   ['coupe', 'Coupé', 'Компактне дводверне купе.', 'coupe', ['#3ab0b0', '#ffffff'], {
+    axles: [0.8, 0.8],
     skin: (f) => [...sedan(f, { roof: 'coupe', pin: null }), poly([[f.tail.x + 0.1, -0.06], [f.nose.x - 0.2, 0.0], [f.nose.x - 0.2, 0.06], [f.tail.x + 0.1, 0.02]], 'white', { flat: true }), ...grille(f.nose.x - 0.06, -0.1, f.nose.x + 0.03, 0.12, 2), circ(-0.1, 0.12, 0.1, 'white'), rect(-0.13, 0.06, -0.07, 0.18, 'black', { flat: true })],
   }],
   ['speedboat', 'Speedboat', 'Швидкісний катер із номером на борту.', 'boat', ['#e02a2a', '#ffffff'], {
@@ -141,6 +145,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['taxi', 'Taxi', 'Жовте міське таксі з шашечками.', 'sedan', ['#ffd020', '#1a1a1a'], {
+    axles: [0.8, 0.8],
     parts: ['sign'], hideParts: true,
     skin: (f) => [
       ...sedan(f),

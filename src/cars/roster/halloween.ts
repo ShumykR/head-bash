@@ -1,6 +1,6 @@
 import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc } from '../draw';
 import { bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
-import { browEye, saddle, dims, quadruped } from '../critters';
+import { browEye, saddle, dims, quadruped, steed } from '../critters';
 import type { CarPoly } from '../types';
 import { group, o } from './util';
 
@@ -58,12 +58,19 @@ export const HALLOWEEN = group('halloween', [
         ...path([[1.0, -1.15], [1.0, -1.32]], 0.12, 'wood'), rr(0.88, -1.32, 1.12, -1.24, 0.03, 'wood'),
         ...path([[1.42, -1.12], [1.5, -0.9]], 0.05, 'red'), circ(1.5, -0.92, 0.04, 'gold'),
         ...eyeball(1.3, -1.18, 0.06), circ(1.78, -0.98, 0.03, 'black'),
+        // the rider's jousting lance (as in Drive Ahead): striped shaft, a cone guard at the grip
+        ...path([[f.head.x - 0.15, f.head.y + 0.42], [1.75, -2.25]], 0.09, 'white'),
+        ...[0.25, 0.45, 0.65, 0.85].map((k) => circ(f.head.x - 0.15 + (1.9 - f.head.x) * k, f.head.y + 0.42 + (-2.25 - f.head.y - 0.42) * k, 0.06, 'red')),
+        poly([[f.head.x + 0.2, f.head.y + 0.12], [f.head.x + 0.45, f.head.y + 0.35], [f.head.x + 0.22, f.head.y + 0.55]], 'grey'),
       ];
     },
   }],
   ['chariot', 'Chariot', 'Антична бойова колісниця з шипами на осях. Атакує ривком.', 'cart', ['#c8a040', '#e02a2a'], {
     o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'],
+    // As in Drive Ahead, a horse pulls the chariot (art only, it gallops ahead of the shaft).
     skin: (f) => [
+      ...steed(f.nose.x + 1.15, f.wheels[0].y + f.wheels[0].r, { mat: 'tan', mane: 'brown', s: 1.3 }),
+      rr(f.nose.x + 0.95, -0.2, f.nose.x + 1.45, -0.06, 0.03, 'accent'),
       blob([[f.tail.x + 0.1, f.deck.y + 0.15], [f.tail.x, f.deck.y - 0.35], [f.tail.x + 0.3, f.deck.y - 0.1], [f.nose.x - 0.2, f.deck.y - 0.15], [f.nose.x, f.deck.y - 0.6], [f.nose.x + 0.05, f.deck.y + 0.1], [f.nose.x - 0.2, 0.18], [f.tail.x + 0.2, 0.18]], 'gold', {}, 1),
       stripe(f.tail.x + 0.15, f.nose.x - 0.1, f.deck.y - 0.02, 0.06, 'accent'), stripe(f.tail.x + 0.15, f.nose.x - 0.1, 0.12, 0.06, 'accent'),
       circ(0.05, -0.2, 0.3, 'dark'), circ(0.05, -0.2, 0.26, 'accent'), starShape(0.05, -0.2, 0.16, 'gold'),

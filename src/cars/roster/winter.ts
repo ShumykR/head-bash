@@ -3,7 +3,7 @@ import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect
 import { bike, boxy, fenders, rocket, sedan, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
-import { quadruped } from '../critters';
+import { quadruped, steed } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -148,7 +148,12 @@ export const WINTER = group('winter', [
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
     float: 0.8, cargo: ['gift', 3],
+    // As in Drive Ahead, two reindeer pull the sleigh (art only), the leader with a glowing red nose.
     skin: () => [
+      ...steed(2.75, 0.27, { mat: 'brown', deer: true, s: 0.95 }),
+      ...path([[1.45, -0.3], [2.5, -0.75], [2.95, -0.8]], 0.035, 'gold'),
+      ...steed(2.15, 0.22, { mat: 'brown', deer: true, nose: 'red', s: 1.0 }),
+      ...path([[1.45, -0.25], [2.1, -0.68]], 0.035, 'gold'),
       ...path([[-1.6, 0.12], [-1.55, 0.2], [1.15, 0.2], [1.45, 0.1], [1.6, -0.15], [1.52, -0.38], [1.32, -0.42], [1.24, -0.28]], 0.1, 'gold'),
       ...[-1.1, -0.2, 0.7].map((x) => seg([x, 0.2], [x + 0.05, 0.02], 0.08, 'gold')),
       blob([[-1.62, 0.06], [-1.66, -0.72], [-1.5, -0.98], [-1.25, -0.92], [-1.15, -0.55], [-0.95, -0.38], [0.05, -0.38], [0.55, -0.45], [0.95, -0.72], [1.2, -0.7], [1.22, -0.45], [0.95, 0.06]], 'body', {}, 2),
@@ -407,8 +412,14 @@ export const WINTER = group('winter', [
     ],
   }],
   ['penguin-prisoner', 'Penguin Prisoner', 'Візок із пінгвіном у клітці. Пінгвін може вистрибнути!', 'cart', ['#3a3a4a', '#ffa020'], {
-    parts: ['cage'], cargo: ['penguin', 1], noLights: true,
+    // The penguin rides in a barred cage at the back, the driver sits up front.
+    o: o({ len: 1.35 }), cargo: ['penguin', 1], noLights: true, wheelie: 0.6,
+    cargoAt: (f) => [f.tail.x + 0.12, f.tail.x + 0.62, f.deck.y],
+    head: (f) => [f.nose.x - 0.42, f.deck.y - 0.32],
     skin: (f) => [
+      // the cage: roof and bars in front of the penguin (the penguin itself is the cargo, it can hop out)
+      rr(f.tail.x - 0.02, f.deck.y - 0.86, f.tail.x + 0.76, f.deck.y - 0.76, 0.03, 'accent'),
+      ...[0.02, 0.37, 0.7].map((dx) => rect(f.tail.x + dx, f.deck.y - 0.78, f.tail.x + dx + 0.05, f.deck.y, 'grey')),
       rr(f.tail.x, f.deck.y, f.nose.x, 0.18, 0.05, 'body'),
       stripe(f.tail.x, f.nose.x, f.deck.y + 0.2, 0.08, 'accent'),
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.1 + i * 0.32, 0.12], [f.tail.x + 0.25 + i * 0.32, 0.12], [f.tail.x + 0.35 + i * 0.32, f.deck.y + 0.08], [f.tail.x + 0.2 + i * 0.32, f.deck.y + 0.08]], 'yellow', { flat: true })),
