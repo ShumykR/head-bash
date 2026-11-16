@@ -14,7 +14,7 @@ import { Ragdoll } from './ragdoll';
 export type GamePhase = 'countdown' | 'play' | 'roundEnd' | 'matchEnd';
 
 export type EffectKind =
-  | 'freeze' | 'stun' | 'lift' | 'pull' | 'push' | 'web' | 'confuse' | 'stasis' | 'slow' | 'flat' | 'spring' | 'burn' | 'tether' | 'slip' | 'medkit' | 'reflect';
+  | 'freeze' | 'stun' | 'lift' | 'pull' | 'push' | 'web' | 'confuse' | 'stasis' | 'slow' | 'flat' | 'spring' | 'burn' | 'tether' | 'slip' | 'medkit' | 'reflect' | 'reload';
 
 export type GameEvent =
   | { type: 'roundStart'; round: number; map: MapDef }
@@ -100,6 +100,10 @@ const AIM_ASSIST = 0.26;
 /** For shots the head counts as this many times its radius. */
 const HEAD_SHOT_PAD = 1.5;
 const ROUND_END_DELAY = 2.8;
+/** Seconds before a bed that has lost cargo is filled again. */
+export const CARGO_RELOAD = 6;
+/** Seconds spilled cargo lies about before it disappears. */
+const CARGO_LITTER = 20;
 
 export class Game {
   world!: World;
@@ -132,6 +136,8 @@ export class Game {
   private itemId = 0;
   /** Extra ghost time spent waiting to get clear of the other car. */
   private phaseExtra = [0, 0];
+  /** Seconds each car's bed has been short of cargo. */
+  private cargoT = [0, 0];
   strikes: Strike[] = [];
   tethers: Tether[] = [];
   private strikeId = 0;
@@ -202,6 +208,7 @@ export class Game {
     this.strikes = [];
     this.tethers = [];
     this.phaseExtra = [0, 0];
+    this.cargoT = [0, 0];
     for (const c of this.cars) this.loadCargo(c);
     for (const pr of this.arena.props) this.spawnItem(pr.kind, -1, new Vec2(pr.x, pr.y), new Vec2(0, 0), Infinity);
     this.prevAction = [false, false];
@@ -277,6 +284,7 @@ export class Game {
     this.processContacts();
     this.stepShots();
     this.stepItems(dt);
+    this.stepCargo(dt);
     this.stepPhase(dt);
     this.stepCarFx(dt);
     this.stepArenaFx(dt);
@@ -1061,13 +1069,38 @@ export class Game {
     }
   }
 
-  /** Put a car's cargo into its bed. */
+  /** Put a car's cargo into its bed (only the slots nothing is in now). */
   private loadCargo(car: Car) {
     const cg = car.def.cargo;
     if (!cg) return;
+    const info = ITEMS[cg.kind];
+    const near = Math.max(info.w, info.h) * 0.6;
+    const foe = this.cars[1 - car.player];
+    const v = car.chassis.getLinearVelocity();
     for (const [lx, ly] of cargoSlots(cg)) {
       const at = car.chassis.getWorldPoint(new Vec2(lx * car.facing, ly));
-      this.spawnItem(cg.kind, car.player, at, new Vec2(0, 0), Infinity).stowed = car;
+      if (this.items.some((it) => !it.dead && Vec2.distance(it.body.getPosition(), at) < near)) continue;
+      if (foe.allBodies.some((b) => { for (let f = b.getFixtureList(); f; f = f.getNext()) if (f.testPoint(at)) return true; return false; })) continue;
+      const it = this.spawnItem(cg.kind, car.player, at, v, Infinity);
+      it.stowed = car;
+    }
+  }
+
+  /** A bed that has lost cargo fills up again a while later (the car must be upright). */
+  private stepCargo(dt: number) {
+    if (this.phase !== 'play') return;
+    for (const car of this.cars) {
+      const cg = car.def.cargo;
+      if (!cg || !car.alive) continue;
+      const have = this.items.filter((it) => it.stowed === car && !it.dead).length;
+      if (have >= cargoSlots(cg).length) { this.cargoT[car.player] = 0; continue; }
+      this.cargoT[car.player] += dt;
+      const a = car.chassis.getAngle();
+      if (this.cargoT[car.player] >= CARGO_RELOAD && Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.6) {
+        this.loadCargo(car);
+        this.cargoT[car.player] = 0;
+        this.emit({ type: 'effect', player: car.player, effect: 'reload', x: car.position.x, y: car.position.y });
+      }
     }
   }
 
@@ -1082,7 +1115,11 @@ export class Game {
     const info = ITEMS[it.kind];
     const [x0, x1, top] = cg.at;
     const up = Math.max(0.6, info.h * 2.2);
-    if (lx < x0 - 0.15 || lx > x1 + 0.15 || l.y < top - up || l.y > top + 0.3) it.stowed = undefined;
+    if (lx < x0 - 0.15 || lx > x1 + 0.15 || l.y < top - up || l.y > top + 0.3) {
+      // Spilled cargo stays on the field a while, then goes (the bed refills meanwhile).
+      it.stowed = undefined;
+      it.ttl = this.time - it.born + CARGO_LITTER;
+    }
   }
 
   spawnItem(kind: ItemKind, owner: number, at: Vec2, vel: Vec2, ttl: number, fx?: ItemFx): Item {

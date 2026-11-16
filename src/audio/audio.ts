@@ -157,6 +157,7 @@ export class AudioEngine {
   }
   shieldBlock() { this.tone(1400, 0.2, 'triangle', 0.15, 700); }
   effect(kind: string) {
+    if (kind === 'reload') { this.tone(500, 0.08, 'square', 0.06); this.tone(750, 0.1, 'square', 0.06, undefined, 0.08); return; }
     if (kind === 'freeze') [1600, 2000, 2400].forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.07, undefined, i * 0.04));
     else if (kind === 'stun') this.noiseBurst(0.3, 0.3, 5000, 0.4, 2000);
     else if (kind === 'lift') this.tone(400, 0.4, 'sine', 0.1, 900);

@@ -552,7 +552,7 @@ export class GameView {
         const cols: Record<string, number[]> = {
           freeze: [0xbfefff, 0xffffff, 0x5ad0f0], stun: [0xfff060, 0xffffff], lift: [0x8fe8ff, 0xffffff], pull: [0xc8a060, 0xffffff], push: [0x5ab0ff, 0xffffff], web: [0xffffff, 0xd0d0d8],
           confuse: [0xc07aff, 0xffffff], stasis: [0x5ab0ff, 0xa8d8ff], slow: [0x241830, 0x6a4a8a], flat: [0x303038, 0xd0d0d8], spring: [0xffd23f, 0xff3a5a, 0xffffff],
-          burn: [0xffd040, 0xff5020], tether: [0xc8a060, 0x9aa0ae], slip: [0xc89060, 0xffffff], medkit: [0xff4040, 0xffffff], reflect: [0xd8f4ff, 0xffffff],
+          burn: [0xffd040, 0xff5020], tether: [0xc8a060, 0x9aa0ae], slip: [0xc89060, 0xffffff], medkit: [0xff4040, 0xffffff], reflect: [0xd8f4ff, 0xffffff], reload: [0xfff0a0, 0xffffff],
         };
         this.particles.burst(e.x, e.y, 18, { speed: 5, colors: cols[e.effect], life: 0.4, size: 0.14, g: e.effect === 'push' ? 6 : 0, drag: 2 });
         break;
