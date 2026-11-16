@@ -104,6 +104,7 @@ export const DINO = group('dino', [
     ],
   }],
   ['t-rex', 'T. Rex', 'Тиранозавр: величезна паща, крихітні лапки і рик, що зносить машини.', 'creature', ['#3a6aa8', '#e8d8a0'], {
+    axles: [0.9, 1.1],
     o: o({ neck: 'raptor', len: 1.15, tall: 1.2 }), parts: ['tail'], noLights: true, hideParts: true,
     // The lower jaw hangs on its own hinge under the skull: it drops open on bumps and snaps shut.
     links: () => [{
@@ -129,6 +130,7 @@ export const DINO = group('dino', [
     ],
   }],
   ['velociraptor', 'Velociraptor', 'Швидкий велоцираптор: стрибає на здобич зі смугастою спиною.', 'creature', ['#c08a3a', '#c0302a'], {
+    axles: [0.9, 1.1],
     s: 0.85, o: o({ neck: 'raptor' }), parts: ['tail'], speed: 1.15, noLights: true, hideParts: true,
     skin: (f) => [
       ...theropod(f, { bulk: 0.72, tail: 1.1, tailUp: 0.05, stripes: 'accent', belly: 'tan' }),
@@ -208,6 +210,7 @@ export const DINO = group('dino', [
     ],
   }],
   ['allosaurus', 'Allosaurus', 'Хижий аллозавр із гребенями над очима.', 'creature', ['#a04a2a', '#f0d0a0'], {
+    axles: [0.9, 1.1],
     o: o({ neck: 'raptor' }), parts: ['teeth', 'tail'], noLights: true,
     skin: (f) => [
       ...theropod(f, { bulk: 0.9, tail: 1.0, tailUp: 0.25, stripes: null, belly: 'accent' }),
@@ -244,6 +247,7 @@ export const DINO = group('dino', [
     },
   }],
   ['mechasaurus', 'Mechasaurus', 'Кібердинозавр із ракетними пускачами на спині.', 'creature', ['#a0a8b8', '#e02a2a'], {
+    axles: [0.9, 1.1],
     gun: () => ({ at: [[-0.32, -0.98], [-0.1, -0.98], [0.12, -0.98]], aim: 35 }),
     o: o({ neck: 'raptor', mat: 'metal' }), parts: ['teeth', 'tail'], noLights: true, hideParts: true,
     // Every piece of the machine is bolted on separately: neck, steel jaw, whip antenna, tail.

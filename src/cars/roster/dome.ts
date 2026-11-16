@@ -64,9 +64,11 @@ export const DOME = group('dome', [
     ],
   }],
   ['hovercraft', 'Hovercraft', 'Судно на повітряній подушці з великим гвинтом. Ширяє над землею.', 'boat', ['#e0c020', '#2a2a2a'], {
-    parts: ['propeller'], float: 0.85, hideParts: true,
+    parts: ['propeller'], float: 0.85, hideParts: true, hideWheels: [0, 1],
+    // No visible wheels: the physics wheels hide inside an inflated rubber skirt down to the ground.
     skin: (f) => [
-      blob([[f.tail.x, 0.05], [f.nose.x + 0.1, 0.0], [f.nose.x - 0.2, 0.32], [f.tail.x + 0.15, 0.32]], 'black', {}, 2),
+      blob([[f.tail.x - 0.05, 0.02], [f.nose.x + 0.15, -0.02], [f.nose.x + 0.1, f.wheels[0].y + f.wheels[0].r - 0.15], [f.nose.x - 0.25, f.wheels[0].y + f.wheels[0].r], [f.tail.x + 0.2, f.wheels[0].y + f.wheels[0].r], [f.tail.x - 0.05, f.wheels[0].y + f.wheels[0].r - 0.15]], 'black', {}, 2),
+      ...[0, 1, 2, 3, 4, 5, 6].map((i) => rect(f.tail.x + 0.15 + i * ((f.nose.x - f.tail.x - 0.2) / 7), f.wheels[0].y + f.wheels[0].r - 0.12, f.tail.x + 0.19 + i * ((f.nose.x - f.tail.x - 0.2) / 7), f.wheels[0].y + f.wheels[0].r - 0.02, 'dark', { flat: true })),
       blob([[f.tail.x + 0.1, 0.05], [f.tail.x + 0.1, -0.42], [f.nose.x - 0.3, -0.5], [f.nose.x + 0.05, -0.2], [f.nose.x, 0.05]], 'body', {}, 1),
       rr(-0.2, -0.88, 0.75, -0.42, 0.08, 'white'), ...windows(-0.1, 0.65, -0.8, -0.55, 2, 0.08),
       stripe(f.tail.x + 0.1, f.nose.x, -0.2, 0.07, 'accent'),

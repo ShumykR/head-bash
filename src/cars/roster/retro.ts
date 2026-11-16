@@ -90,6 +90,7 @@ export const RETRO = group('retro', [
     })],
   }],
   ['farm-tractor', 'Tractor', 'Колісний трактор: велетенське заднє колесо і страшна тяга.', 'tractor', ['#3aa84a', '#ffd23f'], {
+    axles: [1.35, 0.8], head: (f) => [f.head.x + 0.05, -1.02],
     skin: (f) => [...tractor(f), stripe(-0.4, f.nose.x - 0.15, -0.16, 0.06, 'accent')],
   }],
   ['garbage-truck', 'Garbage Truck', 'Сміттєвоз. Вивалює мішки сміття під колеса суперникові.', 'truck', ['#3a8a5a', '#c0c8d0'], {
@@ -156,6 +157,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['race-car-f1', 'Race Car F1', 'Болід Формули-1. DRS відкриває заднє крило для ривка.', 'formula', ['#e02020', '#ffffff'], {
+    axles: [1.15, 0.88],
     skin: (f) => [...formula(f, { wing: 'black', num: true }), stripe(0.2, f.nose.x - 0.3, 0.0, 0.06, 'white')],
   }],
   ['banana-car', 'Banana Car', 'Машина-банан. Розкидає бананові шкірки, на яких суперники крутяться.', 'blob', ['#ffe23a', '#6a4a1a'], {
@@ -302,6 +304,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['hot-rod', 'Hot Rod', 'Тюнінговане американське купе з вогняним малюнком і закисом азоту.', 'sports', ['#1a1a1a', '#ff5a1a'], {
+    axles: [1.25, 0.8],
     parts: ['exhaust'], hideParts: true,
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', top: -0.6, rx0: -0.85, rx1: 0.05, bumper: 'chrome' }),
@@ -477,6 +480,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['forklift-truck', 'Forklift Truck', 'Складський навантажувач: вила підхоплюють суперника.', 'box', ['#ffc020', '#2a2a2a'], {
+    axles: [0.75, 1.1],
     s: 0.85, arch: 'scoop',
     skin: (f) => [
       rr(f.tail.x, -0.35, f.nose.x - 0.1, 0.3, 0.08, 'body'),
@@ -632,6 +636,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['baby-carriage', 'Baby Carriage', 'Дитячий візочок з каптуром і брязкальцем.', 'cart', ['#7ab0f0', '#ffffff'], {
+    axles: [1.2, 0.85], wheelie: 0.6,
     noLights: true,
     skin: (f) => [
       blob([[f.tail.x + 0.05, f.deck.y], [f.nose.x - 0.05, f.deck.y], [f.nose.x - 0.15, 0.12], [f.tail.x + 0.15, 0.12]], 'body', {}, 2),
@@ -730,6 +735,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['muscle-car', 'Muscle Car', 'Потужне купе з подвійними гоночними смугами.', 'coupe', ['#ff8a1a', '#1a1a1a'], {
+    axles: [1.12, 0.94],
     parts: ['wing'], speed: 1.1, accel: 1.1, hideParts: true,
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', bumper: 'chrome' }),

@@ -1,6 +1,6 @@
 import { tailgate } from '../art';
 import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows } from '../draw';
-import { bike, boxy, carriage, fenders, rocket, sedan, tracks, truckCab } from '../skins';
+import { bike, boxy, fenders, rocket, sedan, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { quadruped } from '../critters';
@@ -266,16 +266,33 @@ export const WINTER = group('winter', [
       stripe(0.06, 0.8, -0.9, 0.06, 'accent'),
     ],
   }],
-  ['snow-coach', 'Snow Coach', 'Пасажирський зимовий диліжанс із засніженим дахом.', 'carriage', ['#6a3a2a', '#e0c080'], {
-    o: o({ len: 1.2 }),
-    skin: (f) => [
-      ...carriage(f, { trim: 'accent' }),
-      snowCap(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y - 0.06, 0.14),
-      ...windows(-0.75, 0.75, f.roof.y + 0.18, f.roof.y + 0.55, 2, 0.15),
-      rect(-0.08, f.roof.y + 0.15, 0.08, 0.1, 'accent', { flat: true }),
-      ...icicles(-1.0, 1.0, f.roof.y + 0.05, 8),
-      rr(-0.7, f.roof.y - 0.4, -0.1, f.roof.y - 0.12, 0.04, 'brown'), rr(0.0, f.roof.y - 0.34, 0.45, f.roof.y - 0.12, 0.04, 'red'), rect(-0.42, f.roof.y - 0.4, -0.38, f.roof.y - 0.12, 'gold', { flat: true }),
-    ],
+  ['snow-coach', 'Snow Coach', 'Гусеничний снігобус: довгий обтічний кузов із рядом вікон, гусениця ззаду, лижа спереду.', 'carriage', ['#2a3a5a', '#e0c040'], {
+    // After Drive Ahead's Snow Coach: a Bombardier-style tracked snow bus. Both physics wheels hide inside the track.
+    o: o({ len: 1.2 }), hideWheels: [0, 1],
+    skin: (f) => {
+      const a = f.wheels[0], b = f.wheels[1], g = a.y + a.r;
+      const t0 = a.x - a.r - 0.1, t1 = b.x - 0.25, ty0 = g - 0.62;
+      return [
+        // rubber track under the rear two thirds, with lugs, bogies and a sprocket
+        rr(t0, ty0, t1, g, 0.31, 'rubber'),
+        ...Array.from({ length: 11 }, (_, i) => rect(t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) - 0.04, g - 0.02, t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) + 0.04, g + 0.05, 'rubber')),
+        rr(t0 + 0.1, ty0 + 0.1, t1 - 0.1, g - 0.1, 0.21, 'dark'),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.15, 'grey')),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.05, 'chrome')),
+        // front ski on a sprung leg
+        ...path([[b.x - 0.1, ty0 + 0.05], [b.x + 0.05, g - 0.08]], 0.11, 'dark'),
+        ...path([[b.x - 0.4, g - 0.04], [b.x + 0.35, g - 0.04], [b.x + 0.55, g - 0.16], [b.x + 0.55, g - 0.3]], 0.09, 'chrome'),
+        // the long rounded body: low nose with a grille, domed roof with a row of round-topped windows
+        blob([[f.tail.x + 0.05, ty0 + 0.05], [f.tail.x, f.roof.y + 0.3], [f.tail.x + 0.35, f.roof.y], [b.x - 0.6, f.roof.y], [b.x - 0.2, f.roof.y + 0.35], [f.nose.x + 0.1, f.roof.y + 0.6], [f.nose.x + 0.15, ty0 - 0.05], [f.nose.x - 0.05, ty0 + 0.08]], 'body', {}, 2),
+        stripe(f.tail.x + 0.05, f.nose.x + 0.1, ty0 - 0.12, 0.08, 'accent'),
+        ...Array.from({ length: 5 }, (_, i) => { const x = f.tail.x + 0.4 + i * 0.42; return rr(x, f.roof.y + 0.14, x + 0.3, f.roof.y + 0.46, 0.1, 'glass'); }),
+        rr(f.nose.x - 0.25, f.roof.y + 0.62, f.nose.x + 0.08, ty0 - 0.2, 0.04, 'dark'),
+        ...[0, 1, 2].map((i) => rect(f.nose.x - 0.2, f.roof.y + 0.68 + i * 0.1, f.nose.x + 0.04, f.roof.y + 0.72 + i * 0.1, 'grey', { flat: true })),
+        circ(f.nose.x - 0.05, f.roof.y + 0.5, 0.09, 'light'),
+        snowCap(f.tail.x + 0.3, b.x - 0.55, f.roof.y - 0.04, 0.12),
+        rect(f.tail.x + 0.1, f.roof.y - 0.25, f.tail.x + 0.5, f.roof.y - 0.02, 'black'), rect(f.tail.x + 0.15, f.roof.y - 0.33, f.tail.x + 0.45, f.roof.y - 0.25, 'brown'),
+      ];
+    },
   }],
   ['dual-snowballer', 'Dual Snowballer', 'Здвоєна сніжкова установка на гусеницях.', 'tracked', ['#7ab0e0', '#ffffff'], {
     gun: () => ({ at: [[1.58, -0.91], [1.43, -1.22]], aim: 23 }),

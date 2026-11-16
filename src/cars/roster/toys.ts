@@ -40,6 +40,7 @@ const angry = (x: number, y: number, r: number, iris: CarMat = 'red'): CarPoly[]
 
 export const TOYS = group('toys', [
   ['rattle-bones', 'Rattle Bones', 'Хот-род із решіткою-черепом і хромованими трубами.', 'sports', ['#1a1a1a', '#e8dcc0'], {
+    axles: [1.15, 0.85],
     parts: ['exhaust'], hideParts: true,
     skin: (f) => [
       ...wedge(f),
@@ -336,6 +337,7 @@ export const TOYS = group('toys', [
     ],
   }],
   ['night-bat-rod', 'Night Bat Rod', 'Низький вампірський хот-род із крилами-плавниками.', 'sports', ['#2a1a3a', '#c02a3a'], {
+    axles: [1.2, 0.85],
     parts: ['fangs'],
     skin: (f) => [
       poly([[f.tail.x + 0.1, -0.12], [-0.4, -0.18], [-0.9, -0.6], [-1.15, -0.4], [-1.35, -0.55], [-1.5, -0.3], [-1.7, -0.4]], 'accent'),
@@ -396,6 +398,7 @@ export const TOYS = group('toys', [
     ],
   }],
   ['bone-speedster', 'Bone Speedster', 'Низький спідстер із хребта й ребер.', 'formula', ['#e8dcc0', '#2a2a2a'], {
+    axles: [1.15, 0.85],
     o: o({ mat: 'bone' }),
     skin: (f) => [
       ...path([[f.tail.x + 0.1, 0.06], [f.nose.x - 0.25, 0.04]], 0.16, 'bone'),

@@ -82,6 +82,7 @@ export const HALLOWEEN = group('halloween', [
     ],
   }],
   ['pumpkin-carriage', 'Pumpkin Carriage', 'Казкова карета-гарбуз. Метає гарбузи, що вибухають.', 'carriage', ['#ff8a1a', '#3aa04a'], {
+    axles: [1.12, 0.85],
     noLights: true,
     skin: (f) => [
       rr(f.tail.x + 0.05, 0.06, f.nose.x - 0.05, 0.18, 0.04, 'gold'),
@@ -117,18 +118,39 @@ export const HALLOWEEN = group('halloween', [
     o: o({ mat: 'glass' }),
     skin: (f) => [...hover(f, { mat: 'glass', glow: 'sky', canopy: 'white' }), stripe(f.tail.x + 0.1, f.nose.x - 0.2, -0.05, 0.05, 'white'), ...[[-1.0, -0.5], [0.3, -0.6], [0.9, -0.2]].map(([x, y]) => starShape(x, y, 0.08, 'white'))],
   }],
-  ['skeletal-ride', 'Skeletal Ride', 'Багі з кісток із черепом спереду. Кидається кістками.', 'buggy', ['#e8dcc0', '#2a2a2a'], {
-    o: o({ mat: 'bone' }), parts: ['skull'], hideParts: true,
-    skin: (f) => [
-      ...path([[f.tail.x, 0.1], [f.nose.x - 0.2, 0.05]], 0.18, 'bone'), ...[-1.2, -0.8, -0.4, 0.0, 0.4].map((x) => circ(x, 0.08, 0.1, 'bone')),
-      ...[-1.0, -0.7, -0.4, -0.1, 0.2].map((x) => path([[x, 0.05], [x + 0.05, -0.28], [x + 0.18, -0.34]], 0.1, 'bone')).flat(),
-      ...path([[-0.8, 0.05], [-0.65, -0.95], [0.3, -0.95]], 0.12, 'bone'), seg([0.62, -0.05], [0.48, -0.42], 0.12, 'bone'),
-      ...[[-0.65, -0.95], [0.3, -0.95]].map(([x, y]) => circ(x, y, 0.09, 'bone')),
-      ...seat(f.head.x + 0.05, -0.1, 0.4, 'black'),
-      circ(f.nose.x - 0.25, -0.18, 0.3, 'bone'), rr(f.nose.x - 0.42, -0.02, f.nose.x - 0.08, 0.15, 0.04, 'bone'),
-      circ(f.nose.x - 0.32, -0.2, 0.08, 'black'), circ(f.nose.x - 0.12, -0.2, 0.07, 'black'), circ(f.nose.x - 0.32, -0.2, 0.035, 'green'), circ(f.nose.x - 0.12, -0.2, 0.03, 'green'),
-      ...[0, 1, 2].map((i) => rect(f.nose.x - 0.38 + i * 0.1, 0.04, f.nose.x - 0.34 + i * 0.1, 0.15, 'black', { flat: true })),
-    ],
+  ['skeletal-ride', 'Skeletal Ride', 'Скелет звіра на колесах: рогатий череп, хребет із шипами, хвіст із кісток.', 'buggy', ['#c8d8f0', '#3a4a8a'], {
+    // After Drive Ahead's Skeletal Ride: a pale-blue beast skeleton (horned skull, spiked tail) on spoked wheels.
+    o: o({ mat: 'bone', rim: 'spokes', wheel: 0.78 }), parts: ['skull'], hideParts: true,
+    skin: (f) => {
+      const rw = f.wheels[0], fw = f.wheels[f.wheels.length - 1];
+      const sp = (t: number): [number, number] => [rw.x - 0.15 + t * (fw.x - rw.x + 0.25), -0.3 - Math.sin(t * Math.PI) * 0.1];
+      return [
+        // tail: vertebrae with spikes trailing low behind
+        ...Array.from({ length: 9 }, (_, i) => {
+          const t = i / 8, x = rw.x - 0.15 - t * 1.25, y = -0.3 + t * 0.12 - t * t * 0.1;
+          return [circ(x, y, 0.12 - t * 0.06, 'body'), poly([[x - 0.04, y - 0.04], [x + 0.04, y - 0.04], [x - 0.05, y - 0.2 + t * 0.08]], 'accent', { flat: true })];
+        }).flat(),
+        // dark ribcage cavity so the ribs read as stripes, then backbone, spines and ribs
+        blob([[sp(0.12)[0], -0.3], [sp(0.5)[0], -0.42], [sp(0.88)[0], -0.32], [sp(0.82)[0], 0.12], [sp(0.15)[0], 0.13]], 'accent', { flat: true }, 1),
+        ...path(Array.from({ length: 7 }, (_, i) => sp(i / 6)), 0.16, 'body'),
+        ...Array.from({ length: 8 }, (_, i) => { const [x, y] = sp((i + 0.5) / 8); return poly([[x - 0.05, y - 0.04], [x + 0.05, y - 0.04], [x - 0.04, y - 0.26]], 'body', { flat: true }); }),
+        ...Array.from({ length: 7 }, (_, i) => { const [x, y] = sp(0.14 + i * 0.115); return path([[x, y], [x + 0.08, y + 0.2], [x + 0.03, 0.12]], 0.11, 'body'); }).flat(),
+        ...path([[sp(0.15)[0], 0.13], [sp(0.8)[0], 0.12]], 0.07, 'body'),
+        // hip and shoulder blades, leg bones onto the axles
+        blob([[rw.x - 0.25, -0.42], [rw.x + 0.15, -0.46], [rw.x + 0.18, -0.14], [rw.x - 0.15, -0.1]], 'body', {}, 1),
+        blob([[fw.x - 0.5, -0.46], [fw.x - 0.2, -0.4], [fw.x - 0.25, -0.08], [fw.x - 0.48, -0.12]], 'body', {}, 1),
+        ...[rw.x, fw.x].flatMap((x) => [...path([[x - 0.1, -0.2], [x + 0.08, 0.0], [x, rw.y]], 0.09, 'bone'), circ(x + 0.08, 0.0, 0.065, 'body')]),
+        ...seat(f.head.x + 0.05, -0.32, 0.36, 'black'),
+        // neck to a horned skull with glowing green eyes and a toothy jaw
+        ...[[fw.x - 0.15, -0.42], [fw.x + 0.0, -0.52], [fw.x + 0.14, -0.6]].map(([x, y]) => circ(x, y, 0.08, 'body')),
+        ...path([[fw.x + 0.25, -0.8], [fw.x + 0.05, -1.0], [fw.x - 0.2, -1.05]], 0.08, 'bone'),
+        ...path([[fw.x + 0.35, -0.82], [fw.x + 0.3, -1.08], [fw.x + 0.15, -1.2]], 0.07, 'bone'),
+        blob([[fw.x + 0.12, -0.72], [fw.x + 0.38, -0.88], [fw.x + 0.75, -0.76], [fw.x + 0.95, -0.56], [fw.x + 0.9, -0.48], [fw.x + 0.25, -0.46]], 'body', {}, 1),
+        circ(fw.x + 0.38, -0.68, 0.08, 'black'), circ(fw.x + 0.4, -0.68, 0.035, 'green'), circ(fw.x + 0.88, -0.56, 0.025, 'black'),
+        blob([[fw.x + 0.28, -0.42], [fw.x + 0.86, -0.42], [fw.x + 0.7, -0.3], [fw.x + 0.3, -0.32]], 'body', {}, 1),
+        ...[0, 1, 2, 3].map((i) => poly([[fw.x + 0.45 + i * 0.1, -0.48], [fw.x + 0.51 + i * 0.1, -0.48], [fw.x + 0.48 + i * 0.1, -0.41]], 'white', { flat: true })),
+      ];
+    },
   }],
   ['beast', 'Beast', 'Вовкулака-монстр на велетенських колесах. Від його виття в суперника плутаються ліво й право.', 'monster', ['#8a6a4a', '#ffd23f'], {
     o: o({ open: true }),
@@ -181,6 +203,7 @@ export const HALLOWEEN = group('halloween', [
     ],
   }],
   ['dracula-carriage', 'Dracula\'s Carriage', 'Готична карета вампіра. Розкриває кажанячі крила й летить.', 'carriage', ['#2a1a2a', '#c02a3a'], {
+    axles: [1.15, 0.8],
     parts: ['lantern'], hideParts: true,
     skin: (f) => [
       poly([[-0.6, f.roof.y + 0.3], [-1.6, f.roof.y - 0.4], [-1.45, f.roof.y - 0.05], [-1.75, f.roof.y + 0.05], [-1.5, f.roof.y + 0.25], [-1.7, f.roof.y + 0.4], [-0.6, f.roof.y + 0.55]], 'black'),

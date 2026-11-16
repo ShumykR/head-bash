@@ -9,6 +9,7 @@ const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
 
 export const SUMMER = group('summer', [
   ['harvester', 'Harvester', 'Зернозбиральний комбайн із мотовилом. Скидає тюки сіна.', 'box', ['#3aa04a', '#ffd23f'], {
+    axles: [0.75, 1.15],
     o: o({ len: 1.15, tall: 1.2 }), arch: 'scoop', cargo: ['hay', 2],
     art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.3, 'accent')), hidden(poly([[f.nose.x - 0.2, -0.3], [f.nose.x + 0.7, -0.15], [f.nose.x + 0.75, 0.3], [f.nose.x - 0.2, 0.3]], 'yellow', { deco: false }))],
     // The reel is absurdly big and really turns: it combs whatever is in front up and over the header.
@@ -75,6 +76,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['lowrider', 'Lowrider', 'Лоурайдер на гідравліці: підстрибує на місці.', 'sedan', ['#8a2ae0', '#ffd23f'], {
+    axles: [0.82, 0.82],
     o: o({ len: 1.1 }), arch: 'bouncy', bounce: 0.3,
     skin: (f) => [
       ...sedan(f, { roof: 'coupe', bumper: 'gold' }),
@@ -126,6 +128,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['dune-buggy', 'Dune Buggy', 'Легкий багі для дюн із прапорцем на щоглі.', 'buggy', ['#ff8a1a', '#2a2a2a'], {
+    axles: [1.12, 0.9],
     skin: (f) => [
       blob([[f.tail.x, 0.2], [f.tail.x + 0.1, -0.12], [-0.4, -0.12], [0.6, -0.16], [f.nose.x + 0.05, 0.02], [f.nose.x - 0.1, 0.22]], 'body', {}, 1),
       ...path([[-0.85, -0.1], [-0.65, -0.95], [0.25, -0.95]], 0.09, 'accent'), seg([0.62, -0.12], [0.48, -0.42], 0.09, 'accent'), seg([-0.65, -0.95], [-0.2, -0.1], 0.07, 'accent'),
@@ -176,6 +179,7 @@ export const SUMMER = group('summer', [
     ],
   }],
   ['locomotive', 'Locomotive', 'Паровоз із тендером вугілля: вугілля сиплеться на ходу.', 'loco', ['#2a2a2a', '#e02a2a'], {
+    axles: [1.12, 1.12, 0.72],
     cargo: ['coal', 5],
     skin: (f) => [...loco(f, { mat: 'accent', boiler: 'black', trim: 'gold' })],
   }],

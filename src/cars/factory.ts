@@ -1069,6 +1069,12 @@ export interface CarSpec {
   gun?: (f: Frame) => { at: Pt[]; aim: number };
   /** Wheels (by index) that stay physics only: the skin draws a ski, track or foot there instead. */
   hideWheels?: number[];
+  /**
+   * Per-wheel radius multipliers by wheel index (rear first), on top of `o.wheel`.
+   * The wheel's bottom stays on the same ground line, so the body stays level:
+   * a bigger wheel grows up into the arch, a smaller one shrinks down towards the road.
+   */
+  axles?: number[];
   /** With a skin: also hide the bolted-on parts (the skin draws them itself). */
   hideParts?: boolean;
   /** No head/tail light pixels (creatures, blobs…). */
@@ -1100,6 +1106,15 @@ export const SLED_GLIDE = 0.27;
 
 export function buildCar(spec: CarSpec): CarDef {
   const f = frame(spec.frame, spec.o ?? {});
+  if (spec.axles) {
+    f.wheels = f.wheels.map((w, i) => {
+      const k = spec.axles![i] ?? 1;
+      const r = +(w.r * k).toFixed(3);
+      // A bigger wheel keeps its mass (a lighter, hollow tyre), so the car doesn't bog down.
+      const density = k > 1 ? { density: +((w.density ?? 1.2) / (k * k)).toFixed(3) } : {};
+      return k === 1 ? w : { ...w, r, y: +(w.y + w.r - r).toFixed(3), ...density };
+    });
+  }
   // Sleds ride on their runners: the wheels are hidden just under them.
   const glide = spec.glide ?? (spec.frame === 'sled' ? SLED_GLIDE : undefined);
   if (glide !== undefined) {
@@ -1267,7 +1282,9 @@ export function buildCar(spec: CarSpec): CarDef {
   if (ballast > 0 && def.com) def.com = [def.com[0], +(def.com[1] + ballast).toFixed(3)];
   const mass = estimateMass(def);
   const inv = wheels.filter((w) => w.drive ?? true).reduce((acc, w) => acc + 1 / w.r, 0);
-  const accel = Math.min(27, Math.max(10, pre.accel * (spec.accel ?? 1) * (f.tune?.accel ?? 1)));
+  // Bigger driven wheels spin up slower (more inertia, less grip per torque): give them the pull back.
+  const axleK = Math.max(1, ...(spec.axles ?? [1]));
+  const accel = Math.min(27, Math.max(10, pre.accel * (spec.accel ?? 1) * (f.tune?.accel ?? 1) * axleK ** 1.6));
   def.motor.torque = +((accel * mass) / inv).toFixed(2);
   if (def.motor.speed > 18 && mass >= 5) def.motor.speed = 17.5;
   return def;
