@@ -236,17 +236,21 @@ export const WINTER = group('winter', [
     ],
   }],
   ['snowcycle', 'Snowcycle', 'Зимовий мотоцикл: лижа спереду, гусениця ззаду.', 'bike', ['#3a3ad8', '#e0e0e0'], {
-    o: o({ rim: 'monster' }), hideWheels: [1],
+    o: o({ rim: 'monster' }), hideWheels: [0, 1],
     skin: (f) => {
       const a = f.wheels[0], b = f.wheels[1];
+      const t0 = a.x - a.r - 0.05, t1 = a.x + a.r + 0.55, ty0 = a.y - a.r * 0.75, ty1 = a.y + a.r;
       return [
-        // rear track loop with lugs and road wheels
-        rr(a.x - a.r - 0.1, a.y - a.r - 0.1, a.x + a.r + 0.4, a.y + a.r + 0.06, a.r + 0.06, 'rubber'),
-        ...Array.from({ length: 7 }, (_, i) => rect(a.x - a.r + i * ((2 * a.r + 0.35) / 7), a.y - a.r - 0.14, a.x - a.r + i * ((2 * a.r + 0.35) / 7) + 0.07, a.y - a.r - 0.06, 'rubber')),
-        ...[a.x - 0.15, a.x + 0.2].map((x) => circ(x, a.y + 0.05, 0.12, 'grey')),
+        // rear track loop (the physics wheel is hidden inside it): lugs all round, bogie wheels, a drive sprocket
+        rr(t0, ty0, t1, ty1, (ty1 - ty0) / 2, 'rubber'),
+        ...Array.from({ length: 9 }, (_, i) => rect(t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) - 0.04, ty1 - 0.02, t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) + 0.04, ty1 + 0.05, 'rubber')),
+        ...Array.from({ length: 9 }, (_, i) => rect(t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) - 0.04, ty0 - 0.05, t0 + 0.15 + i * ((t1 - t0 - 0.3) / 8) + 0.04, ty0 + 0.02, 'rubber')),
+        rr(t0 + 0.12, ty0 + 0.1, t1 - 0.12, ty1 - 0.1, (ty1 - ty0) / 2 - 0.1, 'dark'),
+        ...[t0 + 0.28, (t0 + t1) / 2, t1 - 0.28].map((x) => circ(x, (ty0 + ty1) / 2 + 0.05, 0.15, 'grey')),
+        ...[t0 + 0.28, (t0 + t1) / 2, t1 - 0.28].map((x) => circ(x, (ty0 + ty1) / 2 + 0.05, 0.06, 'chrome')),
         ...bike(f, { style: 'sport' }),
         // front ski on a strut where the front wheel would be
-        ...path([[b.x - 0.05, -0.1], [b.x, b.y]], 0.1, 'dark'),
+        ...path([[b.x - 0.35, -0.2], [b.x - 0.1, b.y + 0.1], [b.x, b.y + b.r - 0.05]], 0.12, 'chrome'),
         ...path([[b.x - 0.45, b.y + b.r - 0.02], [b.x + 0.4, b.y + b.r - 0.02], [b.x + 0.58, b.y + b.r - 0.15], [b.x + 0.55, b.y + b.r - 0.28]], 0.09, 'chrome'),
       ];
     },
