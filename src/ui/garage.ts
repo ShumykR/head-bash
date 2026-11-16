@@ -91,7 +91,11 @@ export function openCarBrowser(host: HTMLElement, o: BrowserOpts): CarBrowser {
       const card = en.target as HTMLElement;
       const def = CARS.find((c) => c.id === card.dataset.id);
       const img = card.querySelector('img');
-      if (def && img && !img.src) img.src = carThumb(def, o.color);
+      if (def && img && !img.src) {
+        // cars with smoke, steam, sparks or beams play them live in the grid too
+        if (def.fx?.length) { const cv = carPreviewCanvas(def, def.palette, o.color, 2, false, true); cv.className = 'gthumb'; img.replaceWith(cv); }
+        else img.src = carThumb(def, o.color);
+      }
       io.unobserve(card);
     }
   }, { root: grid, rootMargin: '200px' });
@@ -134,7 +138,7 @@ export function openCarBrowser(host: HTMLElement, o: BrowserOpts): CarBrowser {
     detail?.remove();
     detail = el('div', 'garage-detail');
     const card = el('div', 'gd-card');
-    const cv = carPreviewCanvas(def, def.palette, o.color, 4);
+    const cv = carPreviewCanvas(def, def.palette, o.color, 4, false, true);
     cv.className = 'gd-preview';
     const cat = CATEGORY_BY_ID[categoryOf(def)];
     const i = list.indexOf(def);

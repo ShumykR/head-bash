@@ -2,7 +2,7 @@ import { tailgate } from '../art';
 import { arc, beacon, blob, checkers, circ, ell, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, stack, starShape, stripe, windows, eyeball } from '../draw';
 import { bike, boxy, fenders, frontLamp, loco, monsterChassis, pickup, sedan, tracks } from '../skins';
 import type { CarPoly } from '../types';
-import { dims, saddle } from '../critters';
+import { crew, dims, saddle } from '../critters';
 import { group, o } from './util';
 
 const hidden = (p: CarPoly): CarPoly => ({ ...p, hide: true });
@@ -138,12 +138,12 @@ export const SUMMER = group('summer', [
       ...[0, 1, 2].map((i) => rect(f.nose.x + 0.05, f.nose.y0 + 0.15 + i * 0.15, f.nose.x + 0.25, f.nose.y0 + 0.2 + i * 0.15, 'grey', { flat: true })),
       ...[-0.9, -0.5, -0.1, 0.3].map((x) => circ(x, 0.2, 0.04, 'chrome')),
       circ(-0.4, -0.3, 0.13, 'gold'), starShape(-0.4, -0.3, 0.09, 'body'), rect(f.tail.x + 0.06, f.roof.y + 0.08, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }),
-      // two SWAT officers riding on the roof with their rifles (as in Drive Ahead's Swat Van)
+      // two SWAT officers riding on the roof with their rifles (as in Drive Ahead's Swat Van):
+      // drawn like the player, in grey tactical helmets with a visor band
       ...[f.tail.x + 0.35, f.tail.x + 0.85].flatMap((x) => [
-        rr(x - 0.13, f.roof.y - 0.42, x + 0.13, f.roof.y - 0.02, 0.05, 'dark'), rect(x - 0.13, f.roof.y - 0.3, x + 0.13, f.roof.y - 0.22, 'white', { flat: true }),
-        circ(x, f.roof.y - 0.55, 0.13, 'tan'), blob([[x - 0.15, f.roof.y - 0.58], [x - 0.12, f.roof.y - 0.72], [x + 0.12, f.roof.y - 0.72], [x + 0.16, f.roof.y - 0.58]], 'black', {}, 1),
-        rect(x + 0.02, f.roof.y - 0.58, x + 0.14, f.roof.y - 0.52, 'dark', { flat: true }),
-        rr(x - 0.05, f.roof.y - 0.36, x + 0.45, f.roof.y - 0.29, 0.02, 'black'), rect(x + 0.12, f.roof.y - 0.3, x + 0.18, f.roof.y - 0.2, 'black'),
+        ...crew(x, f.roof.y - 0.5, 0.24, { helm: 'grey', suit: 'black', style: 'swat' }),
+        rect(x - 0.16, f.roof.y - 0.24, x + 0.14, f.roof.y - 0.17, 'white', { flat: true }),
+        rr(x + 0.05, f.roof.y - 0.2, x + 0.5, f.roof.y - 0.13, 0.02, 'black'), rect(x + 0.18, f.roof.y - 0.14, x + 0.24, f.roof.y - 0.05, 'black'),
       ]),
     ],
   }],
@@ -202,6 +202,8 @@ export const SUMMER = group('summer', [
   ['locomotive', 'Locomotive', 'Паровоз із тендером вугілля: вугілля сиплеться на ходу.', 'loco', ['#2a2a2a', '#e02a2a'], {
     axles: [1.12, 1.12, 0.72],
     cargo: ['coal', 5],
+    // coal smoke rolling out of the chimney (animated)
+    fx: (f) => [{ kind: 'smoke', at: [f.nose.x - 0.72, -1.3], dir: -115, size: 0.28 }],
     skin: (f) => [...loco(f, { mat: 'accent', boiler: 'black', trim: 'gold' })],
   }],
   ['turtle', 'Turtle', 'Черепаха. Ховається в панцир: не їде, але її не зрушити й не вибити.', 'creature', ['#5a9a4a', '#a07a3a'], {

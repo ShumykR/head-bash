@@ -136,6 +136,7 @@ export const PROJECTILES: Record<ProjectileKind, ProjectileInfo> = {
   tracer: { r: 0.07, speed: 36, density: 3, gravity: 0.4, life: 0.7, bounce: 0, name: 'трасер', pop: true, cd: 0.55, recoil: 0.5 },
   dragonshell: { r: 0.2, speed: 20, density: 1, gravity: 0.6, life: 1.6, bounce: 0, name: 'драконячий снаряд', pop: true, effect: 'boom', blast: 2 },
   chainshot: { r: 0.26, speed: 18, density: 3.5, gravity: 1, life: 2.4, bounce: 0.2, name: 'ланцюгове ядро', effect: 'knock', recoil: 1.5 },
+  bigrocket: { r: 0.22, speed: 17, density: 1.2, gravity: 0.3, life: 2.2, bounce: 0, name: 'велика ракета', pop: true, effect: 'boom', blast: 3.8, cd: 1.6, seek: 0.02 },
   ink: { r: 0.3, speed: 14, density: 0.3, gravity: 0.5, life: 1.3, bounce: 0, name: 'чорнило', pop: true, effect: 'slow', harmless: true },
 };
 

@@ -1,6 +1,6 @@
 import type { Frame } from './factory';
 import type { CarMat, CarPoly, Pt } from './types';
-import { blob, circ, ell, eyeball, fangs, path, poly, rect, rr } from './draw';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr } from './draw';
 
 /*
  * Animal anatomy for creature cars. The animal *is* the vehicle (as in hand-drawn arcade
@@ -223,5 +223,112 @@ export function steed(x: number, g: number, o: { mat?: CarMat; mane?: CarMat; de
   } else {
     out.push(...path([P(0.3, -0.78), P(0.4, -0.98), P(0.48, -1.12)], 0.07 * s, mn));
   }
+  return out;
+}
+
+export interface CrewOpts {
+  /** Helmet shell, visor, crown stripe (null = none) and suit materials. */
+  helm?: CarMat; visor?: CarMat; stripe?: CarMat | null; suit?: CarMat;
+  /** Helmet styled for the car: a SWAT visor band, a porter's conical brim, prison stripes, a sun peak. */
+  style?: 'race' | 'swat' | 'conical' | 'stripes' | 'peak';
+  /** Draw the suit under the helmet (false: only the helmet pokes out). */
+  body?: boolean;
+  /** Turn the whole figure about the helmet centre (radians, y down), e.g. lying on its back. */
+  rot?: number;
+}
+
+/**
+ * A crew member drawn the way the player is: a full-face racing helmet (round shell, wide dark
+ * visor with a glint, a stripe over the crown, a chin vent) on a racing suit with the arm
+ * reaching forward and a black glove. Faces +x; (x, y) is the helmet centre, r its radius.
+ * Every person on a car is one of these, with the helmet styled for that car.
+ */
+export function crew(x: number, y: number, r: number, o: CrewOpts = {}): CarPoly[] {
+  const helm = o.helm ?? 'body', suit = o.suit ?? 'black', st = o.style ?? 'race';
+  const out: CarPoly[] = [];
+  if (o.body !== false) {
+    out.push(
+      rr(x - 0.8 * r, y + 0.55 * r, x + 0.7 * r, y + 2.1 * r, 0.3 * r, suit),
+      rr(x - 0.35 * r, y + 0.55 * r, x + 0.3 * r, y + 0.85 * r, 0.1 * r, helm, { flat: true }),
+      rect(x - 0.55 * r, y + 0.9 * r, x - 0.4 * r, y + 2.0 * r, helm, { flat: true }),
+      ...path([[x + 0.05 * r, y + 1.0 * r], [x + 0.75 * r, y + 1.55 * r], [x + 1.05 * r, y + 1.4 * r]], 0.32 * r, helm),
+      circ(x + 1.1 * r, y + 1.38 * r, 0.2 * r, 'black'),
+    );
+  }
+  // egg-shaped shell, a pale band down the back
+  out.push(ell(x, y, r * 0.95, r * 1.02, helm), arc(x, y, r * 0.75, Math.PI * 0.75, Math.PI * 1.3, r * 0.22, 'white', { flat: true }));
+  const band = st === 'stripes' ? 'white' : o.stripe === undefined ? 'white' : o.stripe;
+  if (st === 'stripes') {
+    // prison stripes round the shell
+    for (const v of [-0.62, -0.05, 0.5]) out.push(rect(x - Math.sqrt(1 - v * v) * r * 0.95, y + (v - 0.13) * r, x + Math.sqrt(1 - v * v) * r * 0.95, y + (v + 0.13) * r, 'black', { flat: true }));
+  } else if (band && st !== 'swat') out.push(arc(x, y, r * 0.8, Math.PI * 1.25, Math.PI * 1.75, r * 0.28, band, { flat: true }));
+  // the visor slanting across the upper front (as on the player's helmet), a lilac glint on its edge
+  out.push(
+    poly([[x + 0.05 * r, y - 0.1 * r], [x + 0.55 * r, y - 0.62 * r], [x + 0.92 * r, y - 0.42 * r], [x + 0.95 * r, y + 0.1 * r], [x + 0.55 * r, y + 0.3 * r], [x + 0.2 * r, y + 0.15 * r]], o.visor ?? 'black'),
+    arc(x, y, r * 0.95, -Math.PI * 0.2, Math.PI * 0.05, r * 0.14, 'purple', { flat: true }),
+  );
+  if (st === 'swat') out.push(rect(x - 0.95 * r, y - 0.08 * r, x + 0.04 * r, y + 0.1 * r, 'black', { flat: true }), rr(x - 0.75 * r, y - 0.85 * r, x - 0.1 * r, y - 0.6 * r, 0.1 * r, 'white', { flat: true }));
+  if (st === 'conical') out.push(poly([[x - 1.45 * r, y - 0.55 * r], [x + 1.45 * r, y - 0.55 * r], [x + 0.1 * r, y - 1.45 * r]], 'gold'), rect(x - 1.45 * r, y - 0.62 * r, x + 1.45 * r, y - 0.5 * r, 'brown', { flat: true }));
+  if (st === 'peak') out.push(poly([[x + 0.2 * r, y - 0.62 * r], [x + 1.45 * r, y - 0.5 * r], [x + 1.3 * r, y - 0.38 * r], [x + 0.2 * r, y - 0.42 * r]], o.stripe ?? 'white'));
+  if (!o.rot) return out;
+  const c = Math.cos(o.rot), s = Math.sin(o.rot);
+  return out.map((p) => ({ ...p, pts: p.pts.map(([px, py]) => [+(x + (px - x) * c - (py - y) * s).toFixed(3), +(y + (px - x) * s + (py - y) * c).toFixed(3)] as Pt) }));
+}
+
+export interface DragonHeadOpts {
+  /** Scaly skull and lower jaw. */
+  mat?: CarMat;
+  snout?: CarMat;
+  /** Long fronds of the mane streaming back (two alternating colours) and the spikes among them. */
+  mane?: [CarMat, CarMat];
+  spikes?: CarMat;
+  /** How far back the mane streams (1 = a full head length). */
+  maneLen?: number;
+  horn?: CarMat;
+  /** Curling whiskers off the snout (null = none). */
+  whiskers?: CarMat | null;
+  /** Facing -x. */
+  flip?: boolean;
+}
+
+/**
+ * An eastern dragon's head, after a temple dragon but kept simple and friendly: facing +x, drawn
+ * round its jaw hinge (x, y), sized k (1 ≈ 1.2 m from mane to nose). A gold skull with a green
+ * brow tuft, an orange snout with a red nose knob, a calm almond eye, a black horn curling back,
+ * jaws a little open on a few white teeth, a short gold whisker and a few mane fronds.
+ */
+export function dragonHead(x: number, y: number, k = 1, o: DragonHeadOpts = {}): CarPoly[] {
+  const m = o.mat ?? 'gold', [m1, m2] = o.mane ?? ['green', 'teal'], sp = o.spikes ?? 'red';
+  const sx = o.flip ? -1 : 1;
+  const at = (a: number, b: number): Pt => [x + a * k * sx, y + b * k];
+  const P = (pts: Pt[]): Pt[] => pts.map(([a, b]) => at(a, b));
+  const teeth = (x0: number, x1: number, yy: number, n: number, h: number, up = false) => {
+    const [a, b] = o.flip ? [at(x1, 0)[0], at(x0, 0)[0]] : [at(x0, 0)[0], at(x1, 0)[0]];
+    return fangs(a, b, y + yy * k, n, h * k, up);
+  };
+  const out: CarPoly[] = [];
+  // the mane: a few fronds streaming back, alternating colours, a red spike between two of them
+  const ml = o.maneLen ?? 0.6;
+  const fronds: [Pt, Pt][] = [[[0.05, -0.3], [-0.95, -0.62]], [[0.0, -0.1], [-1.1, -0.2]], [[0.05, 0.1], [-0.95, 0.3]], [[0.15, 0.28], [-0.5, 0.6]]];
+  fronds.forEach(([[bx, by], [tx0, ty0]], i) => {
+    const tx = bx + (tx0 - bx) * ml, ty = by + (ty0 - by) * ml;
+    if (i === 1) out.push(poly(P([[bx + 0.1, by - 0.1], [bx + 0.1, by + 0.1], [bx + (tx - bx) * 0.7, by + 0.04]]), sp));
+    out.push(poly(P([[bx, by - 0.09], [bx + 0.05, by + 0.09], [tx, ty]]), i % 2 ? m2 : m1));
+  });
+  // the horn curling back
+  out.push(...path(P([[0.3, -0.34], [0.12, -0.62], [-0.18, -0.72]]), 0.1 * k, o.horn ?? 'black'));
+  // the skull, the green brow tuft, the orange snout with its red nose knob
+  out.push(blob(P([[-0.1, -0.25], [0.2, -0.44], [0.6, -0.4], [0.88, -0.26], [0.98, -0.1], [0.4, -0.04], [0.0, 0.02]]), m, {}, 1));
+  out.push(blob(P([[0.18, -0.4], [0.45, -0.5], [0.66, -0.38], [0.38, -0.33]]), m1, {}, 1));
+  out.push(blob(P([[0.76, -0.3], [1.1, -0.26], [1.2, -0.1], [0.82, -0.04]]), o.snout ?? 'orange', {}, 1));
+  out.push(circ(...at(1.1, -0.21), 0.065 * k, 'red'));
+  // a calm almond eye under the tuft: no white showing round it
+  out.push(ell(...at(0.58, -0.24), 0.085 * k, 0.05 * k, 'black', { flat: true }), circ(...at(0.6, -0.255), 0.022 * k, 'white', { flat: true }));
+  // the mouth open just enough for the fire: a row of white teeth, the lower jaw
+  out.push(poly(P([[0.2, -0.02], [1.18, -0.05], [1.05, 0.16], [0.25, 0.12]]), 'black', { flat: true }));
+  out.push(...teeth(0.45, 1.12, -0.03, 3, 0.1));
+  out.push(blob(P([[0.1, 0.12], [1.02, 0.15], [0.98, 0.27], [0.2, 0.26]]), m, {}, 1));
+  // the whisker curling up off the snout
+  if (o.whiskers !== null) out.push(...path(P([[1.1, -0.14], [1.3, -0.32], [1.22, -0.52]]), 0.055 * k, o.whiskers ?? 'gold'));
   return out;
 }

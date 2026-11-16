@@ -1,6 +1,6 @@
-import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc } from '../draw';
+import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc, place } from '../draw';
 import { bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
-import { browEye, saddle, dims, quadruped, steed } from '../critters';
+import { saddle, dims, quadruped, steed } from '../critters';
 import type { CarPoly } from '../types';
 import { group, o } from './util';
 
@@ -66,7 +66,7 @@ export const HALLOWEEN = group('halloween', [
     },
   }],
   ['chariot', 'Chariot', 'Антична бойова колісниця з шипами на осях. Атакує ривком.', 'cart', ['#c8a040', '#e02a2a'], {
-    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'],
+    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'], hideParts: true,
     // As in Drive Ahead, a horse pulls the chariot. It is a real piece: hitched to the shaft on a
     // sprung hinge, it has a body to hit and runs on a hidden wheel under its hooves.
     links: (f) => {
@@ -82,13 +82,31 @@ export const HALLOWEEN = group('halloween', [
         ],
       }];
     },
-    skin: (f) => [
-      blob([[f.tail.x + 0.1, f.deck.y + 0.15], [f.tail.x, f.deck.y - 0.35], [f.tail.x + 0.3, f.deck.y - 0.1], [f.nose.x - 0.2, f.deck.y - 0.15], [f.nose.x, f.deck.y - 0.6], [f.nose.x + 0.05, f.deck.y + 0.1], [f.nose.x - 0.2, 0.18], [f.tail.x + 0.2, 0.18]], 'gold', {}, 1),
-      stripe(f.tail.x + 0.15, f.nose.x - 0.1, f.deck.y - 0.02, 0.06, 'accent'), stripe(f.tail.x + 0.15, f.nose.x - 0.1, 0.12, 0.06, 'accent'),
-      circ(0.05, -0.2, 0.3, 'dark'), circ(0.05, -0.2, 0.26, 'accent'), starShape(0.05, -0.2, 0.16, 'gold'),
-      ...path([[f.nose.x - 0.1, f.deck.y], [f.nose.x + 0.5, f.deck.y - 0.25]], 0.06, 'wood'),
-      ...path([[f.tail.x + 0.2, f.deck.y - 0.1], [f.tail.x + 0.15, f.deck.y - 0.7]], 0.05, 'wood'), poly([[f.tail.x + 0.18, f.deck.y - 0.7], [f.tail.x + 0.6, f.deck.y - 0.6], [f.tail.x + 0.18, f.deck.y - 0.45]], 'accent'),
-    ],
+    // A real chariot body: a low wooden floor, a tall curved breastwork in front (good cover from the
+    // front, as the fandom says) sweeping down to an open back where the player stands, gold trim,
+    // scythe blades on the axle hubs and a bronze spear-ram under the shaft.
+    head: (f) => [f.tail.x + 0.42, f.deck.y - 0.28],
+    skin: (f) => {
+      const t = f.deck.y, n = f.nose.x, b = f.tail.x;
+      return [
+        // the shell: one curved panel, high at the front, low at the back
+        blob([[b + 0.05, t + 0.42], [b + 0.1, t + 0.18], [b + 0.6, t + 0.12], [n - 0.55, t - 0.12], [n - 0.15, t - 0.55], [n + 0.08, t - 0.62], [n + 0.12, t - 0.3], [n + 0.02, 0.1], [n - 0.2, 0.18], [b + 0.15, 0.18]], 'gold', {}, 2),
+        blob([[b + 0.25, t + 0.4], [b + 0.6, t + 0.28], [n - 0.55, t + 0.04], [n - 0.2, t - 0.36], [n - 0.05, t - 0.34], [n - 0.08, 0.04], [b + 0.25, 0.06]], 'accent', {}, 2),
+        // gold rail along the rim, a winged sun on the side panel, a rosette at the prow
+        ...path([[b + 0.08, t + 0.16], [b + 0.6, t + 0.08], [n - 0.55, t - 0.16], [n - 0.15, t - 0.6], [n + 0.1, t - 0.66]], 0.06, 'yellow'),
+        circ(-0.05, t + 0.32, 0.11, 'gold'), poly([[-0.15, t + 0.3], [-0.5, t + 0.2], [-0.42, t + 0.34], [-0.15, t + 0.36]], 'gold'), poly([[0.05, t + 0.3], [0.4, t + 0.2], [0.32, t + 0.34], [0.05, t + 0.36]], 'gold'),
+        circ(n + 0.04, t - 0.58, 0.07, 'yellow'),
+        // the wooden floor and the step at the open back
+        rr(b - 0.02, 0.08, n + 0.02, 0.2, 0.03, 'wood'), rr(b - 0.15, 0.12, b + 0.1, 0.2, 0.03, 'wood'),
+        // the shaft out to the horse and a bronze spear-ram under it
+        ...path([[n - 0.1, t + 0.05], [n + 0.5, t - 0.25]], 0.06, 'wood'),
+        poly([[n, 0.0], [n + 0.75, 0.04], [n, 0.12]], 'spike'), poly([[n, 0.04], [n + 0.45, 0.06], [n, 0.09]], 'chrome'),
+        // scythe blades on the axle hubs
+        ...f.wheels.flatMap((w) => [circ(w.x, w.y, 0.09, 'gold'), poly([[w.x + 0.05, w.y - 0.04], [w.x + w.r + 0.35, w.y - 0.12], [w.x + w.r + 0.15, w.y + 0.02], [w.x + 0.05, w.y + 0.04]], 'spike')]),
+        // a pennant on a pole at the back
+        ...path([[b + 0.08, t + 0.1], [b + 0.02, t - 0.6]], 0.05, 'wood'), poly([[b + 0.03, t - 0.6], [b + 0.42, t - 0.52], [b + 0.04, t - 0.42]], 'accent'),
+      ];
+    },
   }],
   ['spiky-car', 'Spiky Car', 'Шипований броньовик пустельних рейдерів: шипи спереду й на даху.', 'pickup', ['#6a5a4a', '#c0c0c0'], {
     parts: ['spikes', 'roofspikes'],
@@ -134,10 +152,11 @@ export const HALLOWEEN = group('halloween', [
   }],
   ['ghost-train', 'Ghost Train', 'Примарний паротяг: проходить крізь суперника, як туман.', 'loco', ['#d0d8e4', '#8a7ab0'], {
     float: 0.85, noLights: true,
+    // ghostly steam pours out of the chimney (animated, not part of the sprite)
+    fx: (f) => [{ kind: 'steam', at: [f.nose.x - 0.72, -1.3], dir: -115, size: 0.3 }, { kind: 'wisp', at: [f.tail.x, -0.9], dir: 180, size: 0.3, mat: 'accent', rate: 0.5 }],
     skin: (f) => [
       ...loco(f, { boiler: 'body', trim: 'accent' }),
       ell(f.nose.x - 0.3, -0.32, 0.26, 0.26, 'white'), circ(f.nose.x - 0.38, -0.38, 0.05, 'black'), circ(f.nose.x - 0.22, -0.38, 0.05, 'black'), ell(f.nose.x - 0.3, -0.22, 0.06, 0.08, 'black'),
-      ...[-1.3, -0.6, 0.1].map((x, i) => ell(x, f.roof.y - 0.3 - i * 0.12, 0.25, 0.14, 'white')),
     ],
   }],
   ['broom-bike', 'Broom Bike', 'Відьмина мітла з моторчиком. Злітає й ширяє над ареною.', 'bike', ['#a0703a', '#e0c060'], {
@@ -196,46 +215,51 @@ export const HALLOWEEN = group('halloween', [
       ];
     },
   }],
-  ['beast', 'Beast', 'Вовкулака-монстр на велетенських колесах. Від його виття в суперника плутаються ліво й право.', 'monster', ['#8a6a4a', '#ffd23f'], {
-    o: o({ open: true }),
+  ['beast', 'Beast', 'Великий сірий вовк на чорних колесах зі спицями. Щелепи клацають, а від виття в суперника плутаються ліво й право.', 'monster', ['#7c8290', '#ffc23a', '#2a2c36'], {
+    o: o({ open: true, rim: 'spokes' }),
     parts: ['fangs'], hideParts: true,
-    // A hunched werewolf on all fours: the rider clings to its back behind the shoulders.
+    // A big grey wolf loping along (the fandom's Beast: a large monster on black spoked wheels with a
+    // jaw that snaps): lean body, deep chest, smooth fur, long muzzle, upright ears, bushy tail.
     skin: (f) => {
-      const x0 = f.tail.x, x1 = f.nose.x, [rw, fw] = [f.wheels[0], f.wheels[1]];
+      const x0 = f.tail.x, [rw, fw] = [f.wheels[0], f.wheels[1]];
       return [
-        // bushy tail
-        blob([[x0 + 0.3, -0.7], [x0 - 0.3, -1.0], [x0 - 0.55, -1.35], [x0 - 0.2, -1.2], [x0 + 0.35, -0.95]], 'body', {}, 1),
-        poly([[x0 - 0.55, -1.35], [x0 - 0.3, -1.25], [x0 - 0.45, -1.15]], 'grey'),
-        // hind leg and foreleg: thick haunch and arm reaching down to each wheel, claws over the tyre
-        blob([[rw.x - 0.45, -0.75], [rw.x + 0.35, -0.8], [rw.x + 0.25, rw.y - 0.3], [rw.x - 0.25, rw.y - 0.3]], 'body', { ring: true }, 1),
-        blob([[fw.x - 0.35, -0.9], [fw.x + 0.2, -0.85], [fw.x + 0.15, fw.y - 0.3], [fw.x - 0.2, fw.y - 0.3]], 'body', { ring: true }, 1),
-        ...[rw, fw].flatMap((w) => [-0.12, 0.0, 0.12].map((d) => poly([[w.x + d - 0.04, w.y - w.r - 0.05], [w.x + d + 0.04, w.y - w.r - 0.05], [w.x + d + 0.06, w.y - w.r + 0.08]], 'bone'))),
-        // hunched body, shoulders high in front of the rider, ragged fur along the spine
-        blob([[x0 + 0.1, -0.2], [x0 + 0.05, -0.75], [-0.8, -0.75], [-0.25, -1.15], [0.45, -1.2], [0.95, -0.9], [1.05, -0.4], [0.6, -0.15], [-0.6, -0.1]], 'body', {}, 2),
-        ...[-0.2, 0.1, 0.4, 0.7].map((x) => poly([[x - 0.12, -1.12 + Math.abs(x - 0.25) * 0.2], [x + 0.12, -1.12 + Math.abs(x - 0.25) * 0.2], [x - 0.05, -1.35 + Math.abs(x - 0.25) * 0.2]], 'body')),
-        blob([[-0.6, -0.15], [0.6, -0.2], [0.9, -0.45], [0.4, -0.4], [-0.4, -0.3]], 'grey', {}, 1),
-        ...[[-1.0, -0.45], [-0.3, -0.6], [0.3, -0.7]].map(([x, y]) => poly([[x - 0.1, y], [x + 0.1, y - 0.02], [x, y + 0.15]], 'dark', { flat: true })),
-        // wolf head: tall pointed ears, glowing eyes, long snout, open jaws
-        blob([[0.85, -1.05], [1.2, -1.15], [1.45, -0.9], [x1 + 0.1, -0.7], [x1 + 0.1, -0.5], [1.2, -0.4], [0.85, -0.6]], 'body', {}, 1),
-        poly([[0.9, -1.0], [0.92, -1.45], [1.12, -1.08]], 'body'), poly([[1.1, -1.1], [1.2, -1.48], [1.32, -1.02]], 'body'),
-        poly([[0.97, -1.05], [0.98, -1.3], [1.06, -1.08]], 'pink'),
-        ...browEye(1.28, -0.9, 0.075, 'accent'),
-        poly([[1.15, -0.58], [x1 + 0.12, -0.6], [x1 + 0.05, -0.35], [1.2, -0.4]], 'black', { flat: true }),
-        ...fangs(1.2, x1 + 0.08, -0.59, 4, 0.12), ...fangs(1.25, x1, -0.38, 3, 0.1, true),
-        blob([[1.22, -0.38], [x1, -0.38], [x1 - 0.1, -0.26], [1.25, -0.28]], 'body', {}, 1),
-        circ(x1 + 0.1, -0.66, 0.06, 'black'),
-        // a ripped saddle for the rider
-        ...saddle(f.head.x, f.head.y + 0.28, 'red'),
+        // bushy tail held out behind, pale tip
+        blob([[x0 + 0.35, -0.82], [x0 - 0.1, -0.98], [x0 - 0.55, -0.95], [x0 - 0.75, -0.78], [x0 - 0.45, -0.66], [x0 + 0.05, -0.62], [x0 + 0.35, -0.6]], 'body', {}, 2),
+        blob([[x0 - 0.5, -0.94], [x0 - 0.75, -0.78], [x0 - 0.5, -0.68], [x0 - 0.38, -0.8]], 'white', {}, 1),
+        // far legs in shadow, then the near hind leg and foreleg down to the wheels, pale paws on the tyres
+        blob([[rw.x - 0.05, -0.6], [rw.x + 0.35, -0.6], [rw.x + 0.3, rw.y - rw.r - 0.05], [rw.x + 0.05, rw.y - rw.r - 0.05]], 'dark', {}, 1),
+        blob([[fw.x - 0.35, -0.6], [fw.x - 0.05, -0.6], [fw.x - 0.12, fw.y - fw.r - 0.05], [fw.x - 0.35, fw.y - fw.r - 0.05]], 'dark', {}, 1),
+        blob([[rw.x - 0.55, -0.85], [rw.x + 0.3, -0.85], [rw.x + 0.2, -0.35], [rw.x + 0.05, rw.y - rw.r + 0.02], [rw.x - 0.25, rw.y - rw.r + 0.02], [rw.x - 0.45, -0.4]], 'body', { ring: true }, 2),
+        blob([[fw.x - 0.25, -0.75], [fw.x + 0.2, -0.75], [fw.x + 0.18, fw.y - fw.r + 0.02], [fw.x - 0.15, fw.y - fw.r + 0.02]], 'body', { ring: true }, 1),
+        ...[rw, fw].map((w) => ell(w.x - 0.05, w.y - w.r - 0.02, 0.2, 0.08, 'cream')),
+        // lean body: hips, a dip in the back, high shoulders, deep chest, tucked belly
+        blob([[x0 + 0.2, -0.4], [x0 + 0.1, -0.95], [x0 + 0.5, -1.12], [-0.6, -1.05], [0.1, -1.1], [0.7, -1.28], [1.1, -1.05], [1.12, -0.5], [0.75, -0.25], [0.2, -0.38], [-0.5, -0.36]], 'body', {}, 2),
+        // darker saddle of fur along the back, pale chest and belly
+        blob([[x0 + 0.3, -1.05], [-0.6, -1.0], [0.1, -1.06], [0.7, -1.24], [0.62, -1.08], [0.0, -0.94], [-0.7, -0.92]], 'dark', {}, 2),
+        blob([[1.1, -0.95], [1.12, -0.5], [0.75, -0.28], [0.3, -0.38], [0.55, -0.55], [0.85, -0.7]], 'cream', {}, 2),
+        // head: skull and cheek ruff, long muzzle with a black nose, upright ears, an amber eye,
+        // the jaw just open with a pair of fangs
+        ...place([
+          blob([[0.75, -0.9], [0.95, -1.18], [1.3, -1.25], [1.55, -1.08], [1.95, -0.98], [2.03, -0.86], [1.85, -0.78], [1.4, -0.72], [1.0, -0.62]], 'body', {}, 2),
+          blob([[0.95, -0.95], [1.25, -0.82], [1.4, -0.72], [1.05, -0.62], [0.85, -0.75]], 'cream', {}, 1),
+          poly([[0.98, -1.12], [1.02, -1.48], [1.2, -1.18]], 'body'), poly([[1.16, -1.18], [1.26, -1.52], [1.38, -1.15]], 'body'),
+          poly([[1.04, -1.16], [1.06, -1.36], [1.14, -1.18]], 'pink'),
+          ell(1.99, -0.94, 0.07, 0.06, 'black'),
+          ell(1.36, -1.04, 0.065, 0.055, 'accent'), circ(1.38, -1.04, 0.028, 'black'),
+          poly([[1.45, -0.8], [1.91, -0.8], [1.85, -0.7], [1.48, -0.7]], 'black', { flat: true }),
+          ...fangs(1.55, 1.85, -0.8, 2, 0.07),
+        ], -0.385, 0.12, 1.3),
+        // a leather saddle for the rider behind the shoulders
+        ...saddle(f.head.x, f.head.y + 0.28, 'brown'),
       ];
     },
   }],
   ['ghost-bike', 'Ghost Bike', 'Мотоцикл-привид у примарному сяйві.', 'bike', ['#d0e0f0', '#7a6ab0'], {
     axles: [0.8, 0.8],
     float: 0.8, noLights: true,
+    // the ghostly glow (animated): pale wisps streaming off the tail, sparks twinkling round the bike
+    fx: () => [{ kind: 'wisp', at: [-1.5, -0.2], dir: 175, size: 0.3 }, { kind: 'spark', at: [0.1, -0.6], dir: -90, size: 0.18, mat: 'sky', rate: 0.6 }],
     skin: (f) => [
-      // the ghostly glow: pale wisps streaming off the tail, glowing sparks around the bike
-      ...[[-0.2, -0.85], [0.6, -0.7], [1.0, -0.15], [-0.9, -0.7]].map(([x, y]) => starShape(x, y, 0.06, 'sky')),
-      ...[[-1.6, -0.55, 0.32, 0.14], [-1.95, -0.25, 0.28, 0.1], [-1.75, 0.1, 0.24, 0.09]].map(([x, y, rx, ry]) => ell(x, y, rx, ry, 'white', { flat: true })),
       blob([[-0.6, -0.15], [-1.0, -0.5], [-1.5, -0.4], [-1.25, -0.1], [-1.6, 0.1], [-1.2, 0.2], [-0.6, 0.2]], 'white', {}, 1),
       ...bike(f, { mat: 'accent' }),
       ell(0.42, -0.25, 0.06, 0.08, 'black'), ell(0.57, -0.25, 0.06, 0.08, 'black'), ell(0.5, -0.1, 0.05, 0.04, 'black'),

@@ -7,7 +7,7 @@ import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { CARS } from '../src/cars/defs';
 import { CAR_PPM } from '../src/physics/constants';
-import { carPalette, driverPalette, generateCarGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, wheelPalette } from '../src/cars/sprite';
+import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, wheelPalette } from '../src/cars/sprite';
 import { ITEMS, cargoSlots } from '../src/game/abilities';
 import { DECOR_PAL, flailGrid, itemGrid } from '../src/maps/decor';
 import type { PixelGrid } from '../src/render/grid';
@@ -65,6 +65,8 @@ cars.forEach((def, i) => {
   drawLinks(true);
   const body = generateCarGrid(def);
   blit(body, carPalette(def.palette), ox - body.ox, oy - body.oy);
+  const fxg = generateFxGrid(def);
+  if (fxg) blit(fxg, carPalette(def.palette), ox - fxg.ox, oy - fxg.oy);
   const head = generateHeadGrid(def.head.r);
   blit(head, dpal, Math.round(ox + def.head.x * CAR_PPM - head.ox), Math.round(oy + def.head.y * CAR_PPM - head.oy));
   for (const w of def.wheels) {

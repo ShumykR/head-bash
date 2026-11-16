@@ -1,7 +1,7 @@
 import { tailgate } from '../art';
-import { beacon, blob, bumper, checkers, circ, door, ell, fender, flameDecal, grille, headlight, ladder, lightbar, pane, path, plus, poly, rect, rr, seat, seg, spare, stack, starShape, stripe, taillight, tank, truss, windows } from '../draw';
-import { dragsterBody, bike, boxy, carriage, fenders, formula, frontLamp, kart, monsterChassis, pickup, rearLamp, sedan, skirt, tracks, tractor, truckCab } from '../skins';
-import type { CarMat, CarPoly, Pt } from '../types';
+import { beacon, blob, bumper, checkers, circ, door, ell, fender, flameDecal, grille, headlight, ladder, lightbar, pane, path, plus, poly, rect, rr, seat, seg, spare, stack, starShape, stripe, taillight, tank, truss } from '../draw';
+import { dragsterBody, bike, boxy, carriage, fenders, formula, frontLamp, kart, monsterChassis, pickup, rearLamp, sedan, skirt, tracks, truckCab } from '../skins';
+import type { CarPoly, Pt } from '../types';
 import type { Frame, LinkSpec } from '../factory';
 import { group, o } from './util';
 
@@ -89,10 +89,6 @@ export const RETRO = group('retro', [
       };
     })],
   }],
-  ['farm-tractor', 'Tractor', 'Колісний трактор: велетенське заднє колесо і страшна тяга.', 'tractor', ['#3aa84a', '#ffd23f'], {
-    axles: [1.35, 0.8], head: (f) => [f.head.x + 0.05, -1.02],
-    skin: (f) => [...tractor(f), stripe(-0.4, f.nose.x - 0.15, -0.16, 0.06, 'accent')],
-  }],
   ['garbage-truck', 'Garbage Truck', 'Сміттєвоз. Вивалює мішки сміття під колеса суперникові.', 'truck', ['#3a8a5a', '#c0c8d0'], {
     parts: [['cargo', 1]], hideParts: true,
     skin: (f) => [
@@ -118,29 +114,39 @@ export const RETRO = group('retro', [
       rr(f.tail.x + 0.5, f.roof.y - 0.34, f.tail.x + 1.1, f.roof.y - 0.16, 0.04, 'brown'), rr(f.tail.x + 1.15, f.roof.y - 0.3, f.tail.x + 1.5, f.roof.y - 0.16, 0.04, 'blue'),
     ],
   }],
-  ['tourist-bus', 'Tourist Bus', 'Двоповерховий екскурсійний автобус з відкритим верхом.', 'bus', ['#e84040', '#fff0c0'], {
-    o: o({ tall: 1.45, wheels: 3 }),
-    // Open top (our description) with the rider up on the top deck (as in Drive Ahead), flame decal on the side.
-    head: (f) => [f.nose.x - 0.55, f.roof.y + 0.12],
+  ['tourist-bus', 'Tourist Bus', 'Двоповерховий туристичний автобус із вогняним декором. Голова водія — у люку на даху, малим авто до неї не дотягнутися.', 'bus', ['#e84040', '#fff0c0'], {
+    o: o({ tall: 1.75 }), axles: [0.85, 0.85],
+    // A closed double-decker on two small wheels (Drive Ahead's coach, stacked): five windows on
+    // each deck, the door the second from the front on the lower one, a flame decal along the
+    // bottom, and the roof hatch at the front the player looks out of.
+    head: (f) => [f.nose.x - 0.55, f.roof.y - 0.02],
     skin: (f) => {
-      const t = f.roof.y, w = t + 0.42;
-      const posts = Array.from({ length: 7 }, (_, i) => f.tail.x + 0.12 + i * ((f.nose.x - f.tail.x - 0.35) / 6));
+      const t = f.roof.y, hx = f.nose.x - 0.55;
+      const x0 = f.tail.x + 0.18, x1 = f.nose.x - 0.12, cw = (x1 - x0) / 5;
+      const up0 = t + 0.3, up1 = t + 0.7, mid = t + 0.82, lo0 = mid + 0.16, lo1 = -0.26;
       return [
-        // the open upper deck: tourists on the bench seats behind a handrail
-        ...([[0.35, 'red'], [0.95, 'yellow'], [1.55, 'green'], [2.15, 'blue']] as [number, CarMat][]).flatMap(([dx, c]) => {
-          const x = f.tail.x + dx;
-          return [rr(x - 0.15, t + 0.22, x + 0.15, w, 0.06, c), circ(x, t + 0.12, 0.13, 'tan'), rect(x - 0.13, t - 0.0, x + 0.13, t + 0.05, c)];
-        }),
-        ...posts.map((x) => rect(x - 0.03, t + 0.02, x + 0.03, w, 'chrome')),
-        rr(f.tail.x + 0.06, t - 0.02, f.nose.x - 0.2, t + 0.06, 0.03, 'chrome'),
-        ...boxy(f, { top: w, slope: 0.2, slopeH: 0.3, screen: false, round: 0.12 }),
-        ...flameDecal(f.tail.x + 0.3, f.nose.x - 1.2, 0.1, 0.16),
-        ...windows(f.tail.x + 0.15, f.nose.x - 0.55, -0.5, -0.16, 4),
-        rr(f.nose.x - 0.5, -0.55, f.nose.x - 0.04, -0.12, 0.05, 'glass'),
-        stripe(f.tail.x, f.nose.x, -0.66, 0.1, 'accent'), stripe(f.tail.x, f.nose.x, 0.02, 0.08, 'accent'),
-        rect(f.nose.x - 1.05, -0.5, f.nose.x - 0.62, 0.22, 'body', { ring: true }), rect(f.nose.x - 1.0, -0.45, f.nose.x - 0.67, -0.1, 'glass'),
-        rr(f.nose.x - 0.55, w + 0.04, f.nose.x - 0.1, w + 0.16, 0.03, 'black'), rect(f.nose.x - 0.5, w + 0.08, f.nose.x - 0.3, w + 0.13, 'yellow', { flat: true }),
-        stripe(f.tail.x, f.nose.x, -0.58, 0.03, 'gold'),
+        ...boxy(f, { top: t, slope: 0.2, slopeH: 0.3, screen: false, round: 0.14 }),
+        // upper deck: five windows in a row, the front one a wide panorama pane
+        ...[0, 1, 2, 3].map((i) => rr(x0 + i * cw + 0.05, up0, x0 + (i + 1) * cw - 0.05, up1, 0.05, 'glass', { keep: true })),
+        rr(x0 + 4 * cw + 0.05, up0, x1 + 0.04, up1 + 0.04, 0.07, 'glass', { keep: true }),
+        // the belt between the decks
+        stripe(f.tail.x, f.nose.x, up1 + 0.04, mid - up1 - 0.04, 'accent'), stripe(f.tail.x, f.nose.x, mid - 0.03, 0.03, 'gold'),
+        // lower deck: windows with the folding door the second from the front, down to the step
+        ...[0, 1, 2, 4].map((i) => rr(x0 + i * cw + 0.05, lo0, x0 + (i + 1) * cw - 0.05, lo1, 0.05, 'glass', { keep: true })),
+        rr(x0 + 3 * cw + 0.04, lo0 - 0.04, x0 + 4 * cw - 0.04, 0.24, 0.04, 'dark', { ring: true }),
+        ...[0, 1].map((k) => rr(x0 + 3 * cw + 0.08 + k * (cw - 0.08) / 2, lo0, x0 + 3 * cw + (k + 1) * (cw - 0.08) / 2, 0.18, 0.03, 'glass', { keep: true })),
+        rect(x0 + 3 * cw + cw / 2 - 0.01, lo0, x0 + 3 * cw + cw / 2 + 0.01, 0.22, 'dark', { flat: true }),
+        // livery: a cream band under the windows, the flame decal licking back along the lower body
+        stripe(f.tail.x, x0 + 3 * cw, -0.2, 0.07, 'accent'), stripe(x0 + 4 * cw, f.nose.x, -0.2, 0.07, 'accent'),
+        ...flameDecal(f.tail.x + 0.2, x0 + 3 * cw - 0.15, 0.06, 0.15),
+        stripe(f.tail.x, f.nose.x, t + 0.16, 0.05, 'accent'),
+        // the roof: a luggage rail at the back and the open hatch round the player
+        ...[0.25, 0.65, 1.05, 1.45].map((dx) => rect(f.tail.x + dx, t - 0.12, f.tail.x + dx + 0.04, t, 'chrome')),
+        rr(f.tail.x + 0.2, t - 0.15, f.tail.x + 1.55, t - 0.09, 0.03, 'chrome'),
+        rr(hx - 0.42, t - 0.07, hx + 0.38, t + 0.06, 0.04, 'black'), rr(hx - 0.46, t - 0.1, hx - 0.36, t + 0.06, 0.03, 'chrome'), rr(hx + 0.32, t - 0.1, hx + 0.42, t + 0.06, 0.03, 'chrome'),
+        // destination board under the front windscreen and the lamps
+        rr(f.nose.x - 0.34, mid - 0.02, f.nose.x - 0.02, mid + 0.12, 0.03, 'black'), rect(f.nose.x - 0.3, mid + 0.02, f.nose.x - 0.06, mid + 0.08, 'yellow', { flat: true }),
+        ...frontLamp(f.nose.x - 0.02, 0.1, 0.09), rearLamp(f.tail.x + 0.02, 0.05, 0.09),
       ];
     },
   }],
@@ -198,21 +204,41 @@ export const RETRO = group('retro', [
     ],
   }],
   ['skid-steer', 'Skid-Steer Loader', 'Компактний навантажувач із ковшем: підчіплює суперника знизу.', 'box', ['#f0b020', '#2a2a2a'], {
-    s: 0.8, arch: 'scoop',
-    skin: (f) => [
-      rr(f.tail.x - 0.05, -0.36, f.nose.x - 0.15, 0.38, 0.12, 'body'),
-      ...[0, 1, 2].map((i) => poly([[f.tail.x - 0.02, -0.2 + i * 0.18], [f.tail.x + 0.3, -0.3 + i * 0.18], [f.tail.x + 0.3, -0.22 + i * 0.18], [f.tail.x - 0.02, -0.12 + i * 0.18]], 'black', { flat: true })),
-      rect(f.tail.x + 0.08, f.roof.y, f.tail.x + 0.22, -0.34, 'dark'), rect(-0.02, f.roof.y, 0.12, -0.34, 'dark'), rr(f.tail.x - 0.04, f.roof.y - 0.12, 0.34, f.roof.y + 0.04, 0.04, 'body'),
-      ...[0, 1, 2, 3].map((i) => rect(0.12, f.roof.y + 0.1 + i * 0.13, 0.22, f.roof.y + 0.16 + i * 0.13, 'grey', { flat: true })),
-      ...frontLamp(f.nose.x - 0.15, -0.22), circ(f.tail.x + 0.45, f.roof.y - 0.12, 0.06, 'orange'),
-      rr(f.tail.x - 0.08, 0.05, f.tail.x + 0.15, 0.25, 0.04, 'black'), circ(f.tail.x + 0.2, -0.2, 0.1, 'grey'),
-    ],
-    // Lift arms pivot at the back: the bucket rides over bumps and flips up whatever it scoops.
-    links: (f) => [{
-      at: [f.tail.x + 0.2, -0.2], swing: [-38, 6], spring: 35, density: 0.2,
-      hit: [seg([0.9, -0.75], [f.nose.x + 0.2, -0.2], 0.16), poly([[f.nose.x + 0.15, -0.35], [f.nose.x + 0.35, -0.38], [f.nose.x + 0.85, 0.22], [f.nose.x + 0.35, 0.28]])],
-      art: [...path([[f.tail.x + 0.2, -0.2], [0.9, -0.75], [f.nose.x + 0.2, -0.2]], 0.16, 'dark'), poly([[f.nose.x + 0.15, -0.35], [f.nose.x + 0.35, -0.38], [f.nose.x + 0.85, 0.22], [f.nose.x + 0.35, 0.28]], 'scoop')],
-    }],
+    s: 0.8, arch: 'scoop', axles: [0.8, 0.8], o: o({ len: 0.72, tall: 1.1 }),
+    // As in Drive Ahead: a squat yellow loader, the driver in a caged cab in the middle, the engine
+    // behind, and a small grey bucket down at the road on lift arms that run low along the side.
+    skin: (f) => {
+      const hx = f.head.x, top = f.roof.y, e = top + 0.32;
+      return [
+        // the engine housing behind the cab (lower than the cab), the low nose in front of it
+        rr(f.tail.x - 0.05, e, hx - 0.4, 0.38, 0.1, 'body'),
+        rr(hx - 0.45, -0.2, f.nose.x - 0.08, 0.38, 0.08, 'body'),
+        rr(f.tail.x - 0.1, 0.05, f.tail.x + 0.15, 0.25, 0.04, 'black'),
+        // the caged cab: roll-over frame round the driver, tinted side glass, a beacon on the roof
+        rect(hx - 0.36, top + 0.04, hx + 0.3, -0.2, 'glass'),
+        rr(hx - 0.44, top - 0.06, hx + 0.38, top + 0.06, 0.03, 'dark'),
+        rect(hx - 0.44, top, hx - 0.34, 0.0, 'dark'), rect(hx + 0.28, top, hx + 0.36, -0.2, 'dark'),
+        ...[-0.2, -0.05, 0.1].map((d) => rect(hx + d, top + 0.06, hx + d + 0.03, -0.2, 'dark', { flat: true })),
+        circ(hx - 0.15, top - 0.12, 0.06, 'orange'),
+        ...frontLamp(f.nose.x - 0.08, -0.08, 0.1),
+      ];
+    },
+    // Lift arms pivot at the top of the rear towers, drop behind the cab and run low along the sill
+    // to the bucket at the road: the bucket rides over bumps and flips up whatever it scoops.
+    links: (f) => {
+      const px = f.tail.x + 0.3, py = f.roof.y + 0.28, kx = f.head.x - 0.45, ky = -0.12, bx = f.nose.x + 0.02, by = -0.02;
+      const bucket: Pt[] = [[bx + 0.02, by - 0.3], [bx + 0.2, by - 0.33], [bx + 0.66, by + 0.3], [bx + 0.06, by + 0.32]];
+      return [{
+        at: [px, py], swing: [-38, 6], spring: 35, density: 0.2,
+        hit: [seg([px, py], [kx, ky], 0.14), seg([kx, ky], [bx, by], 0.14), poly(bucket)],
+        art: [
+          ...path([[px, py], [kx, ky], [bx, by]], 0.13, 'dark'),
+          circ(px, py, 0.08, 'dark'), circ(bx, by, 0.07, 'dark'),
+          poly(bucket, 'grey'), poly([[bx + 0.06, by + 0.24], [bx + 0.6, by + 0.24], [bx + 0.66, by + 0.3], [bx + 0.06, by + 0.32]], 'chrome'),
+          poly([[bx + 0.02, by - 0.3], [bx + 0.2, by - 0.33], [bx + 0.24, by - 0.25], [bx + 0.06, by - 0.22]], 'dark'),
+        ],
+      }];
+    },
   }],
   ['hippie-van', 'Hippie Van', 'Вінтажний мікроавтобус хіпі з квітами і знаком миру.', 'van', ['#f0e0b0', '#ff7aa0'], {
     parts: ['flag'], hideParts: true,
@@ -384,19 +410,34 @@ export const RETRO = group('retro', [
       rr(-1.0, 0.16, 1.05, 0.34, 0.06, 'dark'), bumper(-1.05, 1.1, 0.28, 0.1), rearLamp(-0.95, -0.2, 0.12),
     ],
   }],
-  ['landfill-truck', 'Landfill Truck', 'Кар\'єрний самоскид. Каміння в кузові висипається на ходу, а за командою — все одразу.', 'truck', ['#f0a020', '#3a3a3a'], {
-    o: o({ wheel: 1.3, wheels: 2 }), mass: 1.1, cargo: ['rock', 6],
-    art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.45, 'body'))],
+  ['landfill-truck', 'Landfill Truck', 'Кар\'єрний самоскид на трьох позашляхових колесах. Брили в кузові висипаються на ходу, а за командою — все одразу.', 'truck', ['#f0a020', '#3a3a3a'], {
+    o: o({ wheel: 1.0, wheels: 3, len: 0.85, tall: 1.1 }), mass: 1.1, cargo: ['rock', 6],
+    // The bay floor is raised, so the load heaps up over the low back of the rim (and still tips out).
+    art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.45, 'body')), hidden(rect(f.deck.x0 + 0.05, f.deck.y - 0.2, f.deck.x1 - 0.05, f.deck.y, 'dark'))],
+    cargoAt: (f) => [f.deck.x0 + 0.1, f.deck.x0 + 1.0, f.deck.y - 0.2],
+    // As in Drive Ahead: a deep, boxy holding bay with ribbed sides, the boulders showing over its rim,
+    // a tall steel bulkhead between the bay and the cab, three rugged wheels.
     skin: (f) => {
-      const d = f.deck;
+      const d = f.deck, top = d.y - 0.3, front = d.y - 0.64;
       return [
         ...truckCab(f),
-        poly([[d.x0 - 0.1, d.y - 0.5], [d.x1 + 0.05, d.y - 0.75], [d.x1 + 0.05, d.y + 0.1], [d.x0 + 0.1, d.y + 0.1]], 'body'),
-        ...[0.5, 1.2, 1.9].map((dx) => rect(d.x0 + dx, d.y - 0.55, d.x0 + dx + 0.08, d.y + 0.05, 'dark', { flat: true })),
-        poly([[d.x1 - 0.1, d.y - 0.75], [f.nose.x - 0.1, f.roof.y - 0.1], [f.nose.x - 0.1, f.roof.y], [d.x1 - 0.1, d.y - 0.62]], 'body'),
-        poly([[d.x0 - 0.1, d.y - 0.5], [d.x1 + 0.05, d.y - 0.75], [d.x1 + 0.05, d.y - 0.66], [d.x0 - 0.1, d.y - 0.42]], 'dark', { flat: true }),
-        rr(d.x0, d.y + 0.08, d.x1, d.y + 0.2, 0.03, 'black'), ...ladder([d.x1 - 0.05, d.y + 0.1], [d.x1 - 0.05, d.y - 0.6], 0.12, 'grey', 4),
-        ...[0, 1, 2].map((i) => poly([[d.x0 - 0.1, d.y - 0.32 + i * 0.13], [d.x0 + 0.1, d.y - 0.38 + i * 0.13], [d.x0 + 0.1, d.y - 0.32 + i * 0.13], [d.x0 - 0.1, d.y - 0.26 + i * 0.13]], 'yellow', { flat: true })),
+        // the bulkhead: a tall steel plate behind the cab, braced, with a ladder up its side
+        rr(d.x1 - 0.02, f.roof.y - 0.12, d.x1 + 0.2, d.y + 0.12, 0.04, 'grey'),
+        ...[0.25, 0.55].map((k) => rect(d.x1 - 0.02, f.roof.y + (d.y - f.roof.y) * k, d.x1 + 0.2, f.roof.y + (d.y - f.roof.y) * k + 0.05, 'dark', { flat: true })),
+        ...ladder([d.x1 + 0.28, d.y + 0.1], [d.x1 + 0.28, f.roof.y + 0.05], 0.1, 'chrome', 4),
+        // the bay: an open-topped box with a thick rim, vertical ribs and a hazard-striped tail
+        // (its rim rises towards the cab, the rocks show over the low back end)
+        poly([[d.x0 - 0.1, top], [d.x1, front], [d.x1, d.y + 0.14], [d.x0 - 0.06, d.y + 0.14], [d.x0 - 0.1, d.y + 0.05]], 'body'),
+        poly([[d.x0 - 0.14, top - 0.06], [d.x1 + 0.02, front - 0.06], [d.x1 + 0.02, front + 0.05], [d.x0 - 0.14, top + 0.05]], 'dark'),
+        ...Array.from({ length: 4 }, (_, i) => d.x0 + 0.25 + i * ((d.x1 - d.x0 - 0.45) / 3)).map((x) => {
+          const y = top + ((front - top) * (x - d.x0)) / (d.x1 - d.x0);
+          return rr(x - 0.05, y + 0.05, x + 0.05, d.y + 0.12, 0.02, 'dark', { flat: true });
+        }),
+        // the canopy over the cab, off the top of the bulkhead
+        poly([[d.x1 - 0.05, f.roof.y - 0.2], [f.roof.x1 - 0.05, f.roof.y - 0.16], [f.roof.x1 - 0.05, f.roof.y - 0.08], [d.x1 - 0.05, f.roof.y - 0.1]], 'body'),
+        stripe(d.x0 - 0.1, d.x1, d.y - 0.18, 0.06, 'dark'),
+        ...[0, 1, 2].map((i) => poly([[d.x0 - 0.1, top + 0.15 + i * 0.13], [d.x0 + 0.06, top + 0.09 + i * 0.13], [d.x0 + 0.06, top + 0.15 + i * 0.13], [d.x0 - 0.1, top + 0.21 + i * 0.13]], 'yellow', { flat: true })),
+        rr(d.x0 - 0.05, d.y + 0.12, d.x1, d.y + 0.24, 0.03, 'black'),
         ...fenders(f, 'dark', 0.12),
       ];
     },
@@ -476,6 +517,7 @@ export const RETRO = group('retro', [
     })],
   }],
   ['bumper-car', 'Bumper Car', 'Атракціонна машинка на штанзі. Гумовий бампер — і бамс!', 'kart', ['#ff3a5a', '#ffd23f'], {
+    drive: 'wheels',
     // No visible wheels: it rolls on hidden casters under the rubber skirt.
     s: 0.85, arch: 'tiny', glide: 0.27, parts: ['antenna'], bounce: 0.4, noLights: true, hideParts: true,
     skin: (f) => [

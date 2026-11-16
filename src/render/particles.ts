@@ -4,7 +4,7 @@ import { whiteTexture } from './textures';
 interface P {
   s: Sprite;
   x: number; y: number; vx: number; vy: number;
-  life: number; max: number; size: number; g: number; drag: number; shrink: boolean; spin: number;
+  life: number; max: number; size: number; g: number; drag: number; shrink: boolean; spin: number; grow: number; fade: number;
 }
 
 /** Pooled square-pixel particles living in world space (meters). */
@@ -13,7 +13,7 @@ export class Particles {
   private pool: Sprite[] = [];
   private live: P[] = [];
 
-  spawn(x: number, y: number, o: { vx?: number; vy?: number; life?: number; size?: number; color?: number; g?: number; drag?: number; shrink?: boolean; spin?: number }) {
+  spawn(x: number, y: number, o: { vx?: number; vy?: number; life?: number; size?: number; color?: number; g?: number; drag?: number; shrink?: boolean; spin?: number; grow?: number; alpha?: number }) {
     if (this.live.length > 900) return;
     const s = this.pool.pop() ?? new Sprite(whiteTexture());
     s.anchor.set(0.5);
@@ -22,7 +22,7 @@ export class Particles {
     s.alpha = 1;
     this.container.addChild(s);
     const life = o.life ?? 0.6;
-    this.live.push({ s, x, y, vx: o.vx ?? 0, vy: o.vy ?? 0, life, max: life, size: o.size ?? 0.12, g: o.g ?? 0, drag: o.drag ?? 0, shrink: o.shrink ?? true, spin: o.spin ?? 0 });
+    this.live.push({ s, x, y, vx: o.vx ?? 0, vy: o.vy ?? 0, life, max: life, size: o.size ?? 0.12, g: o.g ?? 0, drag: o.drag ?? 0, shrink: o.shrink ?? true, spin: o.spin ?? 0, grow: o.grow ?? 0, fade: o.alpha ?? 1 });
   }
 
   burst(x: number, y: number, n: number, o: { speed: number; life?: number; size?: number; colors: number[]; g?: number; drag?: number; up?: number; spread?: number; dir?: number }) {
@@ -60,12 +60,13 @@ export class Particles {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       const t = p.life / p.max;
-      const sz = p.shrink ? p.size * (0.3 + 0.7 * t) : p.size;
+      // grow > 0: a puff swelling as it fades (smoke, steam); otherwise optionally shrinking
+      const sz = p.grow ? p.size * (1 + p.grow * (1 - t)) : p.shrink ? p.size * (0.3 + 0.7 * t) : p.size;
       p.s.position.set(p.x, p.y);
       p.s.width = sz;
       p.s.height = sz;
       p.s.rotation += p.spin * dt;
-      p.s.alpha = Math.min(1, t * 2.5);
+      p.s.alpha = Math.min(1, t * 2.5) * p.fade;
     }
   }
 

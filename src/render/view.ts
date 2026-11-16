@@ -4,7 +4,8 @@ import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
 import type { CarDef, CarPalette } from '../cars/types';
-import { carPalette, driverPalette, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, wheelPalette } from '../cars/sprite';
+import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, tone, wheelPalette } from '../cars/sprite';
+import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import type { MapDef } from '../maps/types';
 import { PROP_PAL, crateGrid, hazardStripGrid, lavaGrid, lavaSurfaceGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid, waterGrid, waterSurfaceGrid } from '../maps/props';
@@ -23,9 +24,10 @@ import { drawPhysicsDebug } from './debug';
 export const PLAYER_COLORS = ['#3ec1ff', '#ff5a6e'];
 export const PLAYER_NAMES = ['P1', 'P2'];
 
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** Shots drawn rotated along their flight. */
-const ALONG = new Set<string>(['laser', 'zap', 'bullet', 'tracer', 'firework', 'missile', 'harpoon', 'cork', 'volley', 'seeker', 'torpedo', 'railgun', 'hook', 'quill', 'bat', 'penguin', 'fist']);
+const ALONG = new Set<string>(['laser', 'zap', 'bullet', 'tracer', 'firework', 'missile', 'harpoon', 'cork', 'volley', 'bigrocket', 'popshell', 'seeker', 'torpedo', 'railgun', 'hook', 'quill', 'bat', 'penguin', 'fist']);
 /** A sagging rope (tow hook, tether). */
 function fxRope(g: Graphics, x0: number, y0: number, x1: number, y1: number) {
   const n = 10;
@@ -62,10 +64,21 @@ function cached(key: string, make: () => Texture): Texture {
 }
 
 export function carTexture(def: CarDef, alt = false): { tex: Texture; ox: number; oy: number } {
-  const grid = generateCarGrid(def);
+  const grid = generateCarGrid(def, CAR_PPM, true);
   const pal = alt ? altPalette(def.palette) : def.palette;
   const tex = cached(`car:${def.id}:${alt}`, () => gridTexture(grid, carPalette(pal)));
   return { tex, ox: grid.ox, oy: grid.oy };
+}
+
+/** Convex hull of points (monotone chain), counter-clockwise. */
+function hullOf(pts: [number, number][]): [number, number][] {
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo: [number, number][] = [], hi: [number, number][] = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of [...p].reverse()) { while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], q) <= 0) hi.pop(); hi.push(q); }
+  return [...lo.slice(0, -1), ...hi.slice(0, -1)];
 }
 
 class CarView {
@@ -75,7 +88,17 @@ class CarView {
   readonly head: Sprite;
   readonly torso: Sprite;
   readonly flame: Sprite;
+  /** Flickering lightning and pulsing light beams (car-local, inside the body). */
+  readonly fxGfx = new Graphics();
+  /** Colours of the car's effects: [base, light] per fx. */
+  readonly fxCol: [number, number][];
   readonly marker: Sprite;
+  /** Running gear drawn live: a track belt round the wheels (world space) or a hover cushion (car-local). */
+  readonly gear = new Graphics();
+  /** Belt colours: outline, rubber, rubber light, inner. */
+  private readonly beltCol: [number, number, number, number] = [0x14121c, 0x3a3844, 0x5a5866, 0x16141c];
+  /** The loaded round (a rocket on its rail): hidden while the shot recharges. */
+  readonly ammo: Sprite | null = null;
   readonly flail: Sprite | null = null;
   readonly chain = new Graphics();
   /** Moving pieces, then their wheels (same order as Car.links / Car.linkWheels). */
@@ -107,7 +130,18 @@ class CarView {
     this.flame.tint = 0xffa030;
     this.flame.visible = false;
 
-    this.body.addChild(this.flame, this.torso, s, this.head);
+    if (def.drive === 'hover') this.body.addChild(this.gear);
+    this.body.addChild(this.flame, this.torso, s);
+    const ag = generateAmmoGrid(def);
+    if (ag) {
+      this.ammo = new Sprite(cached(`ammo:${def.id}:${alt}`, () => gridTexture(ag, carPalette(pal))));
+      this.ammo.anchor.set(ag.ox / ag.w, ag.oy / ag.h);
+      this.ammo.scale.set(1 / CAR_PPM);
+      this.body.addChild(this.ammo);
+    }
+    this.body.addChild(this.head, this.fxGfx);
+    const cpal = carPalette(pal);
+    this.fxCol = (def.fx ?? []).map((e) => { const m = e.mat ?? FX_MAT[e.kind]; return [toHex(cpal[tone(m, 2)]!), toHex(cpal[tone(m, 4)]!)]; });
     this.body.scale.x = car.facing;
 
     for (const wd of def.wheels) {
@@ -143,7 +177,11 @@ class CarView {
       this.links.push(ws);
       front.push(ws);
     }
-    this.root.addChild(this.chain, ...behind, this.body, ...this.wheels, ...front, this.marker);
+    if (def.belt) {
+      const cp = carPalette(pal), m = def.belt.mat;
+      this.beltCol = [0x14121c, toHex(cp[tone(m, 1)]!), toHex(cp[tone(m, 3)]!), 0x16141c];
+    }
+    this.root.addChild(this.chain, ...behind, this.body, ...(def.belt ? [this.gear] : []), ...this.wheels, ...front, this.marker);
     if (def.flail) {
       const fl = def.flail;
       this.flail = new Sprite(cached(`flail:${fl.look}:${fl.r}`, () => gridTexture(flailGrid(fl.look, fl.r, CAR_PPM), DECOR_PAL)));
@@ -187,6 +225,7 @@ class CarView {
         ch.rect(a.x + (fp.x - a.x) * k - 0.06, a.y + (fp.y - a.y) * k - 0.06, 0.12, 0.12).fill({ color: i % 2 ? 0x5a5e6c : 0x9aa0ae });
       }
     }
+    if (this.ammo) this.ammo.visible = c.abilityCd <= 0;
     // Ghost mode flickers, invisibility nearly hides; frozen / zapped cars get a tint.
     this.root.alpha = c.invisT > 0 ? (c.invisT < 0.4 ? 0.5 : 0.06 + 0.04 * Math.sin(time * 9)) : c.phaseT > 0 ? 0.35 + 0.15 * Math.sin(time * 30) : 1;
     const tint = c.stunT > 0 ? (c.stunLook === 'zap' ? (Math.sin(time * 40) > 0 ? 0xfff6a0 : 0xffffff) : c.stunLook === 'web' ? 0xdadada : 0xa8e4ff)
@@ -215,6 +254,81 @@ class CarView {
       this.flame.height = 0.22 + Math.random() * 0.08;
       this.flame.tint = Math.random() > 0.5 ? 0xffd040 : 0xff7020;
     } else this.flame.visible = false;
+    this.drawFx(time);
+    this.drawGear(time);
+  }
+
+  /**
+   * The track belt hugs the road wheels where the suspension has them, its lugs running round as
+   * the wheels turn; a hover car's air cushion glows and breathes under the hull.
+   */
+  private drawGear(time: number) {
+    const def = this.car.def;
+    if (def.belt) {
+      const g = this.gear.clear();
+      if (!this.car.alive && this.root.alpha === 0) return;
+      const ws = def.wheels.map((w, i) => ({ x: this.wheels[i].x, y: this.wheels[i].y, r: w.r }));
+      const ring = (d: number) => hullOf(ws.flatMap((w) => Array.from({ length: 18 }, (_, k) => [w.x + Math.cos((k / 18) * Math.PI * 2) * (w.r + d), w.y + Math.sin((k / 18) * Math.PI * 2) * (w.r + d)] as [number, number])));
+      const gw = def.belt.grow;
+      const [ol, base, light, inner] = this.beltCol;
+      g.poly(ring(gw + 0.055).flat()).fill({ color: ol });
+      g.poly(ring(gw).flat()).fill({ color: base });
+      g.poly(ring(Math.max(0.01, gw - 0.08)).flat()).fill({ color: inner });
+      // the lugs run round the belt with the wheels
+      const outer = ring(gw), w0 = this.car.wheels[0];
+      const travel = w0 ? w0.getAngle() * def.wheels[0].r * this.car.facing : 0;
+      const step = 0.24;
+      let acc = ((travel % step) + step) % step;
+      for (let i = 0; i < outer.length; i++) {
+        const [ax, ay] = outer[i], [bx, by] = outer[(i + 1) % outer.length];
+        const l = Math.hypot(bx - ax, by - ay);
+        while (acc < l) {
+          const t = acc / l, x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
+          g.rect(x - 0.045, y - 0.045, 0.09, 0.09).fill({ color: light });
+          acc += step;
+        }
+        acc -= l;
+      }
+    } else if (def.drive === 'hover') {
+      const g = this.gear.clear();
+      if (!this.car.alive) return;
+      const ws = def.wheels;
+      const x0 = Math.min(...ws.map((w) => w.x)), x1 = Math.max(...ws.map((w) => w.x));
+      const y = Math.max(...ws.map((w) => w.y + w.r)) - 0.08;
+      const pulse = 0.5 + 0.5 * Math.sin(time * 9);
+      const cx = (x0 + x1) / 2, rx = (x1 - x0) / 2 + 0.35;
+      g.ellipse(cx, y, rx, 0.16 + 0.04 * pulse).fill({ color: 0x7ae8ff, alpha: 0.18 + 0.12 * pulse });
+      g.ellipse(cx, y - 0.04, rx * 0.7, 0.07).fill({ color: 0xe8ffff, alpha: 0.35 + 0.2 * pulse });
+    }
+  }
+
+  /** Lightning re-forks a few times a second and blinks; beams breathe. Hidden while the car is invisible. */
+  private drawFx(time: number) {
+    const fx = this.car.def.fx;
+    if (!fx) return;
+    const g = this.fxGfx.clear();
+    if (!this.car.alive || this.car.invisT > 0) return;
+    fx.forEach((e, i) => {
+      const [col, hi] = this.fxCol[i], s = e.size ?? 0.2;
+      const to = e.to ?? [e.at[0] + fxDir(e)[0], e.at[1] + fxDir(e)[1]];
+      if (e.kind === 'bolt') {
+        const tick = Math.floor(time * 9 + i * 3.7);
+        if (Math.sin(tick * 2.17) < -0.35) return;
+        const pts = boltPts(e.at, to, 5, s * 0.8, tick);
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+        g.stroke({ width: s * 0.45, color: col, alpha: 0.9 });
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+        g.stroke({ width: s * 0.18, color: 0xffffff, alpha: 1 });
+      } else if (e.kind === 'beam') {
+        const dx = to[0] - e.at[0], dy = to[1] - e.at[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        const w0 = s * 0.4, w1 = s * (1.5 + 0.15 * Math.sin(time * 5));
+        g.poly([e.at[0] + nx * w0, e.at[1] + ny * w0, to[0] + nx * w1, to[1] + ny * w1, to[0] - nx * w1, to[1] - ny * w1, e.at[0] - nx * w0, e.at[1] - ny * w0])
+          .fill({ color: col, alpha: 0.28 + 0.12 * Math.sin(time * 7) });
+        g.circle(to[0], to[1], w1 * 0.6).fill({ color: hi, alpha: 0.18 });
+      }
+    });
   }
 }
 
@@ -519,10 +633,11 @@ export class GameView {
       let sp = this.shotSprites.get(sh.id);
       if (!sp) {
         const pr = PROJECTILES[sh.proj];
-        const grid = shotGrid(sh.proj, pr.r, ART_PPM);
+        // drawn on the cars' pixel grid, so shots match the bodywork they fly from
+        const grid = shotGrid(sh.proj, pr.r, CAR_PPM);
         sp = new Sprite(cached(`shot:${sh.proj}`, () => gridTexture(grid, DECOR_PAL)));
         sp.anchor.set(0.5);
-        sp.scale.set(1 / ART_PPM);
+        sp.scale.set(1 / CAR_PPM);
         this.dynLayer.addChild(sp);
         this.shotSprites.set(sh.id, sp);
       }
@@ -543,6 +658,7 @@ export class GameView {
         const o = g.cars[sh.owner].position;
         fxRope(this.fxGfx, o.x, o.y - 0.3, p.x, p.y);
       }
+      if (sh.proj === 'bigrocket') for (let k = 0; k < 2; k++) this.particles.spawn(p.x - v.x * 0.06, p.y - v.y * 0.06, { vx: -v.x * 0.15 + (Math.random() - 0.5), vy: -v.y * 0.15 + (Math.random() - 0.5), life: 0.6, size: 0.3, color: Math.random() > 0.4 ? 0xd8d8e0 : 0xff9020 });
       if (sh.proj === 'missile' && Math.random() < 0.8) this.particles.spawn(p.x, p.y, { vx: -v.x * 0.1, vy: -v.y * 0.1, life: 0.4, size: 0.16, color: Math.random() > 0.5 ? 0xd0d0d8 : 0xff8020 });
       if (sh.proj === 'fire' && Math.random() < 0.5) this.particles.spawn(p.x, p.y, { vy: -1.5, life: 0.25, size: 0.14, color: Math.random() > 0.5 ? 0xffd040 : 0xff5020 });
       if (sh.proj === 'firework' && Math.random() < 0.8) this.particles.spawn(p.x, p.y, { vx: -v.x * 0.1, vy: -v.y * 0.1, life: 0.3, size: 0.12, color: Math.random() > 0.5 ? 0xffd040 : 0xff5020 });
@@ -1110,11 +1226,59 @@ export class GameView {
       const p = c.chassis.getWorldPoint({ x: -1.45 * c.facing, y: 0.1 });
       this.particles.spawn(p.x, p.y, { vx: -c.facing * 1.5, vy: -0.8, life: 0.7, size: 0.22, color: 0x9a96a4, drag: 1.5, g: -2 });
     }
+    if (c.alive && c.def.fx && c.invisT <= 0) this.emitFx(c, dt);
+    if (c.alive && (c.def.drive === 'runners' || c.def.drive === 'hover')) this.emitDrive(c, dt);
     if (c.boosting && Math.random() < 0.8) {
       const fwd = c.chassis.getWorldVector({ x: c.facing, y: 0 });
       const p = c.chassis.getWorldPoint({ x: -1.6 * c.facing, y: 0 });
       this.particles.spawn(p.x, p.y, { vx: -fwd.x * 8, vy: -fwd.y * 8 + (Math.random() - 0.5) * 2, life: 0.35, size: 0.2, color: Math.random() > 0.5 ? 0xffc040 : 0xff6020, drag: 3 });
     }
+  }
+
+  /** Runners throw up a spray of snow when they slide fast; a hover cushion blows dust off the ground under it. */
+  private emitDrive(c: Car, dt: number) {
+    const v = c.chassis.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
+    const hover = c.def.drive === 'hover';
+    for (let i = 0; i < c.wheels.length; i++) {
+      const w = c.wheels[i];
+      let touching = false;
+      for (let ce = w.getContactList(); ce; ce = ce.next!) if (ce.contact.isTouching()) { touching = true; break; }
+      if (!touching) continue;
+      const rate = hover ? 10 : Math.max(0, sp - 3) * 2.2;
+      if (Math.random() > rate * dt) continue;
+      const p = w.getPosition(), r = c.def.wheels[i].r;
+      const back = hover ? (Math.random() < 0.5 ? -1 : 1) : -Math.sign(v.x || 1);
+      const col = hover ? (DUST[this.game!.map.theme] ?? 0xc8b8a0) : Math.random() < 0.6 ? 0xffffff : 0xd8ecff;
+      this.particles.spawn(p.x + back * r * 0.5, p.y + r * 0.85, {
+        vx: back * (hover ? 2.5 + Math.random() * 2 : 1 + Math.random() * 2) + v.x * 0.2, vy: -(hover ? 0.3 : 1.2) - Math.random() * 1.2,
+        g: hover ? 0 : 5, drag: 2.5, life: hover ? 0.45 : 0.55, size: hover ? 0.18 : 0.13, color: col, grow: hover ? 1.2 : 0, alpha: hover ? 0.6 : 1,
+      });
+    }
+  }
+
+  /** Particles of a car's animated effects: smoke and steam swell and rise, wisps stream back, trails hang in the air. */
+  private emitFx(c: Car, dt: number) {
+    const cv = this.carViews[c.player];
+    c.def.fx!.forEach((e, i) => {
+      if (e.kind === 'bolt' || e.kind === 'beam') return;
+      const P = FX_PARAMS[e.kind];
+      const rate = (e.rate ?? 1) * P.rate;
+      if (Math.random() > rate * dt) return;
+      const s = e.size ?? 0.2;
+      const [ux, uy] = fxDir(e);
+      let lx = e.at[0], ly = e.at[1];
+      if (e.kind === 'rain' && e.to) { const k = Math.random(); lx += (e.to[0] - lx) * k; ly += (e.to[1] - ly) * k; }
+      const p = c.chassis.getWorldPoint(new Vec2(lx * c.facing, ly));
+      const d = c.chassis.getWorldVector(new Vec2(ux * c.facing, uy));
+      const v = c.chassis.getLinearVelocity();
+      const sp = P.speed * (0.7 + Math.random() * 0.6), j = (Math.random() - 0.5) * P.jitter;
+      const [col, hi] = cv?.fxCol[i] ?? [0xffffff, 0xffffff];
+      this.particles.spawn(p.x + (Math.random() - 0.5) * s * 0.4, p.y + (Math.random() - 0.5) * s * 0.4, {
+        vx: d.x * sp - d.y * j + v.x * P.carry, vy: d.y * sp + d.x * j + v.y * P.carry,
+        life: P.life * (0.8 + Math.random() * 0.4), size: s * P.size, color: Math.random() < 0.5 ? col : hi,
+        g: P.g, drag: P.drag, grow: P.grow, shrink: P.grow === 0, spin: P.spin * (Math.random() - 0.5), alpha: P.alpha,
+      });
+    });
   }
 
   private renderHud(dt: number) {

@@ -1,7 +1,7 @@
 import { tailgate } from '../art';
 import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows } from '../draw';
 import { bike, boxy, fenders, rocket, sedan, tracks, truckCab } from '../skins';
-import type { CarMat, CarPoly } from '../types';
+import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
 import { quadruped, steed } from '../critters';
 import { group, o } from './util';
@@ -212,11 +212,12 @@ export const WINTER = group('winter', [
   }],
   ['firework', 'Firework', 'Ракета-петарда зі смугастим корпусом. Тримай «вперед» — летить.', 'rocket', ['#e02a2a', '#ffd23f'], {
     parts: ['booster'], hideParts: true,
+    // the lit fuse spits sparks (animated)
+    fx: (f) => [{ kind: 'spark', at: [f.tail.x - 0.45, 0.05], dir: 200, size: 0.16 }],
     skin: (f) => [
       ...rocket(f, { nose: 'yellow', fin: 'yellow', glass: false }),
       ...[0, 1, 2, 3, 4].map((i) => poly([[-1.3 + i * 0.45, -0.32], [-1.1 + i * 0.45, -0.32], [-1.35 + i * 0.45, 0.32], [-1.55 + i * 0.45, 0.32]], 'accent', { flat: true })),
       ...path([[f.tail.x - 0.05, 0.0], [f.tail.x - 0.3, -0.12], [f.tail.x - 0.45, 0.05]], 0.05, 'tan'),
-      ...[[-0.5, -0.12], [-0.42, 0.06], [-0.6, -0.02]].map(([x, y]) => starShape(f.tail.x + x, y, 0.05, 'yellow')),
       rr(-1.2, 0.26, 1.0, 0.38, 0.04, 'dark'),
     ],
   }],
@@ -287,6 +288,7 @@ export const WINTER = group('winter', [
     ],
   }],
   ['snow-coach', 'Snow Coach', 'Гусеничний снігобус: довгий обтічний кузов із рядом вікон, гусениця ззаду, лижа спереду.', 'carriage', ['#2a3a5a', '#e0c040'], {
+    drive: 'tracks',
     // After Drive Ahead's Snow Coach: a Bombardier-style tracked snow bus. Both physics wheels hide inside the track.
     o: o({ len: 1.2 }), hideWheels: [0, 1],
     skin: (f) => {
@@ -328,15 +330,14 @@ export const WINTER = group('winter', [
   }],
   ['frosty-car', 'Frosty Car', 'Крижаний легковик з бурульками. Дихає морозом — суперник замерзає.', 'sedan', ['#bfe8ff', '#ffffff'], {
     o: o({ mat: 'glass' }),
+    fx: (f) => [{ kind: 'frost', at: [f.nose.x + 0.15, -0.1], dir: 0, size: 0.2, mat: 'white' }, { kind: 'spark', at: [f.nose.x + 0.4, -0.15], dir: -20, size: 0.14, mat: 'sky', rate: 0.5 }],
     skin: (f) => [
       ...sedan(f, { mat: 'sky', glass: 'white', bumper: 'white' }),
       snowCap(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y, 0.1),
       ...icicles(f.tail.x + 0.2, f.nose.x - 0.2, 0.28, 10),
       ...[[-1.0, 0.0], [0.6, 0.05], [-0.2, -0.05]].map(([x, y]) => starShape(x, y, 0.09, 'white')),
       ...path([[f.nose.x - 0.1, -0.15], [f.nose.x - 0.5, -0.1], [f.nose.x - 0.7, -0.2], [f.nose.x - 0.6, -0.3]], 0.04, 'white'),
-      // frost breath rolling off the nose, icicles along the roof edge and an ice crust on the hood
-      ...[[f.nose.x + 0.35, -0.1, 0.2, 0.13], [f.nose.x + 0.7, -0.18, 0.16, 0.11], [f.nose.x + 0.95, -0.12, 0.11, 0.08]].map(([x, y, rx, ry]) => ell(x, y, rx, ry, 'white', { flat: true })),
-      ...[0.15, 0.32, 0.5].map((dy, i) => starShape(f.nose.x + 0.45 + i * 0.25, -0.12 - dy * 0.3, 0.05, 'sky')),
+      // icicles along the roof edge and an ice crust on the hood (the frost breath off the nose is animated)
       ...icicles(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y + 0.06, 6),
       blob([[f.roof.x1 + 0.1, f.nose.y0 - 0.02], [f.nose.x - 0.4, f.nose.y0 - 0.1], [f.nose.x - 0.1, f.nose.y0 - 0.02]], 'white', {}, 1),
     ],
@@ -364,6 +365,7 @@ export const WINTER = group('winter', [
     ],
   }],
   ['caterdog', 'Caterdog', 'Робопес-гусениця на широких траках.', 'creature', ['#c0c8d0', '#3a8ad8'], {
+    drive: 'tracks',
     o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true, glide: 0.82,
     skin: () => [
       // track loop under a robot dog
@@ -424,9 +426,18 @@ export const WINTER = group('winter', [
       ...truckCab(f),
       snowCap(f.roof.x0, f.nose.x - 0.3, f.roof.y),
       poly([[f.deck.x0, f.deck.y - 0.32], [f.deck.x1, f.deck.y - 0.32], [f.deck.x1, f.deck.y + 0.1], [f.deck.x0, f.deck.y + 0.1]], 'body'),
-      blob([[f.deck.x0 + 0.05, f.deck.y - 0.25], [f.deck.x0 + 0.3, f.deck.y - 0.6], [f.deck.x0 + 0.8, f.deck.y - 0.72], [f.deck.x1 - 0.5, f.deck.y - 0.62], [f.deck.x1 - 0.05, f.deck.y - 0.3]], 'white', {}, 2),
-      ...[[f.deck.x0 + 0.5, f.deck.y - 0.5], [f.deck.x1 - 0.6, f.deck.y - 0.45]].map(([x, y]) => circ(x, y, 0.07, 'sky')),
       ...[0.4, 0.9, 1.4].map((dx) => rect(f.deck.x0 + dx, f.deck.y - 0.3, f.deck.x0 + dx + 0.06, f.deck.y + 0.08, 'body')),
+      ...[0.65, 1.15].map((dx) => starShape(f.deck.x0 + dx, f.deck.y - 0.1, 0.09, 'white')),
+      // a big heaped load of snow: rounded drifts with blue shadows under each lump, heaped well
+      // over the sides, spilling down over the rim in drips, with icicles under the bed
+      ...([[0.3, -0.5, 0.3, 0.24], [0.85, -0.72, 0.42, 0.34], [1.45, -0.66, 0.4, 0.3], [2.0, -0.5, 0.32, 0.24]] as const).flatMap(([dx, dy, rx, ry]) => {
+        const x = f.deck.x0 + dx;
+        return x - rx > f.deck.x1 ? [] : [ell(x + 0.05, f.deck.y + dy + 0.05, rx, ry, 'sky'), ell(x - 0.03, f.deck.y + dy - 0.02, rx * 0.92, ry * 0.88, 'white')];
+      }),
+      blob([[f.deck.x0 - 0.05, f.deck.y - 0.26], [f.deck.x0 + 0.1, f.deck.y - 0.5], [f.deck.x1 - 0.1, f.deck.y - 0.5], [f.deck.x1 + 0.02, f.deck.y - 0.26]], 'white', {}, 1),
+      ...[0.15, 0.55, 1.0, 1.35, 1.75].filter((dx) => f.deck.x0 + dx < f.deck.x1 - 0.1).map((dx, i) => blob([[f.deck.x0 + dx - 0.1, f.deck.y - 0.3], [f.deck.x0 + dx + 0.1, f.deck.y - 0.3], [f.deck.x0 + dx + 0.06, f.deck.y - 0.16 + (i % 2) * 0.06], [f.deck.x0 + dx - 0.03, f.deck.y - 0.12 + (i % 2) * 0.06]], 'white', {}, 1)),
+      ...[[0.5, -0.88], [1.3, -0.95], [1.9, -0.68]].map(([dx, dy]) => starShape(f.deck.x0 + dx, f.deck.y + dy, 0.05, 'sky')),
+      ...icicles(f.deck.x0 + 0.05, f.deck.x1 - 0.05, f.deck.y + 0.1, 8),
       ...lightbar(f.roof.x0 + 0.1, f.roof.x1 - 0.1, f.roof.y - 0.1, 'orange', 'orange'),
       ...fenders(f, 'dark', 0.12),
     ],
@@ -450,6 +461,8 @@ export const WINTER = group('winter', [
   }],
   ['penguin-slider', 'Penguin Slider', 'Пінгвін, що мчить на череві: кілька секунд ковзає без тертя.', 'creature', ['#1a1a2a', '#ffa020'], {
     o: o({ neck: 'none', len: 0.9 }), parts: ['snout'], noLights: true, hideParts: true, glide: 0.82,
+    // ice spray kicked up at the belly (animated)
+    fx: (f) => [{ kind: 'frost', at: [f.tail.x - 0.1, 0.75], dir: 200, size: 0.14, mat: 'white' }],
     // The rider sits on the back of a penguin tobogganing on its belly: no wheels show.
     skin: (f) => {
       const n = f.nose.x, t = f.tail.x;
@@ -465,8 +478,6 @@ export const WINTER = group('winter', [
         ell(n - 0.02, -0.05, 0.12, 0.1, 'white'), circ(n + 0.03, -0.07, 0.05, 'black'),
         poly([[n + 0.18, -0.08], [n + 0.55, 0.02], [n + 0.2, 0.1]], 'accent'),
         rr(n - 0.45, -0.38, n - 0.25, 0.22, 0.05, 'red'), poly([[n - 0.42, -0.2], [n - 0.8, -0.35], [n - 0.75, -0.18], [n - 0.4, -0.08]], 'red'),
-        // ice spray at the belly
-        ...[[t - 0.1, 0.78], [t - 0.3, 0.7]].map(([x, y]) => circ(x, y, 0.06, 'sky')),
       ];
     },
   }],
@@ -504,25 +515,32 @@ export const WINTER = group('winter', [
       snowCap(-0.55, 0.4, -0.72, 0.1),
     ],
   }],
-  ['electric-reindeer', 'Electric Reindeer', 'Механічний олень зі світним носом. Б\'є розрядом навколо.', 'creature', ['#a0a8b8', '#5ef0ff'], {
-    o: o({ mat: 'metal' }), noLights: true,
-    skin: (f) => [
-      ...quadruped(f, { mat: 'metal', hump: 0.0, peak: 0.1, tail: 0.25, tailUp: 0.3, belly: 'grey', leg: 0.26, chest: 0.95 }),
-      // riveted panels and a glowing power cell
-      ...[[-0.85, -0.55, -0.35, -0.12], [0.15, -0.55, 0.7, -0.12]].map(([a, b, c, d]) => rr(a, b, c, d, 0.04, 'grey', { ring: true })),
-      ...[-0.8, -0.4, 0.2, 0.65].map((x) => circ(x, -0.5, 0.03, 'dark')),
-      rr(-0.25, -0.42, 0.05, -0.18, 0.04, 'accent'),
-      ...[-0.6, 0.45].map((x) => poly([[x, -0.42], [x + 0.12, -0.3], [x + 0.02, -0.27], [x + 0.1, -0.12], [x - 0.08, -0.28], [x + 0.02, -0.3]], 'accent', { flat: true })),
-      // jointed neck, steel head, copper antlers crackling at the tips, the bright red nose
-      ...path([[0.7, -0.45], [1.0, -0.75], [1.15, -0.88]], 0.26, 'grey'), ...[0.85, 1.05].map((x) => circ(x, x === 0.85 ? -0.58 : -0.8, 0.05, 'dark')),
-      blob([[1.0, -1.05], [1.35, -1.12], [1.75, -0.95], [1.8, -0.8], [1.15, -0.76]], 'metal', {}, 1),
-      ...path([[1.15, -1.05], [0.95, -1.55], [0.7, -1.85]], 0.09, 'gold'), ...path([[1.0, -1.4], [1.22, -1.7]], 0.08, 'gold'),
-      ...path([[1.32, -1.1], [1.4, -1.6], [1.68, -1.9]], 0.09, 'gold'), ...path([[1.38, -1.45], [1.7, -1.55]], 0.08, 'gold'),
-      ...[[0.7, -1.85], [1.22, -1.7], [1.68, -1.9], [1.7, -1.55]].map(([x, y]) => circ(x, y, 0.06, 'accent')),
-      poly([[1.12, -1.02], [0.95, -1.15], [1.2, -1.08]], 'metal'),
-      rr(1.25, -1.0, 1.45, -0.9, 0.03, 'accent'),
-      circ(1.82, -0.86, 0.13, 'red'), circ(1.78, -0.9, 0.04, 'white'),
-    ],
+  ['electric-reindeer', 'Electric Reindeer', 'Живий північний олень, обмотаний різдвяною гірляндою. Гірлянда іскрить — олень б\'є розрядом навколо.', 'creature', ['#8a5a36', '#ffd23f'], {
+    noLights: true,
+    // the garland crackles: sparks off the bulbs (animated)
+    fx: () => [{ kind: 'spark', at: [0.6, -0.75], dir: -80, size: 0.16, rate: 0.5 }],
+    skin: (f) => {
+      const bulbs: CarMat[] = ['red', 'yellow', 'green', 'blue', 'orange'];
+      // a string of Christmas lights looping along the body and round the neck
+      const wire: Pt[] = [[-0.95, -0.62], [-0.6, -0.36], [-0.2, -0.6], [0.2, -0.34], [0.55, -0.62], [0.82, -0.5], [1.0, -0.78], [1.12, -0.62]];
+      return [
+        ...quadruped(f, { mat: 'body', hump: 0.05, peak: 0.3, tail: 0.18, tailUp: 0.5, tailMat: 'white', belly: 'cream', leg: 0.24, chest: 0.95 }),
+        // the neck up to a deer's head: pale throat, long muzzle, big dark eye, a red nose, tall branching antlers
+        ...path([[0.7, -0.45], [0.98, -0.75], [1.12, -0.9]], 0.3, 'body'), ...path([[0.82, -0.42], [1.05, -0.7]], 0.14, 'cream'),
+        blob([[0.98, -1.06], [1.3, -1.12], [1.68, -0.98], [1.78, -0.84], [1.55, -0.78], [1.15, -0.78]], 'body', {}, 1),
+        poly([[1.02, -1.02], [0.82, -1.22], [1.12, -1.08]], 'body'), poly([[1.0, -1.04], [0.88, -1.17], [1.06, -1.08]], 'pink'),
+        ell(1.3, -0.97, 0.06, 0.05, 'black'), circ(1.32, -0.99, 0.02, 'white'),
+        circ(1.78, -0.88, 0.08, 'red'), circ(1.76, -0.9, 0.025, 'white'),
+        ...path([[1.12, -1.08], [1.02, -1.42], [0.82, -1.68]], 0.07, 'tan'), ...path([[1.04, -1.36], [1.22, -1.58]], 0.06, 'tan'), ...path([[0.92, -1.56], [0.88, -1.78]], 0.05, 'tan'),
+        ...path([[1.26, -1.1], [1.34, -1.46], [1.58, -1.7]], 0.07, 'tan'), ...path([[1.32, -1.36], [1.56, -1.44]], 0.06, 'tan'), ...path([[1.48, -1.62], [1.52, -1.82]], 0.05, 'tan'),
+        // the garland: dark wire with glowing bulbs in turn
+        ...path(wire, 0.03, 'dark'),
+        ...wire.slice(0, -1).flatMap((p, i) => [0.33, 0.66].map((k, j) => {
+          const q = wire[i + 1], x = p[0] + (q[0] - p[0]) * k, y = p[1] + (q[1] - p[1]) * k;
+          return ell(x, y + 0.04, 0.045, 0.06, bulbs[(i * 2 + j) % bulbs.length]);
+        })),
+      ];
+    },
   }],
 ]);
 

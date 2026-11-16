@@ -88,7 +88,7 @@ export const KIT: Record<string, Kit> = {
   'gun-truck': { ab: 'shoot:bullet|Кулемет' },
   'monster-cannon': { ab: 'shoot:mega|Надважке ядро' },
   gunboat: { ab: 'shoot:torpedo|Торпеда', blurb: 'Канонерка на колесах. Пускає торпеду, що мчить низько над землею.' },
-  'rocket-launcher': { ab: 'shoot:volley|Залп', blurb: 'РСЗВ: залп із чотирьох малих ракет віялом.' },
+  'rocket-launcher': { ab: 'shoot:bigrocket|Пуск ракети', blurb: 'Пускова установка: велика ракета злітає з рейки й накриває вибухом усе довкола. Поки нову не зарядили, рейка порожня.' },
   tank: { ab: 'shoot:cannon|Танковий постріл' },
   'alien-drone': { ab: 'shoot:laser|Лазер' },
   'celestial-teapot': { ab: 'shoot:tea|Окріп', blurb: 'Космічний чайник. Хлюпає окропом — суперника закручує.' },
