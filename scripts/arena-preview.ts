@@ -3,7 +3,9 @@
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { MAPS, MAP_BY_ID } from '../src/maps/defs';
-import { generateLayer, generateSky, generateTerrain, THEMES } from '../src/maps/art';
+import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../src/maps/art';
+import { fitCamera } from '../src/render/camera';
+import { isPropDecor } from '../src/maps/arena';
 import { DECOR_PAL, decorGrid, placedDecor } from '../src/maps/decor';
 import { gridToRGBA, type PixelGrid } from '../src/render/grid';
 import type { RGB } from '../src/render/color';
@@ -51,35 +53,35 @@ class Canvas {
   }
 }
 
-/** One arena framed like the game camera at full view: world fits in `W` px wide. */
-export function renderArena(map: MapDef, W = 900): Canvas {
+/** One arena framed exactly like the game camera at the start of a round (phone landscape). */
+export function renderArena(map: MapDef, W = 915, H = 412, zoomMul = 1): Canvas {
   const b = map.bounds;
-  const ppmOut = W / (b.x1 - b.x0);
-  const H = Math.round((b.y1 - b.y0) * ppmOut * 0.62);
+  const [[ax, ay], [bx, by]] = map.spawns;
+  const minZoom = Math.max(W / (b.x1 - b.x0), H / (b.y1 - b.y0)) * 0.98;
+  const cam = fitCamera({ x0: Math.min(ax, bx) - 2.2, y0: Math.min(ay, by) - 2.2, x1: Math.max(ax, bx) + 2.2, y1: Math.max(ay, by) + 2.2 }, W, H, b, { margin: 3.2, minZoom: Math.min(minZoom, H / 8.5), maxZoom: H / 8.5, topPad: 2 });
+  cam.zoom *= zoomMul;
+  const z = cam.zoom;
   const cv = new Canvas(W, H);
-  // view centered on spawns' height
-  const cy = (map.spawns[0][1] + map.spawns[1][1]) / 2 + 1;
-  const vy0 = cy - (H / ppmOut) * 0.62;
   const theme = THEMES[map.theme];
-  const sky = generateSky(theme);
-  const ss = H / sky.h;
-  for (let x = 0; x < W; x += Math.floor(sky.w * ss)) cv.blit(sky.rgba, sky.w, sky.h, x, 0, ss);
-  const px = H / 180; // background pixel scale (screen fraction, like the game)
+  const sky = generateSky(theme, false);
+  cv.blit(sky.rgba, sky.w, sky.h, 0, 0, W / sky.w, H / sky.h);
+  if (theme.clouds) { const cl = generateClouds(theme); cv.blit(cl.rgba, cl.w, cl.h, 0, 0, W / cl.w, H / cl.h); }
+  const ps = Math.max(2, Math.round(H / 160));
+  const cy = (b.y0 + b.y1) / 2;
   for (const spec of theme.layers) {
-    const l = generateLayer(spec);
-    const top = spec.hang ? 0 : l.bottom * H - l.h * px;
-    for (let x = -((spec.seed * 37) % 300) * px; x < W; x += l.w * px) cv.blit(l.rgba, l.w, l.h, x, top, px);
-    if (!spec.hang) {
-      // fill below the layer
-      const c = l.rgba.subarray((l.w * (l.h - 1)) * 4, (l.w * (l.h - 1)) * 4 + 4);
-      for (let y = Math.ceil(top + l.h * px); y < H; y++) for (let x = 0; x < W; x++) if (c[3]) cv.put(x, y, c[0], c[1], c[2]);
-    }
+    const l = generateLayer(spec, theme);
+    const yOff = -(cam.y - cy) * z * l.factor * 0.6;
+    const top = Math.round(H * l.bottom - l.h * ps + yOff);
+    const off = (((-(cam.x * z * l.factor)) % (l.w * ps)) + l.w * ps) % (l.w * ps) - l.w * ps;
+    for (let x = off; x < W; x += l.w * ps) cv.blit(l.rgba, l.w, l.h, x, top, ps);
+    if (spec.hang) { for (let y = 0; y < top + 1; y++) for (let x = 0; x < W; x++) cv.put(x, y, ...l.fill); }
+    else for (let y = top + l.h * ps - 1; y < H; y++) for (let x = 0; x < W; x++) cv.put(x, y, ...l.fill);
   }
   const art = generateTerrain(map);
-  const s = ppmOut / art.ppm;
-  const tx = (wx: number) => (wx - b.x0) * ppmOut, ty = (wy: number) => (wy - vy0) * ppmOut;
+  const s = z / art.ppm;
+  const tx = (wx: number) => W / 2 + (wx - cam.x) * z, ty = (wy: number) => H / 2 + (wy - cam.y) * z;
   if (art.back) cv.blit(gridToRGBA(art.back, art.palette), art.back.w, art.back.h, tx(art.x0), ty(art.y0), s);
-  const decor = placedDecor(map);
+  const decor = placedDecor(map).filter((d) => !isPropDecor(d.kind));
   const drawDecor = (front: boolean) => {
     for (const d of decor) {
       if (!!d.front !== front) continue;
@@ -107,20 +109,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   mkdirSync(out, { recursive: true });
   const shots = ids.map((id) => ({ id, cv: renderArena(MAP_BY_ID[id]) }));
   for (const { id, cv } of shots) writeFileSync(`${out}/${id}.png`, png(cv.w, cv.h, cv.rgba));
-  if (process.argv.includes('--zoom')) {
-    // game-like close-up: 3x the overview, cropped around the left spawn
-    for (const id of ids) {
-      const m = MAP_BY_ID[id];
-      const big = renderArena(m, 2700);
-      const crop = new Canvas(900, 420);
-      const sx = Math.max(0, Math.min(big.w - 900, Math.round(((m.spawns[0][0] - m.bounds.x0) / (m.bounds.x1 - m.bounds.x0)) * big.w - 300)));
-      const sy = Math.max(0, Math.min(big.h - 420, Math.round(big.h * 0.62 - 260)));
-      for (let y = 0; y < 420; y++) crop.rgba.set(big.rgba.subarray(((sy + y) * big.w + sx) * 4, ((sy + y) * big.w + sx + 900) * 4), y * 900 * 4);
-      writeFileSync(`${out}/${id}-zoom.png`, png(900, 420, crop.rgba));
-    }
-  }
+  if (process.argv.includes('--zoom')) for (const id of ids) { const cv = renderArena(MAP_BY_ID[id], 915, 412, 1.8); writeFileSync(`${out}/${id}-zoom.png`, png(cv.w, cv.h, cv.rgba)); }
   if (process.argv.includes('--sheet')) {
-    const cols = 2, cw = 900, rows = Math.ceil(shots.length / cols);
+    const cols = 2, cw = 915, rows = Math.ceil(shots.length / cols);
     const ch = Math.max(...shots.map((s) => s.cv.h));
     const sheet = new Canvas(cw * cols, ch * rows);
     shots.forEach(({ cv }, i) => sheet.blit(cv.rgba, cv.w, cv.h, (i % cols) * cw, Math.floor(i / cols) * ch, 1));

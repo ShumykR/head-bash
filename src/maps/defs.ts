@@ -257,8 +257,8 @@ export const MAPS: MapDef[] = [
     ],
     decor: [
       { kind: 'silo', x: 4.4 }, { kind: 'barn', x: 8.6 }, { kind: 'fence', x: 13.4 }, { kind: 'fence', x: 32.6 }, { kind: 'barn', x: 38.4, flip: true },
-      { kind: 'beam', x: 23, y: 14.2, s: 1.2 }, { kind: 'ufo', x: 23, y: 9.6 },
-      { kind: 'cow', x: 17.2 }, { kind: 'cow', x: 29.6, flip: true },
+      { kind: 'beam', x: 23, y: 14.2, s: 1.2 }, { kind: 'ufo', x: 23, y: 9.8, s: 1.3 },
+      { kind: 'scarecrow', x: 17.4 }, { kind: 'haystack', x: 29.8, flip: true },
       { kind: 'haybale', x: 15.4, front: true }, { kind: 'haybale', x: 31, front: true },
     ],
     suddenDeathY: 26,

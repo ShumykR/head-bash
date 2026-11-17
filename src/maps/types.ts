@@ -17,7 +17,7 @@ export type DecorKind =
   | 'tombstone' | 'cross' | 'pumpkin' | 'deadtree' | 'spruce' | 'snowman' | 'gift' | 'ufo' | 'beam' | 'cow' | 'haybale'
   | 'fence' | 'barn' | 'silo' | 'cone' | 'tires' | 'checkflag' | 'palm' | 'umbrella' | 'sandcastle' | 'goal' | 'cornerflag'
   | 'floodlight' | 'lantern' | 'gate' | 'bamboo' | 'crystal' | 'portal' | 'skull' | 'bones' | 'fern' | 'rocks' | 'block'
-  | 'loop' | 'cactus' | 'ghost' | 'bomb';
+  | 'loop' | 'cactus' | 'ghost' | 'bomb' | 'scarecrow' | 'haystack';
 
 /** Render-only prop planted on the ground (or floating at an explicit y). */
 export interface DecorDef {

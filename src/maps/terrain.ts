@@ -18,7 +18,11 @@ export interface TerrainArt {
   x0: number;
   y0: number;
   ppm: number;
+  /** Lamps, torches and crystals on the cave back wall (world coords), animated by the renderer. */
+  lights: WallLight[];
 }
+
+export interface WallLight { x: number; y: number; color: number; r: number; mode: 'flicker' | 'pulse' | 'blink' }
 
 /** outline, highlight, light, mid, dark, deep */
 interface Ramp { o: RGB; hi: RGB; lt: RGB; md: RGB; dk: RGB; dd: RGB }
@@ -445,6 +449,110 @@ function lipDepth(x: number, amp: number, seed: number): number {
 }
 
 /* ------------------------------------------------------------------ */
+/* Cave back walls                                                     */
+/* ------------------------------------------------------------------ */
+
+type Put = (dx: number, dy: number, c: RGB) => void;
+interface Wall {
+  paint: (x: number, y: number) => RGB;
+  /** Lamps/torches/crystals: spacing (m), halo colour and radius (decor px), how they move, and their sprite. */
+  light?: { every: number; color: number; r: number; mode: WallLight['mode']; draw?: (put: Put, x: number, y: number) => void };
+}
+
+const torch = (flame: string): Wall['light'] => ({
+  every: 10, color: parseInt(flame.slice(1), 16), r: 16, mode: 'flicker',
+  draw: (put) => {
+    for (let j = 0; j < 7; j++) { put(0, j, hex('#5a3a22')); put(1, j, hex('#3a2416')); } // handle
+    put(-1, 0, hex('#2a1a10')); put(2, 0, hex('#2a1a10'));
+    for (let j = 1; j <= 4; j++) for (let q = -1; q <= 2; q++) if (Math.abs(q - 0.5) < 2.5 - j * 0.5) put(q, -j, j > 2 ? hex('#fff2a0') : hex(flame));
+  },
+});
+
+const WALLS: Partial<Record<string, Wall>> = {
+  cavern: {
+    paint: (x, y) => stones(x, y, BACK, 15, 0.8, 91),
+    light: {
+      every: 9, color: 0xd08aff, r: 14, mode: 'pulse',
+      draw: (put) => { for (const [q, hgt] of [[-2, 3], [0, 6], [2, 4]] as const) for (let j = 0; j < hgt; j++) { put(q, -j, j === hgt - 1 ? hex('#ffd8ff') : hex('#b46ae8')); put(q + 1, -j, hex('#7a3cbe')); } },
+    },
+  },
+  catacomb: {
+    paint: (x, y) => {
+      // dim brick with arched burial niches, a skull in some
+      const nx = ((x % 46) + 46) % 46, ny = ((y % 40) + 40) % 40;
+      const inNiche = nx > 10 && nx < 34 && ny > 12 && ny < 34 && (ny > 20 || Math.hypot(nx - 22, (ny - 20) * 1.2) < 12);
+      if (inNiche) {
+        const id = Math.floor(x / 46) * 31 + Math.floor(y / 40);
+        const sx = nx - 22, sy = ny - 28;
+        if (hash2(id, 4) > 0.45 && Math.hypot(sx, sy * 1.2) < 4.5) return sy > 2 ? hex('#8a7c66') : Math.abs(sx) > 1 && Math.abs(sx) < 3 && sy > -2 && sy < 1 ? hex('#1a1210') : hex('#b8a888');
+        return ny > 31 ? hex('#2a2018') : hex('#100c0a');
+      }
+      return bricks(x, y, ramp('#0a0806', '#4a4034', '#3a3228', '#2e271f', '#241e18', '#16120e'), 16, 7);
+    },
+    light: torch('#ffb040'),
+  },
+  grotto: {
+    paint: (x, y) => {
+      const c = stones(x, y, ramp('#04101a', '#2a5a6a', '#1e4656', '#173a48', '#12303c', '#0a2028'), 17, 0.75, 93);
+      // wet streaks
+      return (x * 3 + Math.floor(y / 3)) % 41 === 0 ? hex('#3a7a8a') : c;
+    },
+    light: {
+      every: 9, color: 0x5ef0ff, r: 14, mode: 'pulse',
+      draw: (put) => { for (const [q, hgt] of [[-1, 4], [1, 7], [3, 3]] as const) for (let j = 0; j < hgt; j++) { put(q, -j, j === hgt - 1 ? hex('#e8ffff') : hex('#5ef0ff')); put(q + 1, -j, hex('#2a9ab0')); } },
+    },
+  },
+  mine: {
+    paint: (x, y) => {
+      // timber frames over dark rock
+      const fx = ((x % 84) + 84) % 84, fy = ((y % 70) + 70) % 70;
+      const wood = ramp('#1a0e06', '#a8784a', '#8a5a32', '#6e4424', '#54321a', '#3a2010');
+      if (fx < 7) return fx === 0 ? wood.o : fx === 1 ? wood.lt : fx === 6 ? wood.dk : (y % 9 === 0 ? wood.dk : wood.md);
+      if (fy < 6) return fy === 0 ? wood.o : fy === 1 ? wood.lt : fy === 5 ? wood.dd : ((x + 3) % 13 === 0 ? wood.dk : wood.md);
+      return stones(x, y, ramp('#0a0604', '#3a2a1e', '#2e2218', '#241a12', '#1c140e', '#120c08'), 14, 0.8, 95);
+    },
+    light: {
+      every: 9, color: 0xffc060, r: 16, mode: 'flicker',
+      draw: (put) => {
+        for (let j = -6; j < -2; j++) put(0, j, hex('#2a2a30'));
+        for (let j = -2; j <= 2; j++) for (let q = -2; q <= 2; q++) put(q, j, Math.abs(q) === 2 || Math.abs(j) === 2 ? hex('#3a3a44') : j < 0 ? hex('#fff2b0') : hex('#ffc060'));
+      },
+    },
+  },
+  bunker: {
+    paint: (x, y) => {
+      const py = ((y % 60) + 60) % 60;
+      if (py >= 40 && py < 48) {
+        // a pipe run along the wall
+        const pr = ramp('#06080c', '#5a6a80', '#46546a', '#364256', '#2a3444', '#1c2430');
+        if ((x % 48 + 48) % 48 < 3) return py === 40 || py === 47 ? pr.o : pr.lt;
+        return py === 40 ? pr.o : py === 41 ? pr.lt : py === 47 ? pr.o : py === 46 ? pr.dd : pr.md;
+      }
+      if (py >= 54 && py < 57) return (Math.floor((x + py) / 4) % 2) ? hex('#3a3010') : hex('#16140e');
+      return plates(x, y, ramp('#06080c', '#3a4658', '#2c3646', '#222a38', '#1a202c', '#10141c'), 30, 20);
+    },
+    light: {
+      every: 10, color: 0xff3a3a, r: 14, mode: 'blink',
+      draw: (put) => { for (let j = -2; j <= 1; j++) for (let q = -2; q <= 1; q++) put(q, j, Math.abs(q + 0.5) > 1 || Math.abs(j + 0.5) > 1 ? hex('#2a2a30') : j < 0 ? hex('#ffb0a0') : hex('#ff3a3a')); },
+    },
+  },
+  crypt: {
+    paint: (x, y) => {
+      // dark brick with tall gothic windows letting in a violet glow
+      const wx = ((x % 90) + 90) % 90, wy = ((y % 80) + 80) % 80;
+      const dx = wx - 45;
+      if (Math.abs(dx) < 8 && wy > 14 && wy < 62 && (wy > 26 || Math.abs(dx) < 8 - (26 - wy) * 0.55)) {
+        if (Math.abs(dx) === 0 || wy === 40) return hex('#1a1022');
+        return Math.abs(dx) > 6 || wy < 18 ? hex('#3a2a5a') : hex('#5a3e8a');
+      }
+      if (Math.abs(dx) < 10 && wy > 12 && wy < 64 && (wy > 24 || Math.abs(dx) < 10 - (24 - wy) * 0.55)) return hex('#4a4250');
+      return bricks(x, y, ramp('#06040a', '#3a2e44', '#2e2438', '#241c2e', '#1c1524', '#120e18'), 18, 8);
+    },
+    light: torch('#ff9a3a'),
+  },
+};
+
+/* ------------------------------------------------------------------ */
 /* Generator                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -521,27 +629,43 @@ export function generateTerrain(map: MapDef, ppm = ART_PPM): TerrainArt {
     }
   }
 
-  // Dark back wall behind caves (render only), on its own layer.
+  // Dark back wall behind caves (render only), on its own layer, themed per arena.
   let backOut: PixelGrid | null = null;
+  const lights: WallLight[] = [];
   if (map.backdrop) {
     backOut = makeGrid(w, h);
     const back = makeGrid(w, h);
     for (const bd of map.backdrop) fillPoly(toPx(bd), w, h, (x, y) => gset(back, x, y, 1));
-    const fromRock = distanceFrom(w, h, solid, 12);
+    const fromRock = distanceFrom(w, h, solid, 40);
+    const wall = WALLS[map.theme] ?? WALLS.cavern!;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const i = y * w + x;
         if (!back.data[i] || matGrid.data[i]) continue;
         const ax = Math.floor(x * k), ay = Math.floor(y * k);
-        let c = stones(ax, ay, BACK, 15, 0.8, 91);
+        let c = wall.paint(ax, ay);
         const d = fromRock[i] * k;
         // soft contact shadow next to the rock
-        if (d < 4 || (d < 8 && bayer(x, y) * 8 > d - 3)) c = c === BACK.dd ? BACK.o : mix(c, BACK.o, 0.6);
+        if (d < 4 || (d < 8 && bayer(x, y) * 8 > d - 3)) c = mix(c, BACK.o, 0.65);
         gset(backOut, x, y, pal.id(c));
       }
     }
+    // lights on a loose grid, away from the rock and the floor
+    const L = wall.light;
+    if (L) {
+      const step = Math.round(L.every * ppm);
+      for (let gy = Math.floor(step / 2); gy < h; gy += Math.round(step * 0.7))
+        for (let gx = Math.floor(step / 2) + ((gy / step) % 2 ? step / 2 : 0); gx < w; gx += step) {
+          const x = Math.round(gx + (hash2(gx, gy, 5) - 0.5) * step * 0.4), y = Math.round(gy + (hash2(gx, gy, 6) - 0.5) * step * 0.3);
+          const i = y * w + x;
+          if (x < 0 || y < 0 || x >= w || y >= h || !back.data[i] || matGrid.data[i] || fromRock[i] * k < 26) continue;
+          const lx = Math.floor(x * k), ly = Math.floor(y * k);
+          L.draw?.((dx, dy, c) => { const px = Math.round(x + dx / k), py = Math.round(y + dy / k); if (back.data[py * w + px] && !matGrid.data[py * w + px]) gset(backOut!, px, py, pal.id(c)); }, lx, ly);
+          lights.push({ x: x0 + x / ppm, y: y0 + y / ppm, color: L.color, r: L.r, mode: L.mode });
+        }
+    }
   }
-  return { grid: out, back: backOut, palette: pal.list, x0, y0, ppm };
+  return { grid: out, back: backOut, palette: pal.list, x0, y0, ppm, lights };
 }
 
 function shadePixel(mat: TerrainMat, art: MatArt, x: number, y: number, a: number, t: number, b: number, k: number, grid: PixelGrid, gx: number, gy: number): RGB | null {

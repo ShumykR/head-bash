@@ -8,6 +8,7 @@ import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateH
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
+import { BgLife } from './bglife';
 import type { MapDef } from '../maps/types';
 import { PROP_PAL, crateGrid, hazardStripGrid, lavaGrid, lavaSurfaceGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid, waterGrid, waterSurfaceGrid } from '../maps/props';
 import { SUDDEN_INFO } from '../maps/sudden';
@@ -44,6 +45,8 @@ const BLAST_LOOK: Record<string, BlastLook> = {
 
 export const PLAYER_COLORS = ['#3ec1ff', '#ff5a6e'];
 export const PLAYER_NAMES = ['P1', 'P2'];
+/** Daytime arenas where a flock of birds crosses the sky now and then. */
+const BIRD_THEMES = new Set(['meadow', 'sawmill', 'sky', 'beach', 'winter', 'desert', 'toys', 'chasm']);
 
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -391,6 +394,7 @@ export class GameView {
   private sky: Sprite | null = null;
   private clouds: TilingSprite | null = null;
   private ambience = new Ambience(this.particles, ART_PPM);
+  private bgLife: BgLife | null = null;
   private cam: Cam = { x: 0, y: 0, zoom: 30 };
   private game: Game | null = null;
   private currentMap: MapDef | null = null;
@@ -1003,6 +1007,16 @@ export class GameView {
       back.scale.set(1 / art.ppm);
       this.mapLayer.addChild(back);
     }
+    this.ambience.reset(map.theme);
+    for (const l of art.lights) {
+      const halo = new Sprite(cached(`halo:${l.r}`, () => gridTexture(haloGrid(l.r), [null, [255, 255, 255]])));
+      halo.anchor.set(0.5);
+      halo.tint = l.color;
+      halo.scale.set(1 / ART_PPM);
+      halo.position.set(l.x, l.y);
+      this.mapLayer.addChild(halo);
+      this.ambience.addLight(halo, l.mode);
+    }
 
     // lava pools
     this.lavaTiles = [];
@@ -1034,7 +1048,6 @@ export class GameView {
     // Background props: planted behind the terrain edge (or in front when asked).
     const front: Sprite[] = [];
     this.beamSprites = [];
-    this.ambience.reset(map.theme);
     for (const d of placedDecor(map)) {
       if (isPropDecor(d.kind)) continue; // pushable props are drawn as items
       const grid = decorGrid(d.kind, d.seed);
@@ -1056,7 +1069,8 @@ export class GameView {
         if (d.front) front.push(halo);
         else this.mapLayer.addChild(halo);
       }
-      this.ambience.add(s, d.kind, d.x, d.y, grid.w, grid.h, d.s ?? 1, halo);
+      const frames = d.kind === 'ufo' ? [0, 1, 2, 3].map((f) => cached(`decor:ufo:${f}`, () => gridTexture(decorGrid('ufo', f), DECOR_PAL))) : undefined;
+      this.ambience.add(s, d.kind, d.x, d.y, grid.w, grid.h, d.s ?? 1, halo, frames);
       if (d.kind === 'beam') this.beamSprites.push(s);
       if (d.front) front.push(s);
       else this.mapLayer.addChild(s);
@@ -1090,19 +1104,22 @@ export class GameView {
       this.ambience.addStars(whiteTexture(), 26);
       this.bgLayer.addChild(this.ambience.stars);
     }
+    this.bgLife ??= new BgLife(whiteTexture(), cached('halo:bg', () => gridTexture(haloGrid(8), [null, [255, 255, 255]])));
+    this.bgLife.reset(BIRD_THEMES.has(map.theme));
     this.clouds = null;
     if (theme.clouds) {
       const cl = generateClouds(theme);
       this.clouds = new TilingSprite({ texture: cached(`clouds:${map.theme}`, () => rgbaTexture(cl.w, cl.h, cl.rgba)), width: 100, height: 100 });
       this.bgLayer.addChild(this.clouds);
     }
+    this.bgLayer.addChild(this.bgLife.birds);
     theme.layers.forEach((spec, i) => {
-      const layer = generateLayer(spec);
+      const layer = generateLayer(spec, theme);
       const tex = cached(`bg:${map.theme}:${i}`, () => rgbaTexture(layer.w, layer.h, layer.rgba));
       const ts = new TilingSprite({ texture: tex, width: 100, height: layer.h });
       const fill = new Graphics();
-      fill.rect(0, 0, 1, 1).fill(toHex(hex(spec.color2 && spec.kind !== 'mountains' ? spec.color : spec.color)));
-      this.bgLayer.addChild(fill, ts);
+      fill.rect(0, 0, 1, 1).fill(toHex(layer.fill));
+      this.bgLayer.addChild(fill, ts, this.bgLife!.add(ts, layer.w, layer.emitters));
       this.bgSprites.push({ sprite: ts, factor: layer.factor, bottom: layer.bottom, h: layer.h, fill, hang: spec.hang });
     });
   }
@@ -1199,6 +1216,8 @@ export class GameView {
         l.fill.scale.set(W, Math.max(0, H - s.y - s.height + 2));
       }
     }
+
+    this.bgLife?.update(this.time, ps, W, H);
 
     // cars
     for (const cv of this.carViews) cv.sync(alpha, this.time);
