@@ -97,13 +97,13 @@ export class AudioEngine {
   }
   /** A bang; `size` 1 is an ordinary bomb, bigger is longer, louder and deeper. */
   explosion(size = 1) {
-    const k = Math.max(0.4, Math.min(2.4, size));
+    const k = Math.max(0.4, Math.min(3.2, size));
     const vol = Math.min(1, 0.4 + 0.3 * k), deep = 1 / Math.sqrt(k);
     this.noiseBurst(0.6 + 0.5 * k, vol, 1200 * deep, 0.6, 60 * deep);
     this.tone(120 * deep, 0.4 + 0.25 * k, 'sine', 0.3 + 0.3 * k, 30 * deep);
     this.tone(60 * deep, 0.6 + 0.35 * k, 'triangle', 0.2 + 0.2 * k, 25 * deep, 0.05);
     // a big one rumbles on afterwards
-    if (k > 1.3) this.tone(40, 1 + 0.4 * k, 'sine', 0.25 * (k - 1), 20, 0.25);
+    if (k > 1.3) this.tone(40, 1 + 0.4 * k, 'sine', Math.min(0.5, 0.25 * (k - 1)), 20, 0.25);
   }
   siren() {
     for (let i = 0; i < 3; i++) this.tone(300, 0.35, 'sawtooth', 0.08, 600, i * 0.4);

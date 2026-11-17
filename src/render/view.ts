@@ -28,7 +28,9 @@ const ROCKET: BlastLook = { core: [0xffffff, 0xfff0a0], fire: [0xffffff, 0xffd04
 const BLAST_LOOK: Record<string, BlastLook> = {
   bomb: { core: [0xffffff, 0xfff0a0], fire: [0xffffff, 0xffd040, 0xff7020], ring: 0xffd060, smoke: SMOKE, debris: [0x403a48, 0x6a5a48] },
   firework: { core: [0xffffff], fire: [0xff3a5a, 0xffd23f, 0x5ef0ff, 0xffffff, 0x8cff5a, 0xff7ad0], ring: 0xffd060, sparkle: true },
-  missile: ROCKET, seeker: ROCKET, torpedo: ROCKET, bigrocket: ROCKET,
+  missile: ROCKET, seeker: ROCKET, torpedo: ROCKET,
+  bigrocket: { ...ROCKET, flash: 0.3 },
+  tankshell: { core: [0xffffff, 0xfff0a0], fire: [0xffffff, 0xffd040, 0xff7020, 0xd84a20], ring: 0xffd060, smoke: [0x2a2630, 0x403a48, 0x5a5460], debris: [0x5a6a38, 0x403a48, 0x8e96a6, 0x6a5a48] },
   volley: { ...ROCKET, debris: undefined },
   atom: { core: [0xffffff, 0xeaffc0], fire: [0xffffff, 0xd8ff8a, 0x8cff5a, 0xffd040], ring: 0x8cff5a, smoke: [0x6a7a4a, 0x8a9a6a, 0x4a5a3a], mushroom: true, flash: 0.35 },
   plasma: { core: [0xffffff, 0xffd0f0], fire: [0xffffff, 0xff7ad0, 0xc07aff, 0x5ef0ff], ring: 0xff7ad0, flash: 0.1 },
@@ -519,14 +521,16 @@ export class GameView {
         else if (e.kind === 'fly' || e.kind === 'glide') this.particles.burst(e.x, e.y + 0.4, 20, { speed: 4, colors: [0xffffff, 0xc8f0ff], life: 0.6, size: 0.18, dir: Math.PI / 2, spread: 2, g: -1 });
         else if (e.kind === 'shoot') {
           const f = car.forward();
-          this.particles.burst(e.x + f.x * 1.8, e.y + f.y * 1.8 - 0.3, 10, { speed: 4, colors: [0xffffff, 0xd0d0d8, 0xfff0a0], life: 0.35, size: 0.2, dir: Math.atan2(f.y, f.x), spread: 0.9, g: -1 });
-          this.trauma = Math.min(1, this.trauma + 0.08);
+          // heavy guns kick out a big muzzle blast
+          const heavy = car.def.ability?.projectile === 'tankshell' || car.def.ability?.projectile === 'bigrocket' ? 2.2 : 1;
+          this.particles.burst(e.x + f.x * 1.8, e.y + f.y * 1.8 - 0.3, Math.round(10 * heavy), { speed: 4 * heavy, colors: [0xffffff, 0xd0d0d8, 0xfff0a0, ...(heavy > 1 ? [0xff9020] : [])], life: 0.35 * Math.sqrt(heavy), size: 0.2 * Math.sqrt(heavy), dir: Math.atan2(f.y, f.x), spread: 0.9, g: -1 });
+          this.trauma = Math.min(1, this.trauma + 0.08 * heavy * heavy);
         }
         break;
       }
       case 'blast': {
         if (e.kind === 'punch') {
-          this.particles.burst(e.x, e.y, 16, { speed: 7, colors: [0xffffff, 0xfff3a0], life: 0.25, size: 0.14, g: 0, drag: 3 });
+          this.particles.burst(e.x, e.y, 22, { speed: 8.5, colors: [0xffffff, 0xfff3a0], life: 0.3, size: 0.18, g: 0, drag: 3 });
           this.rings.push({ x: e.x, y: e.y, t: 0, r: e.r, color: 0xffffff });
           this.trauma = Math.min(1, this.trauma + 0.25);
           break;
@@ -562,7 +566,9 @@ export class GameView {
         this.particles.burst(e.x, e.y, 16, { speed: 6, colors: [0x7fe0ff, 0xffffff], life: 0.35, size: 0.12, g: 0 });
         break;
       case 'shotHit':
-        this.particles.burst(e.x, e.y, 12, { speed: 5, colors: e.proj === 'laser' ? [0x5ef0ff, 0xffffff] : [0xffffff, 0xd0d8e8], life: 0.3, size: 0.12, g: 6 });
+        this.particles.burst(e.x, e.y, 18, { speed: 6.5, colors: e.proj === 'laser' ? [0x5ef0ff, 0xffffff] : [0xffffff, 0xd0d8e8, 0xfff0a0], life: 0.35, size: 0.16, g: 6 });
+        this.rings.push({ x: e.x, y: e.y, t: 0, r: 0.9, color: 0xffffff });
+        this.trauma = Math.min(1, this.trauma + 0.08);
         break;
       case 'roundEnd': {
         const r = e.result;
@@ -582,20 +588,25 @@ export class GameView {
    */
   private explosionFx(x: number, y: number, r: number, power: number, firework: boolean, proj?: ProjectileKind) {
     const look = BLAST_LOOK[proj ?? ''] ?? (firework ? BLAST_LOOK.firework : BLAST_LOOK.bomb);
-    const size = Math.max(0.4, Math.min(2.4, (r / 3) * Math.sqrt(power / 0.8)));
+    const size = Math.max(0.5, Math.min(3.2, (r / 3) * Math.sqrt(power / 0.8)));
     const P = this.particles;
     const rnd = (a: number) => (Math.random() - 0.5) * a;
     // the flash at the heart of it
-    P.burst(x, y, Math.round(5 + 5 * size), { speed: r * 0.7, colors: look.core, life: 0.22 + 0.06 * size, size: 0.45 * size, g: 0, drag: 5 });
+    P.burst(x, y, Math.round(6 + 6 * size), { speed: r * 0.8, colors: look.core, life: 0.25 + 0.07 * size, size: 0.6 * size, g: 0, drag: 5 });
+    // a fireball that swells out of it and burns down
+    if (!look.sparkle) for (let i = 0; i < Math.round(6 + 5 * size); i++) {
+      const a = Math.random() * Math.PI * 2, sp = r * (0.4 + Math.random() * 0.9);
+      P.spawn(x + rnd(r * 0.3), y + rnd(r * 0.3), { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - r * 0.3, life: 0.35 + 0.1 * size + Math.random() * 0.2, size: 0.25 * r * (0.7 + Math.random() * 0.6), grow: 1.4, g: -2, drag: 4, alpha: 0.9, color: look.fire[1 + (i % (look.fire.length - 1))], shrink: false });
+    }
     // sparks / flames thrown out
-    P.burst(x, y, Math.round(26 * size), { speed: r * 2.2, colors: look.fire, life: 0.45 * (0.8 + 0.3 * size), size: 0.24 * Math.sqrt(size), g: look.sparkle ? 3 : 4, drag: look.sparkle ? 2.5 : 2 });
-    if (look.sparkle) for (let i = 0; i < Math.round(14 * size); i++) {
-      const a = Math.random() * Math.PI * 2, sp = r * (0.8 + Math.random() * 1.2);
-      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.9 + Math.random() * 0.6, size: 0.1, color: look.fire[i % look.fire.length], g: 5, drag: 2.2 });
+    P.burst(x, y, Math.round(34 * size), { speed: r * 2.6, colors: look.fire, life: 0.5 * (0.8 + 0.3 * size), size: 0.3 * Math.sqrt(size), g: look.sparkle ? 3 : 4, drag: look.sparkle ? 2.5 : 2 });
+    if (look.sparkle) for (let i = 0; i < Math.round(20 * size); i++) {
+      const a = Math.random() * Math.PI * 2, sp = r * (0.9 + Math.random() * 1.4);
+      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 + Math.random() * 0.7, size: 0.13, color: look.fire[i % look.fire.length], g: 5, drag: 2.2 });
     }
     // smoke that swells and rises
-    if (look.smoke) for (let i = 0; i < Math.round(7 * size); i++) {
-      P.spawn(x + rnd(r * 0.5), y + rnd(r * 0.3), { vx: rnd(r * 0.9), vy: -1 - Math.random() * 1.5 * size, life: 0.8 + 0.5 * size + Math.random() * 0.4, size: 0.16 + 0.12 * size, grow: 3, g: -0.8, drag: 1.6, alpha: 0.55, color: look.smoke[i % look.smoke.length], shrink: false });
+    if (look.smoke) for (let i = 0; i < Math.round(10 * size); i++) {
+      P.spawn(x + rnd(r * 0.6), y + rnd(r * 0.35), { vx: rnd(r * 1.1), vy: -1 - Math.random() * 1.8 * size, life: 0.9 + 0.55 * size + Math.random() * 0.5, size: 0.2 + 0.2 * size, grow: 3.2, g: -0.8, drag: 1.6, alpha: 0.6, color: look.smoke[i % look.smoke.length], shrink: false });
     }
     // a mushroom cloud: a column, then a cap spreading on top
     if (look.mushroom) for (let i = 0; i < Math.round(10 * size); i++) {
@@ -603,14 +614,15 @@ export class GameView {
       P.spawn(x + rnd(cap ? 0.8 : 0.4), y - (cap ? r * 0.3 : 0), { vx: cap ? rnd(r * 1.6) : rnd(0.6), vy: cap ? -r * 1.3 : -r * (0.4 + Math.random() * 0.8), life: 1.3 + Math.random() * 0.5, size: 0.28 * size, grow: 2.4, g: 0, drag: 1.8, alpha: 0.65, color: look.smoke![i % look.smoke!.length], shrink: false });
     }
     // chunks that fall back down
-    if (look.debris) for (let i = 0; i < Math.round(8 * size); i++) {
-      const a = -Math.PI / 2 + rnd(Math.PI * 1.4), sp = r * (1.2 + Math.random() * 1.6);
-      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.8 + Math.random() * 0.5, size: 0.1 + 0.08 * Math.random() * size, color: look.debris[i % look.debris.length], g: 16, drag: 0.6, spin: rnd(16), shrink: false });
+    if (look.debris) for (let i = 0; i < Math.round(11 * size); i++) {
+      const a = -Math.PI / 2 + rnd(Math.PI * 1.4), sp = r * (1.4 + Math.random() * 1.8);
+      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.9 + Math.random() * 0.6, size: 0.12 + 0.1 * Math.random() * size, color: look.debris[i % look.debris.length], g: 16, drag: 0.6, spin: rnd(16), shrink: false });
     }
-    this.rings.push({ x, y, t: 0, r, color: look.ring });
-    if (size > 1.1) this.rings.push({ x, y, t: -0.1, r: r * 1.25, color: look.ring });
-    this.trauma = Math.min(1, this.trauma + (firework ? 0.12 + 0.08 * size : 0.15 + 0.25 * size));
-    if (look.flash || size > 1.4) this.flashA = Math.max(this.flashA, Math.min(0.55, (look.flash ?? 0) + 0.2 * (size - 1.2)));
+    this.rings.push({ x, y, t: 0, r: r * 1.1, color: look.ring });
+    if (size > 0.9) this.rings.push({ x, y, t: -0.1, r: r * 1.4, color: look.ring });
+    if (size > 2) this.rings.push({ x, y, t: -0.2, r: r * 1.75, color: 0xffffff });
+    this.trauma = Math.min(1, this.trauma + (firework ? 0.15 + 0.1 * size : 0.2 + 0.28 * size));
+    if (look.flash || size > 1.2) this.flashA = Math.max(this.flashA, Math.min(0.45, (look.flash ?? 0) + 0.15 * (size - 1)));
   }
 
   /** Closing walls, ghosts, bomb warnings, blizzard snow. */
@@ -715,6 +727,7 @@ export class GameView {
         fxRope(this.fxGfx, o.x, o.y - 0.3, p.x, p.y);
       }
       if (sh.proj === 'bigrocket') for (let k = 0; k < 2; k++) this.particles.spawn(p.x - v.x * 0.06, p.y - v.y * 0.06, { vx: -v.x * 0.15 + (Math.random() - 0.5), vy: -v.y * 0.15 + (Math.random() - 0.5), life: 0.6, size: 0.3, color: Math.random() > 0.4 ? 0xd8d8e0 : 0xff9020 });
+      if (sh.proj === 'tankshell' && Math.random() < 0.8) this.particles.spawn(p.x, p.y, { vx: -v.x * 0.05, vy: -v.y * 0.05, life: 0.3, size: 0.14, grow: 1.5, alpha: 0.6, color: 0xb0b0b8, shrink: false });
       if (sh.proj === 'missile' && Math.random() < 0.8) this.particles.spawn(p.x, p.y, { vx: -v.x * 0.1, vy: -v.y * 0.1, life: 0.4, size: 0.16, color: Math.random() > 0.5 ? 0xd0d0d8 : 0xff8020 });
       if (sh.proj === 'fire' && Math.random() < 0.5) this.particles.spawn(p.x, p.y, { vy: -1.5, life: 0.25, size: 0.14, color: Math.random() > 0.5 ? 0xffd040 : 0xff5020 });
       if (sh.proj === 'firework' && Math.random() < 0.8) this.particles.spawn(p.x, p.y, { vx: -v.x * 0.1, vy: -v.y * 0.1, life: 0.3, size: 0.12, color: Math.random() > 0.5 ? 0xffd040 : 0xff5020 });
