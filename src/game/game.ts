@@ -14,7 +14,7 @@ import { Ragdoll } from './ragdoll';
 export type GamePhase = 'countdown' | 'play' | 'roundEnd' | 'matchEnd';
 
 export type EffectKind =
-  | 'freeze' | 'stun' | 'lift' | 'pull' | 'push' | 'web' | 'confuse' | 'stasis' | 'slow' | 'flat' | 'spring' | 'burn' | 'tether' | 'slip' | 'medkit' | 'reflect';
+  | 'freeze' | 'stun' | 'lift' | 'pull' | 'push' | 'web' | 'confuse' | 'stasis' | 'slow' | 'flat' | 'spring' | 'burn' | 'tether' | 'slip' | 'medkit' | 'reflect' | 'reload';
 
 export type GameEvent =
   | { type: 'roundStart'; round: number; map: MapDef }
@@ -22,7 +22,7 @@ export type GameEvent =
   | { type: 'go' }
   | { type: 'impact'; x: number; y: number; strength: number; carCar: boolean }
   | { type: 'ability'; player: number; kind: AbilityKind; x: number; y: number; from?: { x: number; y: number } }
-  | { type: 'blast'; x: number; y: number; r: number; kind: 'slam' | 'firework' | 'bomb' | 'roar' | 'zap' | 'punch' }
+  | { type: 'blast'; x: number; y: number; r: number; kind: 'slam' | 'firework' | 'bomb' | 'roar' | 'zap' | 'punch'; power?: number; proj?: ProjectileKind }
   | { type: 'effect'; player: number; effect: EffectKind; x: number; y: number }
   | { type: 'bolt'; x: number; y: number }
   | { type: 'portal'; player: number; x: number; y: number; from: { x: number; y: number } }
@@ -100,6 +100,10 @@ const AIM_ASSIST = 0.26;
 /** For shots the head counts as this many times its radius. */
 const HEAD_SHOT_PAD = 1.5;
 const ROUND_END_DELAY = 2.8;
+/** Seconds before a bed that has lost cargo is filled again. */
+export const CARGO_RELOAD = 6;
+/** Seconds spilled cargo lies about before it disappears. */
+const CARGO_LITTER = 20;
 
 export class Game {
   world!: World;
@@ -132,6 +136,8 @@ export class Game {
   private itemId = 0;
   /** Extra ghost time spent waiting to get clear of the other car. */
   private phaseExtra = [0, 0];
+  /** Seconds each car's bed has been short of cargo. */
+  private cargoT = [0, 0];
   strikes: Strike[] = [];
   tethers: Tether[] = [];
   private strikeId = 0;
@@ -202,6 +208,7 @@ export class Game {
     this.strikes = [];
     this.tethers = [];
     this.phaseExtra = [0, 0];
+    this.cargoT = [0, 0];
     for (const c of this.cars) this.loadCargo(c);
     for (const pr of this.arena.props) this.spawnItem(pr.kind, -1, new Vec2(pr.x, pr.y), new Vec2(0, 0), Infinity);
     this.prevAction = [false, false];
@@ -277,6 +284,7 @@ export class Game {
     this.processContacts();
     this.stepShots();
     this.stepItems(dt);
+    this.stepCargo(dt);
     this.stepPhase(dt);
     this.stepCarFx(dt);
     this.stepArenaFx(dt);
@@ -817,7 +825,7 @@ export class Game {
   }
 
   /** Push everything near player p away (slam, fireworks, bombs). */
-  shockwave(p: number, r: number, power: number, at?: { x: number; y: number }, kind: 'slam' | 'firework' | 'bomb' | 'roar' = 'slam') {
+  shockwave(p: number, r: number, power: number, at?: { x: number; y: number }, kind: 'slam' | 'firework' | 'bomb' | 'roar' = 'slam', proj?: ProjectileKind) {
     const c = at ?? this.cars[p].position;
     const push = (bodies: Body[], scale: number) => {
       const pos = bodies[0].getWorldCenter();
@@ -835,7 +843,7 @@ export class Game {
     for (const b of this.arena.balls) push([b.body], 1.4);
     for (const b of this.arena.blocks) push([b.body], 1.2);
     for (const it of this.items) if (!it.dead) push([it.body], 1.2);
-    this.emit({ type: 'blast', x: c.x, y: c.y, r, kind });
+    this.emit({ type: 'blast', x: c.x, y: c.y, r, kind, power, proj });
   }
 
   private stun(p: number, t: number, look: 'ice' | 'zap' | 'web') {
@@ -1053,7 +1061,7 @@ export class Game {
       if (s.dead || age > pr.life || pos.y > this.map.killY) {
         if (pr.effect === 'boom') {
           const r = pr.blast ?? 3.2;
-          this.shockwave(s.owner, r, pr.power ?? (s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8), { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb');
+          this.shockwave(s.owner, r, pr.power ?? (s.proj === 'firework' ? 0.55 : r > 4 ? 1.1 : 0.8), { x: pos.x, y: pos.y }, s.proj === 'firework' || s.proj === 'volley' ? 'firework' : 'bomb', s.proj);
         } else if (s.dead) this.emit({ type: 'shotHit', x: pos.x, y: pos.y, proj: s.proj });
         this.world.destroyBody(s.body);
         this.shots.splice(i, 1);
@@ -1061,13 +1069,38 @@ export class Game {
     }
   }
 
-  /** Put a car's cargo into its bed. */
+  /** Put a car's cargo into its bed (only the slots nothing is in now). */
   private loadCargo(car: Car) {
     const cg = car.def.cargo;
     if (!cg) return;
+    const info = ITEMS[cg.kind];
+    const near = Math.max(info.w, info.h) * 0.6;
+    const foe = this.cars[1 - car.player];
+    const v = car.chassis.getLinearVelocity();
     for (const [lx, ly] of cargoSlots(cg)) {
       const at = car.chassis.getWorldPoint(new Vec2(lx * car.facing, ly));
-      this.spawnItem(cg.kind, car.player, at, new Vec2(0, 0), Infinity).stowed = car;
+      if (this.items.some((it) => !it.dead && Vec2.distance(it.body.getPosition(), at) < near)) continue;
+      if (foe.allBodies.some((b) => { for (let f = b.getFixtureList(); f; f = f.getNext()) if (f.testPoint(at)) return true; return false; })) continue;
+      const it = this.spawnItem(cg.kind, car.player, at, v, Infinity);
+      it.stowed = car;
+    }
+  }
+
+  /** A bed that has lost cargo fills up again a while later (the car must be upright). */
+  private stepCargo(dt: number) {
+    if (this.phase !== 'play') return;
+    for (const car of this.cars) {
+      const cg = car.def.cargo;
+      if (!cg || !car.alive) continue;
+      const have = this.items.filter((it) => it.stowed === car && !it.dead).length;
+      if (have >= cargoSlots(cg).length) { this.cargoT[car.player] = 0; continue; }
+      this.cargoT[car.player] += dt;
+      const a = car.chassis.getAngle();
+      if (this.cargoT[car.player] >= CARGO_RELOAD && Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.6) {
+        this.loadCargo(car);
+        this.cargoT[car.player] = 0;
+        this.emit({ type: 'effect', player: car.player, effect: 'reload', x: car.position.x, y: car.position.y });
+      }
     }
   }
 
@@ -1081,8 +1114,12 @@ export class Game {
     const lx = l.x * car.facing;
     const info = ITEMS[it.kind];
     const [x0, x1, top] = cg.at;
-    const up = Math.max(0.6, info.h * 2.2);
-    if (lx < x0 - 0.15 || lx > x1 + 0.15 || l.y < top - up || l.y > top + 0.3) it.stowed = undefined;
+    const up = Math.max(0.6, info.h * 2.2, (cg.depth ?? 0) + 0.1);
+    if (lx < x0 - 0.15 || lx > x1 + 0.15 || l.y < top - up || l.y > top + 0.3) {
+      // Spilled cargo stays on the field a while, then goes (the bed refills meanwhile).
+      it.stowed = undefined;
+      it.ttl = this.time - it.born + CARGO_LITTER;
+    }
   }
 
   spawnItem(kind: ItemKind, owner: number, at: Vec2, vel: Vec2, ttl: number, fx?: ItemFx): Item {

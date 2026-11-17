@@ -95,10 +95,15 @@ export class AudioEngine {
       this.tone(90 + Math.random() * 40, 0.12, 'triangle', v * 0.8, 50);
     } else this.noiseBurst(0.18, v * 0.7, 400, 0.8, 120);
   }
-  explosion() {
-    this.noiseBurst(1.1, 0.7, 1200, 0.6, 60);
-    this.tone(120, 0.6, 'sine', 0.6, 30);
-    this.tone(60, 0.9, 'triangle', 0.4, 25, 0.05);
+  /** A bang; `size` 1 is an ordinary bomb, bigger is longer, louder and deeper. */
+  explosion(size = 1) {
+    const k = Math.max(0.4, Math.min(2.4, size));
+    const vol = Math.min(1, 0.4 + 0.3 * k), deep = 1 / Math.sqrt(k);
+    this.noiseBurst(0.6 + 0.5 * k, vol, 1200 * deep, 0.6, 60 * deep);
+    this.tone(120 * deep, 0.4 + 0.25 * k, 'sine', 0.3 + 0.3 * k, 30 * deep);
+    this.tone(60 * deep, 0.6 + 0.35 * k, 'triangle', 0.2 + 0.2 * k, 25 * deep, 0.05);
+    // a big one rumbles on afterwards
+    if (k > 1.3) this.tone(40, 1 + 0.4 * k, 'sine', 0.25 * (k - 1), 20, 0.25);
   }
   siren() {
     for (let i = 0; i < 3; i++) this.tone(300, 0.35, 'sawtooth', 0.08, 600, i * 0.4);
@@ -141,17 +146,18 @@ export class AudioEngine {
         break;
     }
   }
-  blast(kind: string) {
+  blast(kind: string, size = 1) {
     if (kind === 'firework') {
-      this.noiseBurst(0.6, 0.4, 3500, 0.4, 600);
-      for (let i = 0; i < 4; i++) this.tone(1200 + Math.random() * 1200, 0.08, 'square', 0.05, undefined, 0.05 + i * 0.07);
-    } else if (kind === 'bomb') this.explosion();
+      this.noiseBurst(0.4 + 0.2 * size, Math.min(0.7, 0.25 + 0.15 * size), 3500, 0.4, 600);
+      for (let i = 0; i < Math.round(2 + 2 * size); i++) this.tone(1200 + Math.random() * 1200, 0.08, 'square', 0.05, undefined, 0.05 + i * 0.07);
+    } else if (kind === 'bomb') this.explosion(size);
     else if (kind === 'zap') { this.noiseBurst(0.4, 0.4, 4000, 0.3, 1200); this.tone(90, 0.3, 'square', 0.1, 60); }
     else if (kind === 'roar') return;
     else { this.noiseBurst(0.5, 0.6, 500, 0.6, 60); this.tone(70, 0.5, 'sine', 0.6, 30); }
   }
   shieldBlock() { this.tone(1400, 0.2, 'triangle', 0.15, 700); }
   effect(kind: string) {
+    if (kind === 'reload') { this.tone(500, 0.08, 'square', 0.06); this.tone(750, 0.1, 'square', 0.06, undefined, 0.08); return; }
     if (kind === 'freeze') [1600, 2000, 2400].forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.07, undefined, i * 0.04));
     else if (kind === 'stun') this.noiseBurst(0.3, 0.3, 5000, 0.4, 2000);
     else if (kind === 'lift') this.tone(400, 0.4, 'sine', 0.1, 900);

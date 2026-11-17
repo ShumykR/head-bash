@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Vec2 } from 'planck';
-import { Game } from '../src/game/game';
+import { CARGO_RELOAD, Game } from '../src/game/game';
 import { CARS, CAR_BY_ID } from '../src/cars/defs';
 import { MAP_BY_ID } from '../src/maps/defs';
 import { abilityOf, ABILITY_INFO, PROJECTILES } from '../src/game/abilities';
@@ -61,6 +61,25 @@ describe('abilities', () => {
     expect(it.stowed).toBeUndefined();
     expect(CAR_BY_ID['wrecking-crane'].flail).toBeDefined();
     expect(g.cars[1].flail).toBeNull();
+  });
+  it('a bed that lost its cargo fills up again, and the spilled load goes away later', () => {
+    for (const id of ['timber-lorry', 'landfill-truck', 'snow-truck', 'harvester', 'soccer-delivery', 'garbage-truck']) {
+      expect(CAR_BY_ID[id].cargo, id).toBeDefined();
+      expect(abilityOf(CAR_BY_ID[id]), id).toBeNull();
+    }
+    const def = CAR_BY_ID['soccer-delivery'];
+    const n = def.cargo!.n;
+    const g = new Game({ cars: [def, CARS[1]], maps: [MAP_BY_ID.meadow], randomMaps: false, target: 9, roundTime: 60, seed: 3 });
+    while (g.phase !== 'play') g.step();
+    for (let i = 0; i < 30; i++) g.step();
+    const stowed = () => g.items.filter((i) => i.stowed === g.cars[0] && !i.dead);
+    const spilled = stowed().slice(0, 3);
+    for (const it of spilled) it.body.setPosition(it.body.getPosition().clone().add(new Vec2(0, -4)));
+    g.step();
+    expect(stowed().length).toBe(n - 3);
+    for (const it of spilled) expect(it.ttl).toBeLessThan(Infinity);
+    for (let i = 0; i < 60 * (CARGO_RELOAD + 0.5); i++) g.step();
+    expect(stowed().length).toBeGreaterThanOrEqual(n - 1);
   });
   it('the hearse carries its coffin inside the body, not on the roof', () => {
     const def = CAR_BY_ID.hearse;

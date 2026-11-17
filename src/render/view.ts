@@ -3,7 +3,7 @@ import { Vec2 } from 'planck';
 import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
-import type { CarDef, CarPalette } from '../cars/types';
+import type { CarDef, CarPalette, ProjectileKind } from '../cars/types';
 import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
@@ -20,6 +20,22 @@ import { gridTexture, rgbaTexture, whiteTexture } from './textures';
 import { hex, hueShift, toHex } from './color';
 import type { InputManager } from '../input/input';
 import { drawPhysicsDebug } from './debug';
+
+/** How each kind of explosion looks: core and spark colours, smoke, debris, ring, extras. */
+interface BlastLook { core: number[]; fire: number[]; ring: number; smoke?: number[]; debris?: number[]; sparkle?: boolean; mushroom?: boolean; flash?: number }
+const SMOKE = [0x403a48, 0x5a5460, 0x2a2630];
+const ROCKET: BlastLook = { core: [0xffffff, 0xfff0a0], fire: [0xffffff, 0xffd040, 0xff7020, 0xff4020], ring: 0xffd060, smoke: [0x5a5460, 0x6e6a74, 0x3a3640], debris: [0x8e96a6, 0x403a48, 0xff9020] };
+const BLAST_LOOK: Record<string, BlastLook> = {
+  bomb: { core: [0xffffff, 0xfff0a0], fire: [0xffffff, 0xffd040, 0xff7020], ring: 0xffd060, smoke: SMOKE, debris: [0x403a48, 0x6a5a48] },
+  firework: { core: [0xffffff], fire: [0xff3a5a, 0xffd23f, 0x5ef0ff, 0xffffff, 0x8cff5a, 0xff7ad0], ring: 0xffd060, sparkle: true },
+  missile: ROCKET, seeker: ROCKET, torpedo: ROCKET, bigrocket: ROCKET,
+  volley: { ...ROCKET, debris: undefined },
+  atom: { core: [0xffffff, 0xeaffc0], fire: [0xffffff, 0xd8ff8a, 0x8cff5a, 0xffd040], ring: 0x8cff5a, smoke: [0x6a7a4a, 0x8a9a6a, 0x4a5a3a], mushroom: true, flash: 0.35 },
+  plasma: { core: [0xffffff, 0xffd0f0], fire: [0xffffff, 0xff7ad0, 0xc07aff, 0x5ef0ff], ring: 0xff7ad0, flash: 0.1 },
+  pumpkin: { core: [0xfff0a0], fire: [0xffd040, 0xff9020, 0xff7020], ring: 0xff9020, smoke: SMOKE, debris: [0xf08020, 0xc05a10, 0x3a8a2a, 0xfff0c0] },
+  urn: { core: [0xfff0c0], fire: [0xffd040, 0xc8b090, 0xa89880], ring: 0xd8c8a8, smoke: [0xc8b090, 0xa89880, 0x8a7a68], debris: [0xa8683a, 0x7a4a2a, 0xf2be34] },
+  dragonshell: { core: [0xffffff, 0xfff0a0], fire: [0xffd23f, 0xff3a3a, 0xff9020, 0xffffff], ring: 0xff3a3a, smoke: [0x5a3a3a, 0x4a3a40], sparkle: true },
+};
 
 export const PLAYER_COLORS = ['#3ec1ff', '#ff5a6e'];
 export const PLAYER_NAMES = ['P1', 'P2'];
@@ -523,17 +539,20 @@ export class GameView {
           this.trauma = Math.min(1, this.trauma + 0.2);
           break;
         }
-        const cols = e.kind === 'firework' ? [0xff3a5a, 0xffd23f, 0x5ef0ff, 0xffffff] : e.kind === 'bomb' ? [0xffffff, 0xffd040, 0xff7020, 0x403a48] : [0xd8c8a8, 0xa89880, 0xffffff];
-        this.particles.burst(e.x, e.y, e.kind === 'slam' ? 34 : 40, { speed: e.r * 2.2, colors: cols, life: 0.55, size: 0.2, g: e.kind === 'slam' ? 8 : 4, drag: 2 });
-        this.rings.push({ x: e.x, y: e.y, t: 0, r: e.r, color: e.kind === 'slam' ? 0xffffff : 0xffd060 });
-        this.trauma = Math.min(1, this.trauma + (e.kind === 'firework' ? 0.2 : 0.45));
+        if (e.kind === 'slam') {
+          this.particles.burst(e.x, e.y, 34, { speed: e.r * 2.2, colors: [0xd8c8a8, 0xa89880, 0xffffff], life: 0.55, size: 0.2, g: 8, drag: 2 });
+          this.rings.push({ x: e.x, y: e.y, t: 0, r: e.r, color: 0xffffff });
+          this.trauma = Math.min(1, this.trauma + 0.45);
+          break;
+        }
+        this.explosionFx(e.x, e.y, e.r, e.power ?? 1, e.kind === 'firework', e.proj);
         break;
       }
       case 'effect': {
         const cols: Record<string, number[]> = {
           freeze: [0xbfefff, 0xffffff, 0x5ad0f0], stun: [0xfff060, 0xffffff], lift: [0x8fe8ff, 0xffffff], pull: [0xc8a060, 0xffffff], push: [0x5ab0ff, 0xffffff], web: [0xffffff, 0xd0d0d8],
           confuse: [0xc07aff, 0xffffff], stasis: [0x5ab0ff, 0xa8d8ff], slow: [0x241830, 0x6a4a8a], flat: [0x303038, 0xd0d0d8], spring: [0xffd23f, 0xff3a5a, 0xffffff],
-          burn: [0xffd040, 0xff5020], tether: [0xc8a060, 0x9aa0ae], slip: [0xc89060, 0xffffff], medkit: [0xff4040, 0xffffff], reflect: [0xd8f4ff, 0xffffff],
+          burn: [0xffd040, 0xff5020], tether: [0xc8a060, 0x9aa0ae], slip: [0xc89060, 0xffffff], medkit: [0xff4040, 0xffffff], reflect: [0xd8f4ff, 0xffffff], reload: [0xfff0a0, 0xffffff],
         };
         this.particles.burst(e.x, e.y, 18, { speed: 5, colors: cols[e.effect], life: 0.4, size: 0.14, g: e.effect === 'push' ? 6 : 0, drag: 2 });
         break;
@@ -555,6 +574,43 @@ export class GameView {
         this.setCenter(`ПЕРЕМОГА ${PLAYER_NAMES[e.winner]}!`, 999, `${g.match.scores[0]} : ${g.match.scores[1]}`, PLAYER_COLORS[e.winner]);
         break;
     }
+  }
+
+  /**
+   * An explosion sized by its radius and strength and coloured by what blew up: a fiery core,
+   * sparks, rising smoke and debris, and for the biggest ones a second ring and a screen flash.
+   */
+  private explosionFx(x: number, y: number, r: number, power: number, firework: boolean, proj?: ProjectileKind) {
+    const look = BLAST_LOOK[proj ?? ''] ?? (firework ? BLAST_LOOK.firework : BLAST_LOOK.bomb);
+    const size = Math.max(0.4, Math.min(2.4, (r / 3) * Math.sqrt(power / 0.8)));
+    const P = this.particles;
+    const rnd = (a: number) => (Math.random() - 0.5) * a;
+    // the flash at the heart of it
+    P.burst(x, y, Math.round(5 + 5 * size), { speed: r * 0.7, colors: look.core, life: 0.22 + 0.06 * size, size: 0.45 * size, g: 0, drag: 5 });
+    // sparks / flames thrown out
+    P.burst(x, y, Math.round(26 * size), { speed: r * 2.2, colors: look.fire, life: 0.45 * (0.8 + 0.3 * size), size: 0.24 * Math.sqrt(size), g: look.sparkle ? 3 : 4, drag: look.sparkle ? 2.5 : 2 });
+    if (look.sparkle) for (let i = 0; i < Math.round(14 * size); i++) {
+      const a = Math.random() * Math.PI * 2, sp = r * (0.8 + Math.random() * 1.2);
+      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.9 + Math.random() * 0.6, size: 0.1, color: look.fire[i % look.fire.length], g: 5, drag: 2.2 });
+    }
+    // smoke that swells and rises
+    if (look.smoke) for (let i = 0; i < Math.round(7 * size); i++) {
+      P.spawn(x + rnd(r * 0.5), y + rnd(r * 0.3), { vx: rnd(r * 0.9), vy: -1 - Math.random() * 1.5 * size, life: 0.8 + 0.5 * size + Math.random() * 0.4, size: 0.16 + 0.12 * size, grow: 3, g: -0.8, drag: 1.6, alpha: 0.55, color: look.smoke[i % look.smoke.length], shrink: false });
+    }
+    // a mushroom cloud: a column, then a cap spreading on top
+    if (look.mushroom) for (let i = 0; i < Math.round(10 * size); i++) {
+      const cap = i % 2 === 0;
+      P.spawn(x + rnd(cap ? 0.8 : 0.4), y - (cap ? r * 0.3 : 0), { vx: cap ? rnd(r * 1.6) : rnd(0.6), vy: cap ? -r * 1.3 : -r * (0.4 + Math.random() * 0.8), life: 1.3 + Math.random() * 0.5, size: 0.28 * size, grow: 2.4, g: 0, drag: 1.8, alpha: 0.65, color: look.smoke![i % look.smoke!.length], shrink: false });
+    }
+    // chunks that fall back down
+    if (look.debris) for (let i = 0; i < Math.round(8 * size); i++) {
+      const a = -Math.PI / 2 + rnd(Math.PI * 1.4), sp = r * (1.2 + Math.random() * 1.6);
+      P.spawn(x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.8 + Math.random() * 0.5, size: 0.1 + 0.08 * Math.random() * size, color: look.debris[i % look.debris.length], g: 16, drag: 0.6, spin: rnd(16), shrink: false });
+    }
+    this.rings.push({ x, y, t: 0, r, color: look.ring });
+    if (size > 1.1) this.rings.push({ x, y, t: -0.1, r: r * 1.25, color: look.ring });
+    this.trauma = Math.min(1, this.trauma + (firework ? 0.12 + 0.08 * size : 0.15 + 0.25 * size));
+    if (look.flash || size > 1.4) this.flashA = Math.max(this.flashA, Math.min(0.55, (look.flash ?? 0) + 0.2 * (size - 1.2)));
   }
 
   /** Closing walls, ghosts, bomb warnings, blizzard snow. */

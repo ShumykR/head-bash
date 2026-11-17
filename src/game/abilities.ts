@@ -258,7 +258,7 @@ export function abilityLabel(def: CarDef): string {
 export function abilityBlurb(def: CarDef): string {
   const a = abilityOf(def);
   const passive = (def.traits ?? []).map(traitBlurb).join(' ');
-  if (!a) return passive || (def.cargo || def.flail ? 'Без спецдії: зброя — вантаж і фізика.' : 'Без спецдії: лише кермо, газ і фізика.');
+  if (!a) return passive || (def.cargo ? 'Без спецдії: зброя — вантаж, що згодом поповнюється, і фізика.' : def.flail ? 'Без спецдії: зброя — вантаж і фізика.' : 'Без спецдії: лише кермо, газ і фізика.');
   return `${actionBlurb(a)}${passive ? ` ${passive}` : ''}`;
 }
 

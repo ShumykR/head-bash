@@ -103,7 +103,7 @@ async function boot() {
       case 'death': audio.explosion(); break;
       case 'pad': audio.pad(); break;
       case 'ability': audio.ability(e.kind, game?.cars[e.player].ability?.projectile); break;
-      case 'blast': audio.blast(e.kind); break;
+      case 'blast': audio.blast(e.kind, Math.max(0.4, Math.min(2.4, (e.r / 3) * Math.sqrt((e.power ?? 1) / 0.8)))); break;
       case 'shieldBlock': audio.shieldBlock(); break;
       case 'effect': audio.effect(e.effect); break;
       case 'shotHit': audio.impact(2, false); break;
