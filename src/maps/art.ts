@@ -613,7 +613,7 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
 }
 
 /** Sky: tall thin gradient with ordered dithering, plus sun/moon/stars & clouds. */
-export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8ClampedArray } {
+export function generateSky(theme: Theme, withClouds = true): { w: number; h: number; rgba: Uint8ClampedArray } {
   const w = BG_W, h = 180;
   const rgba = new Uint8ClampedArray(w * h * 4);
   const [a, b, c] = theme.sky.map(hex);
@@ -661,8 +661,21 @@ export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8Cl
       }
     }
   }
-  if (theme.clouds) {
-    const cc = hex(theme.clouds);
+  if (theme.clouds && withClouds) paintClouds(rgba, w, h, theme.clouds);
+  return { w, h, rgba };
+}
+
+/** Clouds alone on a transparent sky-sized layer, so they can drift. */
+export function generateClouds(theme: Theme): { w: number; h: number; rgba: Uint8ClampedArray } {
+  const w = BG_W, h = 180;
+  const rgba = new Uint8ClampedArray(w * h * 4);
+  if (theme.clouds) paintClouds(rgba, w, h, theme.clouds);
+  return { w, h, rgba };
+}
+
+function paintClouds(rgba: Uint8ClampedArray, w: number, h: number, color: string) {
+  {
+    const cc = hex(color);
     for (let i = 0; i < 6; i++) {
       const cx = hash2(i, 5, 2) * w, cy = 20 + hash2(i, 6, 2) * 60;
       const len = 18 + hash2(i, 7) * 26;
@@ -677,5 +690,4 @@ export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8Cl
       }
     }
   }
-  return { w, h, rgba };
 }
