@@ -94,6 +94,10 @@ export class Menu {
     col.appendChild(row);
     s.appendChild(col);
     s.appendChild(el('div', 'hint', 'P1: <b>A</b> / <b>D</b>, дія <b>W</b> &nbsp; P2: <b>←</b> / <b>→</b>, дія <b>↑</b> &nbsp;·&nbsp; на телефоні — кнопки в кутах'));
+    const v = __APP_VERSION__;
+    const ver = el('div', 'version', `v${v.build} · ${v.sha}${v.pr ? ` · PR #${v.pr}` : ''} · ${v.date}`);
+    ver.title = 'Номер збірки (кількість комітів) · коміт · PR · час збірки';
+    s.appendChild(ver);
     this.keyHandler = (e) => {
       if (e.code === 'Enter') this.hooks.start('pvp');
     };
