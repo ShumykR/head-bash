@@ -118,7 +118,7 @@ export class AudioEngine {
       stomp: 'jump', bounce: 'jump', rear: 'jump', ollie: 'jump', pounce: 'jump', hydraulics: 'jump', backflip: 'jump', moonjump: 'jump',
       drs: 'nitro', sting: 'dash', gore: 'dash', flip: 'dash', bump: 'dash', bite: 'dash', frenzy: 'dash', slide: 'dash',
       punch: 'slam', kick: 'slam', scoop: 'slam', tailwhip: 'slam', puff: 'slam', glide: 'fly', shell: 'shield', reflect: 'shield', heavy: 'slam',
-      discharge: 'roar', howl: 'roar', stasis: 'blink', beam: 'fly', storm: 'roar', invis: 'phase', swap: 'blink', recall: 'blink', icewall: 'drop',
+      discharge: 'roar', howl: 'roar', charge: 'dash', flashbang: 'blink', shadowstep: 'phase', stasis: 'blink', beam: 'fly', storm: 'roar', invis: 'phase', swap: 'blink', recall: 'blink', icewall: 'drop',
     };
     kind = fam[kind] ?? kind;
     switch (kind) {
@@ -134,13 +134,14 @@ export class AudioEngine {
       case 'phase': this.tone(660, 0.5, 'sine', 0.1, 220); this.tone(990, 0.5, 'sine', 0.06, 330); break;
       case 'blink': this.tone(200, 0.25, 'square', 0.08, 1600); this.tone(1600, 0.2, 'sine', 0.06, 400, 0.15); break;
       case 'shoot':
-        if (proj === 'laser' || proj === 'zap') this.tone(1800, 0.18, 'square', 0.09, 300);
+        if (proj === 'laser' || proj === 'zap' || proj === 'eyelaser' || proj === 'star') this.tone(1800, 0.18, 'square', 0.09, 300);
         else if (proj === 'snowball' || proj === 'ball' || proj === 'egg' || proj === 'burger' || proj === 'gift') { this.noiseBurst(0.12, 0.3, 700, 1, 300); this.tone(240, 0.1, 'triangle', 0.15, 120); }
         else if (proj === 'firework' || proj === 'missile' || proj === 'bigrocket') { this.noiseBurst(0.5, 0.25, 3000, 0.6, 800); this.tone(600, 0.4, 'square', 0.05, 1600); }
         else if (proj === 'toast') { this.tone(900, 0.06, 'square', 0.12); this.tone(500, 0.15, 'triangle', 0.12, 1200, 0.05); }
         else if (proj === 'bubble') [600, 900, 1200].forEach((f, i) => this.tone(f, 0.08, 'sine', 0.1, f * 1.5, i * 0.06));
         else if (proj === 'water' || proj === 'fire') this.noiseBurst(0.6, 0.35, proj === 'water' ? 1800 : 900, 0.5, proj === 'water' ? 2600 : 400);
-        else if (proj === 'harpoon' || proj === 'web') { this.noiseBurst(0.2, 0.2, 2000, 0.6, 600); this.tone(300, 0.15, 'square', 0.06, 900); }
+        else if (proj === 'fireball' || proj === 'ghostfire') this.noiseBurst(0.5, 0.35, proj === 'ghostfire' ? 1800 : 900, 0.5, 300);
+        else if (proj === 'harpoon' || proj === 'web' || proj === 'tentacle') { this.noiseBurst(0.2, 0.2, 2000, 0.6, 600); this.tone(300, 0.15, 'square', 0.06, 900); }
         else if (proj === 'cork') { this.tone(1200, 0.05, 'square', 0.14, 400); this.noiseBurst(0.15, 0.3, 3000, 1, 1000); }
         else { this.noiseBurst(0.35, 0.55, 900, 0.6, 120); this.tone(80, 0.3, 'sine', 0.5, 40); }
         break;

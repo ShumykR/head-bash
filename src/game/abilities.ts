@@ -52,6 +52,9 @@ export const ABILITY_INFO: Record<AbilityKind, AbilityInfo> = {
   blink: { name: 'Портал', icon: '🌀', cd: 5, blurb: 'Миттєво переноситься на кілька метрів уперед.' },
   swap: { name: 'Обмін', icon: '🔄', cd: 7, blurb: 'Міняється з суперником місцями.' },
   recall: { name: 'Петля часу', icon: '⏪', cd: 6, blurb: 'Повертається туди, де був дві секунди тому.' },
+  charge: { name: 'Атака', icon: '🐎', cd: 4.5, blurb: 'Коні зриваються в галоп: ривок і півтори секунди вищої швидкості.' },
+  flashbang: { name: 'Світлошумова', icon: '💡', cd: 5.5, blurb: 'Спалах попереду: суперник за кілька метрів перед тобою на мить глухне.' },
+  shadowstep: { name: 'Крок у тінь', icon: '🌑', cd: 6, blurb: 'Розчиняється в тіні й з\'являється по той бік суперника.' },
   icewall: { name: 'Крижана стіна', icon: '🧊', cd: 5, blurb: 'Ставить перед собою стіну з льоду.' },
   shoot: { name: 'Постріл', icon: '🎯', cd: 2.4, blurb: 'Снаряд уперед. Влучання в голову — очко!' },
   drop: { name: 'Пастка', icon: '💣', cd: 4, blurb: 'Закидає навісом уперед сюрприз для суперника.' },
@@ -144,6 +147,11 @@ export const PROJECTILES: Record<ProjectileKind, ProjectileInfo> = {
   chainshot: { r: 0.26, speed: 18, density: 3.5, gravity: 1, life: 2.4, bounce: 0.2, name: 'ланцюгове ядро', effect: 'knock', recoil: 1.5 },
   bigrocket: { r: 0.22, speed: 17, density: 1.2, gravity: 0.3, life: 2.2, bounce: 0, name: 'велика ракета', pop: true, effect: 'boom', blast: 5.4, power: 2.1, impact: 6, cd: 1.6, seek: 0.02 },
   tankshell: { r: 0.12, speed: 30, density: 4, gravity: 0.5, life: 1.3, bounce: 0, name: 'фугасний снаряд', pop: true, effect: 'boom', blast: 3.2, power: 1.4, impact: 9, cd: 1.2, recoil: 2.4 },
+  tentacle: { r: 0.2, speed: 20, density: 1, gravity: 0.3, life: 0.75, bounce: 0, name: 'щупальце', pop: true, effect: 'pull', harmless: true, cd: 0.8 },
+  eyelaser: { r: 0.1, speed: 34, density: 1.5, gravity: 0.15, life: 0.65, bounce: 0, name: 'лазерні очі', pop: true, count: 2, spread: 0.06, cd: 1.1 },
+  fireball: { r: 0.26, speed: 18, density: 0.8, gravity: 0.55, life: 1.6, bounce: 0, name: 'вогняна куля', pop: true, effect: 'boom', blast: 2.4, power: 0.9 },
+  ghostfire: { r: 0.28, speed: 12, density: 0.3, gravity: 0, life: 2.2, bounce: 0, name: 'примарне полум\'я', pop: true, effect: 'boom', blast: 2.6, seek: 0.025, cd: 1.2 },
+  star: { r: 0.12, speed: 30, density: 1.5, gravity: 0.2, life: 0.8, bounce: 0, name: 'зоряний бластер', pop: true, count: 3, spread: 0.12, cd: 0.9 },
   ink: { r: 0.3, speed: 14, density: 0.3, gravity: 0.5, life: 1.3, bounce: 0, name: 'чорнило', pop: true, effect: 'slow', harmless: true },
 };
 

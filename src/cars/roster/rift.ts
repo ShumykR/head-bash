@@ -146,6 +146,7 @@ export const RIFT = group('rift', [
     ],
   }],
   ['ghost-dragon-summoner', 'Ghost Dragon Summoner', 'Платформа заклинача: кристали кличуть примарного дракона, що дихає вогнем.', 'carriage', ['#2a2a4a', '#7aff9a'], {
+    gun: (f) => ({ at: [[f.roof.x1 + 1.4, f.roof.y - 0.66]], aim: 5 }),
     parts: ['crystals'], hideParts: true,
     skin: (f) => [
       ...carriage(f, { trim: 'accent' }),
@@ -302,6 +303,7 @@ export const RIFT = group('rift', [
     ],
   }],
   ['rift-monster', 'Rift Monster', 'Істота з порталу: зникає й з\'являється ближче до тебе.', 'monster', ['#3a1a4a', '#ff3aa0'], {
+    arch: 'monster',
     o: o({ open: true }),
     parts: ['fangs'], hideParts: true,
     skin: (f) => {

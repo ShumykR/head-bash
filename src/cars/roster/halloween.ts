@@ -66,14 +66,16 @@ export const HALLOWEEN = group('halloween', [
     },
   }],
   ['chariot', 'Chariot', 'Антична бойова колісниця з шипами на осях. Атакує ривком.', 'cart', ['#c8a040', '#e02a2a'], {
-    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'], hideParts: true,
+    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'], hideParts: true, accel: 1.2,
     // As in Drive Ahead, a horse pulls the chariot. It is a real piece: hitched to the shaft on a
-    // sprung hinge, it has a body to hit and runs on a hidden wheel under its hooves.
+    // sprung hinge, it has a body to hit and runs on a hidden wheel under its hooves. That wheel is
+    // the driven one: the engine's pull acts on the horse while its hooves are down, and the
+    // chariot's own wheels just roll behind it.
     links: (f) => {
       const g = f.wheels[0].y + f.wheels[0].r, x = f.nose.x + 1.15, s = 1.3;
       return [{
         at: [f.nose.x + 0.5, f.deck.y - 0.25], swing: [-14, 14], spring: 10, density: 0.35,
-        wheels: [{ x, y: g - 0.26, r: 0.26, drive: false, hidden: true }],
+        wheels: [{ x, y: g - 0.26 + 0.05, r: 0.26, drive: true, hidden: true }],
         hit: [rect(x - 0.5 * s, g - 0.86 * s, x + 0.5 * s, g - 0.46 * s), rect(x + 0.35 * s, g - 1.2 * s, x + 0.8 * s, g - 0.86 * s)],
         art: [
           ...path([[f.nose.x + 0.5, f.deck.y - 0.25], [x + 0.1, g - 0.7 * s]], 0.06, 'wood'),

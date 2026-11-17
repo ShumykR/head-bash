@@ -174,7 +174,8 @@ export const ALIEN = group('alien', [
     gun: (f) => {
       const A: Pt = [f.deck.x0 + 0.15, f.deck.y - 0.5], B: Pt = [f.roof.x1 + 0.2, f.roof.y - 0.22];
       const L = Math.hypot(B[0] - A[0], B[1] - A[1]), ux = (B[0] - A[0]) / L, uy = (B[1] - A[1]) / L;
-      const t = (L + 0.4) / 2 - 0.22, c = 0.24;
+      // the shot's hit circle is the rocket's nose, so it starts at the nose
+      const t = L + 0.5 - 0.22, c = 0.24;
       return { at: [[A[0] + ux * t + uy * c, A[1] + uy * t - ux * c]], aim: +((Math.atan2(-uy, ux) * 180) / Math.PI).toFixed(1) };
     },
     parts: ['launcher'], hideParts: true,

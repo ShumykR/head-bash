@@ -21,7 +21,7 @@ export interface Kit {
 
 /** Cars whose hull keeps them afloat: boats, fish, sea creatures and hovercraft (the amphibian swims through its trait). */
 export const SWIMMERS = new Set([
-  'rowboat', 'yacht', 'speedboat', 'lucky-shark', 'chomp-shark', 'piranha-racer', 'abyss-eel', 'blast-fish', 'jelly-shock',
+  'rowboat', 'yacht', 'speedboat', 'gunboat', 'hovercraft', 'ghost-ship', 'kraken-bait', 'space-scallop', 'piranha', 'lucky-shark', 'chomp-shark', 'piranha-racer', 'abyss-eel', 'blast-fish', 'jelly-shock',
   'cosmic-squid', 'turtle', 'steel-crab', 'penguin-slider', 'woodie-surfer', 'hovercar',
 ]);
 
@@ -163,6 +163,15 @@ export const KIT: Record<string, Kit> = {
   'dual-soccer-cannon': { ab: 'shoot:twinball|Подвійний пас', blurb: 'Здвоєний футбольний міномет: два м\'ячі з двох стволів одразу.' },
   'army-bike': { ab: 'shoot:tracer|Кулемет на кермі', blurb: 'Армійський мотоцикл із кулеметом на кермі: швидкі трасери з малою перезарядкою.' },
   'serpent-tank': { ab: 'shoot:dragonshell|Драконячий постріл', blurb: 'Танк-змій. Гармата на спині б\'є вибуховим драконячим снарядом.' },
+  // ---------------------------------------------------------------- promised by their looks and blurbs
+  chariot: { ab: 'charge|Атака колісниці', blurb: 'Антична бойова колісниця з шипами на осях. Коні зриваються в галоп: ривок і кілька секунд вищої швидкості.' },
+  'swat-van': { ab: 'flashbang|Світлошумова граната', blurb: 'Броньовик спецпризначенців. Світлошумова граната глушить суперника попереду.' },
+  'dark-phantom': { ab: 'shadowstep|Крок у тінь', blurb: 'Бойова машина темного лорда: розчиняється в тіні й з\'являється по той бік суперника.' },
+  tentabot: { ab: 'shoot:tentacle|Щупальце', blurb: 'Робот зі щупальцем: хапає суперника й підтягує до себе.' },
+  'doom-bot': { ab: 'shoot:eyelaser|Лазерні очі', blurb: 'Важкий бойовий андроїд: б\'є двома променями з лазерних очей.' },
+  'dragon-monster': { ab: 'shoot:fireball|Вогняна куля', blurb: 'Монстр-трак із головою дракона. Пихкає вогняними кулями, що вибухають.' },
+  'ghost-dragon-summoner': { ab: 'shoot:ghostfire|Примарне полум\'я', blurb: 'Платформа заклинача: примарний дракон дихає зеленим полум\'ям, що саме знаходить суперника.' },
+  'star-coupe': { ab: 'shoot:star|Зоряний бластер', blurb: 'Космічний концепт-кар із зоряним бластером: віяло з трьох зірок.' },
   'cannon-carriage': { ab: 'shoot:chainshot|Ланцюгове ядро', blurb: 'Середньовічна гармата на великих колесах. Важке ядро відкидає суперника.' },
 };
 
@@ -171,7 +180,7 @@ const KINDS = new Set<AbilityKind>([
   'nitro', 'drs', 'dash', 'sting', 'gore', 'flip', 'bump', 'bite', 'frenzy', 'slide', 'punch', 'kick', 'scoop', 'tailwhip',
   'slam', 'puff', 'roar', 'discharge', 'howl', 'stasis', 'beam', 'storm',
   'fly', 'glide', 'shield', 'shell', 'reflect', 'heavy', 'phase', 'invis', 'blink', 'swap', 'recall', 'icewall',
-  'shoot', 'drop', 'dump',
+  'shoot', 'drop', 'dump', 'charge', 'flashbang', 'shadowstep',
 ]);
 
 /** 'shoot:toast|Тостомет' → { kind: 'shoot', projectile: 'toast', name: 'Тостомет' } */

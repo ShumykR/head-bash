@@ -69,7 +69,7 @@ export const TOYS = group('toys', [
     ],
   }],
   ['turbo-bones', 'Turbo Bones', 'Кістяний турбо-болід із закисом азоту.', 'formula', ['#e8dcc0', '#e02a2a'], {
-    o: o({ mat: 'bone' }), parts: ['exhaust'], hideParts: true,
+    o: o({ mat: 'bone' }), parts: ['exhaust', 'jets'], hideParts: true,
     skin: (f) => [
       ...formula(f, { mat: 'bone', wing: 'accent' }),
       ...[-1.0, -0.6, -0.2, 0.2, 0.6].map((x) => rect(x, -0.04, x + 0.06, 0.16, 'dark', { flat: true })),
@@ -78,6 +78,7 @@ export const TOYS = group('toys', [
     ],
   }],
   ['star-coupe', 'Star Coupe', 'Космічний концепт-кар із зоряним бластером.', 'hover', ['#c0c8d0', '#3a6ad8'], {
+    gun: (f) => ({ at: [[f.nose.x + 0.4, -0.28]], aim: 3 }),
     parts: ['fin'], hideParts: true,
     skin: (f) => [
       poly([[f.tail.x + 0.1, -0.3], [f.tail.x - 0.15, -0.8], [f.tail.x + 0.25, -0.8], [f.tail.x + 0.8, -0.3]], 'accent'),
@@ -179,6 +180,7 @@ export const TOYS = group('toys', [
     fx: (f) => [{ kind: 'flame', at: [f.tail.x - 0.44, -0.09], dir: 180, size: 0.14 }],
   }],
   ['swamp-monster', 'Swamp Monster', 'Монстр-трак із боліт, обвішаний твані й водоростями.', 'monster', ['#4a6a2a', '#a0c040'], {
+    arch: 'monster',
     o: o({ open: true }),
     parts: ['teeth'], hideParts: true,
     skin: (f) => {

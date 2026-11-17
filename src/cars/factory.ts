@@ -1,6 +1,6 @@
 import { withDrive } from './drive';
 import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
-import { estimateMass } from './stats';
+import { estimateMass, drivenWheels } from './stats';
 
 /*
  * Parametric car builder.
@@ -1255,6 +1255,8 @@ export function buildCar(spec: CarSpec): CarDef {
       return ld;
     });
   }
+  // A piece with a driven wheel (a horse) pulls the car: then the car's own wheels just roll.
+  if (def.links?.some((l) => l.wheels?.some((w) => w.drive === true))) def.wheels = def.wheels.map((w) => ({ ...w, drive: false }));
   if (spec.headOn !== undefined) def.headOn = spec.headOn;
   if (f.cabin && !spec.head && spec.headOn === undefined) def.cabin = true;
   if (spec.float ?? f.float) def.float = spec.float ?? f.float;
@@ -1273,7 +1275,8 @@ export function buildCar(spec: CarSpec): CarDef {
     if (p.density !== undefined) fixedMass += ar * p.density;
     else freeArea += ar;
   }
-  def.density = +Math.max(0.35, Math.min(4, (targetMass - wheelMass - fixedMass) / Math.max(0.1, freeArea))).toFixed(3);
+  // a thin hull (sled runners, a bike frame) needs a dense material to weigh what its class weighs
+  def.density = +Math.max(0.35, Math.min(12, (targetMass - wheelMass - fixedMass) / Math.max(0.1, freeArea))).toFixed(3);
   // Parts bolted to the nose or tail shift the center of mass; shift it back to where
   // the bare frame had it so the car does not dive on landings.
   const comX = (ps: CarPoly[]) => {
@@ -1296,7 +1299,7 @@ export function buildCar(spec: CarSpec): CarDef {
   const ballast = raised * 0.3 + (spec.ballast ?? 0);
   if (ballast > 0 && def.com) def.com = [def.com[0], +(def.com[1] + ballast).toFixed(3)];
   const mass = estimateMass(def);
-  const inv = wheels.filter((w) => w.drive ?? true).reduce((acc, w) => acc + 1 / w.r, 0);
+  const inv = drivenWheels(def).reduce((acc, w) => acc + 1 / w.r, 0);
   // Bigger driven wheels spin up slower (more inertia, less grip per torque): give them the pull back.
   const axleK = Math.max(1, ...(spec.axles ?? [1]));
   const accel = Math.min(27, Math.max(10, pre.accel * (spec.accel ?? 1) * (f.tune?.accel ?? 1) * axleK ** 1.6));

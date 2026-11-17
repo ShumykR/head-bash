@@ -78,7 +78,9 @@ export class Car {
   /** Trim links: they never collide (see LinkDef.trim). */
   private readonly trim = new Set<Body>();
   /** Wheels of the links (trailers): [body, link index, wheel def]. */
-  readonly linkWheels: { body: Body; link: number; def: WheelDef }[] = [];
+  readonly linkWheels: { body: Body; link: number; def: WheelDef; groundT?: number }[] = [];
+  /** A moving piece pulls the car (a horse): the car's own wheels roll free. */
+  readonly pulled: boolean;
   /** Previous-step transforms of links, then link wheels (render interpolation). */
   prevExtra: BodyState[] = [];
   /** Diving after a mid-air slam; the shockwave fires on landing. */
@@ -143,6 +145,7 @@ export class Car {
     const f = facing;
     const m = (p: Pt) => new Vec2(p[0] * f, p[1]);
     const group = -(player + 1);
+    this.pulled = !!def.links?.some((l) => l.wheels?.some((w) => w.drive === true));
     this.chassis = world.createBody({ type: 'dynamic', position: new Vec2(x, y), angularDamping: 0.05 });
     const chassisTag: FixtureTag = { kind: 'car', player, part: 'chassis' };
     for (const p of def.body) {
@@ -591,8 +594,25 @@ export class Car {
         j.setMaxMotorTorque(d.motor.torque * trq);
       } else {
         j.setMotorSpeed(0);
-        j.setMaxMotorTorque(d.motor.torque * (this.locked ? 1.5 : 0.12));
+        // a pulled car's own wheels roll free while the horse pulls; they only brake when idle
+        j.setMaxMotorTorque(this.pulled && dir !== 0 ? 0 : d.motor.torque * (this.locked ? 1.5 : 0.12));
       }
+    }
+    // A pulling piece (a horse): while its hooves are on the ground, the engine's pull acts on the
+    // piece itself, along the ground, fading out at top speed; the car follows on the shaft.
+    for (const lw of this.linkWheels) {
+      if (lw.def.drive !== true) continue;
+      let grounded = false;
+      for (let ce = lw.body.getContactList(); ce; ce = ce.next!) if (ce.contact.isTouching()) { grounded = true; break; }
+      lw.groundT = grounded ? 0.1 : Math.max(0, (lw.groundT ?? 0) - dt);
+      if (dir === 0 || lw.groundT <= 0) continue;
+      const fwd = this.chassis.getWorldVector(new Vec2(this.facing, 0));
+      const along = Vec2.dot(this.chassis.getLinearVelocity(), fwd) * dir * this.facing;
+      const top = d.motor.speed * spd;
+      const k = Math.max(0, Math.min(1, (top - along) / (top * 0.25)));
+      const pull = (d.motor.torque * trq / lw.def.r) * k * dir * this.facing;
+      const horse = this.links[lw.link];
+      horse.applyForce(new Vec2(fwd.x * pull, fwd.y * pull), horse.getWorldCenter(), true);
     }
 
     const I = this.chassis.getInertia() + [...this.wheels, ...this.links].reduce((s, w) => s + w.getMass() * Vec2.distanceSquared(w.getWorldCenter(), this.chassis.getWorldCenter()), 0);
