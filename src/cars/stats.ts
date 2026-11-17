@@ -31,6 +31,15 @@ export function estimateMass(def: CarDef): number {
   return m;
 }
 
+/**
+ * The wheels the motor turns: the chassis wheels (driven unless marked otherwise) and any wheel of a
+ * moving piece marked `drive: true` (a horse that pulls the chariot it is hitched to).
+ */
+export function drivenWheels(def: CarDef) {
+  const links = (def.links ?? []).flatMap((l) => (l.wheels ?? []).filter((w) => w.drive === true));
+  return [...def.wheels.filter((w) => w.drive ?? true), ...links];
+}
+
 export interface CarStats {
   speed: number;
   accel: number;
@@ -41,7 +50,7 @@ export interface CarStats {
 
 export function rawStats(def: CarDef): CarStats {
   const mass = estimateMass(def);
-  const driven = def.wheels.filter((w) => w.drive ?? true);
+  const driven = drivenWheels(def);
   const force = driven.reduce((s, w) => s + def.motor.torque / w.r, 0);
   return {
     speed: def.motor.speed + (def.boost ? def.boost.accel * 0.25 : 0),
@@ -85,7 +94,7 @@ export function validateCar(def: CarDef): string[] {
   });
   if (def.headOn !== undefined && !def.links?.[def.headOn]) errs.push('driver rides a missing link');
   if (def.wheels.length < 2) errs.push('needs at least 2 wheels');
-  if (!def.wheels.some((w) => w.drive ?? true)) errs.push('no driven wheel');
+  if (!drivenWheels(def).length) errs.push('no driven wheel');
   for (const w of def.wheels) if (w.r < 0.2 || w.r > 1) errs.push(`wheel radius ${w.r} out of range`);
   const { x, y, r } = def.head;
   if (r < 0.2 || r > 0.4) errs.push('head radius out of range');
