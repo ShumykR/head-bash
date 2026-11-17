@@ -2,35 +2,21 @@ import { RGB, hex, shade, mix, hash2, bayer } from '../render/color';
 import type { ThemeId } from './types';
 
 export { generateTerrain, type TerrainArt } from './terrain';
+import { paintLayer, type BgLayer, type LayerSpec } from './backdrop';
+export type { BgLayer, LayerSpec } from './backdrop';
 
 /* ------------------------------------------------------------------ */
 /* Parallax backgrounds                                                */
 /* ------------------------------------------------------------------ */
 
-export interface BgLayer {
-  /** RGBA pixels */
-  w: number;
-  h: number;
-  rgba: Uint8ClampedArray;
-  /** Horizontal parallax factor (0 = fixed, 1 = moves with world). */
-  factor: number;
-  /** Fraction of screen height where the layer's bottom sits. */
-  bottom: number;
-}
-
 export interface Theme {
   sky: [string, string, string];
   /** `hang` layers hang from the top of the screen (stalactites) and fill upward. */
-  layers: { kind: LayerKind; color: string; color2?: string; factor: number; bottom: number; height: number; seed: number; hang?: boolean }[];
+  layers: LayerSpec[];
   celestial?: { kind: 'sun' | 'moon' | 'planet'; color: string; x: number; y: number; r: number };
   stars?: boolean;
   clouds?: string;
 }
-
-type LayerKind =
-  | 'mountains' | 'hills' | 'trees' | 'city' | 'factory' | 'pines' | 'dunes' | 'islands' | 'crystals' | 'craters' | 'ruins'
-  | 'graves' | 'volcanoes' | 'stands' | 'palms' | 'sea' | 'pagodas' | 'farm' | 'domewall' | 'blocks' | 'snowpines'
-  | 'stalactites' | 'cavewall' | 'girders' | 'pipes';
 
 export const THEMES: Record<ThemeId, Theme> = {
   meadow: {
@@ -66,8 +52,8 @@ export const THEMES: Record<ThemeId, Theme> = {
     celestial: { kind: 'sun', color: '#ffffff', x: 0.6, y: 0.15, r: 9 },
     clouds: '#ffffff',
     layers: [
-      { kind: 'islands', color: '#7a92c8', color2: '#a8c0e8', factor: 0.06, bottom: 0.7, height: 60, seed: 9 },
-      { kind: 'islands', color: '#5a78b8', color2: '#88b0e0', factor: 0.15, bottom: 0.95, height: 60, seed: 10 },
+      { kind: 'islands', color: '#8a86b0', color2: '#9ad08a', factor: 0.06, bottom: 0.7, height: 60, seed: 9 },
+      { kind: 'islands', color: '#7a6a8a', color2: '#6ac45a', factor: 0.15, bottom: 0.95, height: 60, seed: 10 },
     ],
   },
   ice: {
@@ -122,7 +108,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     celestial: { kind: 'moon', color: '#d8ffd0', x: 0.15, y: 0.2, r: 9 },
     layers: [
       { kind: 'hills', color: '#1a3a24', color2: '#14301c', factor: 0.08, bottom: 0.82, height: 50, seed: 26 },
-      { kind: 'farm', color: '#2a1a1a', color2: '#ffd86a', factor: 0.2, bottom: 0.94, height: 60, seed: 27 },
+      { kind: 'farm', color: '#6a5a50', color2: '#ffd86a', factor: 0.2, bottom: 0.94, height: 60, seed: 27 },
     ],
   },
   dome: {
@@ -163,7 +149,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     celestial: { kind: 'moon', color: '#ffe080', x: 0.5, y: 0.2, r: 14 },
     layers: [
       { kind: 'mountains', color: '#3a1422', color2: '#5a2032', factor: 0.06, bottom: 0.78, height: 60, seed: 37 },
-      { kind: 'pagodas', color: '#2a0a14', color2: '#ffb030', factor: 0.2, bottom: 0.95, height: 80, seed: 38 },
+      { kind: 'pagodas', color: '#5a1a2a', color2: '#ffb030', factor: 0.2, bottom: 0.95, height: 80, seed: 38 },
     ],
   },
   rift: {
@@ -254,362 +240,17 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
 };
 
-/** Periodic noise in [-1,1], tileable over width W. */
-function pnoise(x: number, W: number, seed: number, octaves = 4): number {
-  let v = 0, amp = 1, tot = 0;
-  for (let o = 0; o < octaves; o++) {
-    const k = (o + 1) * (o + 1) + Math.floor(hash2(o, seed) * 3);
-    const ph = hash2(seed, o) * Math.PI * 2;
-    v += Math.sin((x / W) * Math.PI * 2 * k + ph) * amp;
-    tot += amp;
-    amp *= 0.5;
-  }
-  return v / tot;
-}
-
 const BG_W = 320;
-
-/** Background cobble joints (tileable over BG_W). */
-function cobbleBg(x: number, y: number): boolean {
-  const row = Math.floor(y / 9);
-  const bx = (x + (row % 2) * 8) % 16;
-  return y % 9 === 0 || bx === 0;
-}
 
 function putPx(buf: Uint8ClampedArray, w: number, x: number, y: number, c: RGB, a = 255) {
   const i = (y * w + x) * 4;
   buf[i] = c[0]; buf[i + 1] = c[1]; buf[i + 2] = c[2]; buf[i + 3] = a;
 }
 
-export function generateLayer(spec: Theme['layers'][number]): BgLayer {
-  const w = BG_W, h = spec.height;
-  const wrap = (xx: number) => ((xx % w) + w) % w;
-  const rgba = new Uint8ClampedArray(w * h * 4);
-  const c1 = hex(spec.color), c2 = hex(spec.color2 ?? spec.color);
-  const s = spec.seed;
-  const col = (x: number, top: number, fill: (y: number) => RGB | null) => {
-    for (let y = Math.max(0, Math.floor(top)); y < h; y++) {
-      const c = fill(y);
-      if (c) putPx(rgba, w, x, y, c);
-    }
-  };
-  for (let x = 0; x < w; x++) {
-    const n = pnoise(x, w, s);
-    switch (spec.kind) {
-      case 'mountains': {
-        // light from the upper left: left faces lit, right faces in shadow, jagged snow caps
-        const rid = (xx: number) => 1 - Math.abs(pnoise(wrap(xx), w, s, 3));
-        const topAt = (xx: number) => h - (0.25 + 0.7 * rid(xx)) * h;
-        const top = topAt(x), slope = topAt(x + 1) - topAt(x - 1);
-        const ridge = rid(x);
-        const shadowSide = slope > 0.2;
-        const snow = 3 + 6 * ridge + Math.floor(hash2(x >> 1, s, 2) * 3);
-        const dark = mix(c1, [20, 20, 40], 0.18), lit = mix(c1, c2, 0.22);
-        col(x, top, (y) => {
-          const d = y - top;
-          if (ridge > 0.55 && d < snow) return shadowSide && d > 0 ? mix(c2, c1, 0.3) : c2;
-          if (d < 1) return shadowSide ? c1 : lit;
-          return shadowSide && d < (h - top) * 0.7 ? dark : c1;
-        });
-        break;
-      }
-      case 'hills': {
-        const topAt = (xx: number) => h * 0.35 + pnoise(wrap(xx), w, s) * h * 0.25;
-        const top = topAt(x), slope = topAt(x + 2) - topAt(x - 2);
-        col(x, top, (y) => {
-          const d = y - top;
-          if (d < 1) return shade(c1, 1.3);
-          if (d < 3) return shade(c1, 1.12);
-          if (slope > 0.6 && d < 10) return mix(c1, c2, 0.7);
-          return d > (h - top) * 0.55 ? c2 : c1;
-        });
-        break;
-      }
-      case 'trees': {
-        // Round-crowned trees: take the highest crown covering this column.
-        const ground = h * 0.78 + n * 3;
-        let top = ground, trunk = false, shadeEdge = false;
-        for (let k = -2; k <= 2; k++) {
-          const cell = Math.floor(x / 16) + k;
-          const cx = cell * 16 + 8 + (hash2(cell, s, 1) - 0.5) * 8;
-          const r = 6 + hash2(cell, s, 2) * 6;
-          const cy = ground - 6 - r - hash2(cell, s, 3) * 8;
-          const dx = x - cx;
-          if (Math.abs(dx) < r) {
-            const t = cy - Math.sqrt(r * r - dx * dx) * (0.85 + 0.15 * Math.abs(Math.sin(dx * 1.3)));
-            if (t < top) { top = t; shadeEdge = dx > r * 0.35; }
-          }
-          if (Math.abs(dx) < 1.2) trunk = true;
-        }
-        col(x, top, (y) => {
-          if (y >= ground) return c2;
-          if (y - top < 1.5 && !shadeEdge) return shade(c1, 1.3);
-          if (shadeEdge) return c2;
-          return trunk && y > ground - 7 ? shade(c2, 0.7) : c1;
-        });
-        break;
-      }
-      case 'pines': {
-        const cell = Math.floor(x / 7);
-        const cx = cell * 7 + 3;
-        const th = 22 + hash2(cell, s) * 30;
-        const dx = Math.abs(x - cx);
-        const top = h - th + dx * 2.6 + ((h - th + dx * 2.6) % 6 < 2 ? 0 : 0);
-        const ground = h - 6 + n * 2;
-        col(x, Math.min(top, ground), (y) => (y > top && (y - top) % 7 === 0 ? c2 : c1));
-        break;
-      }
-      case 'city':
-      case 'factory': {
-        const cell = Math.floor(x / 14);
-        const bh = (0.3 + hash2(cell, s) * 0.65) * h;
-        const top = h - bh;
-        const lx = x % 14;
-        const gap = lx === 13;
-        const chimney = spec.kind === 'factory' && hash2(cell, s + 1) > 0.6 && lx >= 5 && lx <= 7;
-        const ctop = chimney ? top - 18 : top;
-        if (gap && !chimney) col(x, h - bh * 0.4, () => shade(c1, 0.8));
-        else
-          col(x, ctop, (y) => {
-            if (chimney && y < top) return y < ctop + 2 ? c2 : c1;
-            const win = lx > 1 && lx < 12 && lx % 3 !== 0 && (y - Math.floor(top)) % 5 > 1 && y > top + 3;
-            return win && hash2(x >> 1, y, s) > 0.45 ? c2 : y - top < 1 ? shade(c1, 1.5) : c1;
-          });
-        break;
-      }
-      case 'dunes': {
-        const topAt = (xx: number) => h * 0.4 + pnoise(wrap(xx), w, s, 2) * h * 0.35;
-        const top = topAt(x), slope = topAt(x + 2) - topAt(x - 2);
-        col(x, top, (y) => {
-          const d = y - top;
-          if (d < 1) return shade(c1, 1.25);
-          if (slope > 0.3) return d < (h - top) * 0.6 ? c2 : mix(c1, c2, 0.5);
-          return d > (h - top) * 0.6 ? mix(c1, c2, 0.5) : c1;
-        });
-        break;
-      }
-      case 'ruins': {
-        const cell = Math.floor(x / 24);
-        const lx = x % 24;
-        const kind = hash2(cell, s);
-        let top = h - 4;
-        if (kind > 0.55 && (lx < 4 || (lx > 14 && lx < 18))) top = h - (24 + kind * 30); // columns
-        if (kind > 0.55 && lx < 18 && top > h - 30) top = Math.min(top, h - (26 + kind * 30));
-        if (kind < 0.35) top = h - 10 - Math.abs(12 - lx) * -0.5 - (12 - Math.abs(12 - lx)) * 2; // pyramid
-        col(x, top, (y) => ((y + lx) % 6 === 0 ? c2 : c1));
-        break;
-      }
-      case 'islands': {
-        const cell = Math.floor(x / 64);
-        const cx = cell * 64 + 32 + (hash2(cell, s) - 0.5) * 20;
-        const r = 12 + hash2(cell, s + 3) * 14;
-        const dx = Math.abs(x - cx);
-        if (dx < r) {
-          const midY = h * 0.42 + hash2(cell, s + 5) * 8;
-          const top = midY - Math.sqrt(r * r - dx * dx) * 0.12 - 1;
-          const k = 1 - dx / r;
-          const bot = midY + Math.pow(k, 0.7) * r * 1.2 * (0.8 + 0.2 * Math.abs(Math.sin(x * 0.9)));
-          for (let y = Math.floor(top); y < Math.min(h, bot); y++) {
-            const lo = (y - midY) / Math.max(1, bot - midY);
-            putPx(rgba, w, x, y, y < top + 1 ? shade(c2, 1.2) : y < top + 3 ? c2 : lo > 0.55 || x > cx + r * 0.45 ? shade(c1, 0.86) : c1);
-          }
-        }
-        break;
-      }
-      case 'crystals': {
-        const cell = Math.floor(x / 11);
-        const cx = cell * 11 + 5;
-        const th = 20 + hash2(cell, s) * 50;
-        const dx = Math.abs(x - cx);
-        const top = h - th + dx * (th / 6);
-        col(x, Math.min(top, h - 8), (y) => (y >= h - 8 ? shade(c1, 0.85) : x === cx ? shade(c2, 1.2) : x < cx ? c2 : x === Math.floor(cx + (y - top < 0 ? 0 : 0)) ? c1 : c1));
-        break;
-      }
-      case 'graves': {
-        const ground = h * 0.8 + n * 3;
-        const cell = Math.floor(x / 12), lx = x % 12;
-        const kind = hash2(cell, s);
-        let top = ground;
-        if (kind > 0.7 && lx > 3 && lx < 9) top = ground - 10 + (lx - 6) * (lx - 6) * 0.4; // tombstone
-        if (kind > 0.5 && kind <= 0.7 && Math.abs(lx - 6) < 3) top = ground - 9; // cross arms
-        if (kind > 0.5 && kind <= 0.7 && lx === 6) top = ground - 14; // cross post
-        if (kind < 0.12) top = ground - 26 + Math.abs(lx - 6) * 3; // dead tree
-        const glow = kind > 0.85 && lx === 6 && hash2(cell, 3) > 0.5;
-        col(x, top, (y) => (glow && y > top + 3 && y < top + 6 ? c2 : y < ground ? shade(c1, 0.85) : c1));
-        break;
-      }
-      case 'volcanoes': {
-        const cell = Math.floor(x / 160);
-        const cx = cell * 160 + 80 + (hash2(cell, s) - 0.5) * 40;
-        const dx = Math.abs(x - cx);
-        const top = Math.max(h * 0.15 + Math.max(0, dx - 10) * 0.9, h * 0.5 + n * 8);
-        const crater = dx < 10;
-        col(x, top, (y) => {
-          if (crater && y < top + 3) return c2;
-          if (dx < 22 && y - top < 30 && Math.abs(x - cx + Math.sin(y * 0.4) * 3) < 1.5) return shade(c2, 0.8); // lava stream
-          return y - top < 2 ? shade(c1, 1.3) : c1;
-        });
-        break;
-      }
-      case 'stands': {
-        const top = h * 0.25;
-        col(x, top, (y) => {
-          const row = Math.floor((y - top) / 5);
-          if ((y - top) % 5 === 0) return shade(c1, 1.25);
-          if ((y - top) % 5 === 2 && hash2(x, row, s) > 0.45) return hash2(x, row, s + 1) > 0.8 ? c2 : mix(c1, [255, 255, 255], 0.35 + hash2(x >> 1, row) * 0.3);
-          return c1;
-        });
-        if (x % 80 === 10) for (let y = 0; y < top; y++) putPx(rgba, w, x, y, shade(c1, 0.8));
-        if (x % 80 >= 6 && x % 80 <= 14) for (let y = 0; y < 5; y++) putPx(rgba, w, x, y, y > 0 && y < 4 ? [255, 250, 210] : shade(c1, 0.6));
-        break;
-      }
-      case 'palms': {
-        const cell = Math.floor(x / 50);
-        const cx = cell * 50 + 25 + (hash2(cell, s) - 0.5) * 16;
-        const th = 30 + hash2(cell, s + 2) * 20;
-        const dx = x - cx;
-        const ground = h - 2;
-        const trunkX = cx + Math.sin((ground - (h - th)) * 0.02) * 3;
-        let top = ground;
-        if (Math.abs(x - trunkX) < 1.5) top = h - th;
-        const fr = Math.abs(dx);
-        if (fr < 14) top = Math.min(top, h - th - 2 + fr * fr * 0.05 - (fr < 3 ? 2 : 0));
-        if (fr < 14 && fr > 1.5) {
-          const yf = h - th - 2 + fr * fr * 0.05;
-          for (let y = Math.floor(yf); y < yf + 3 && y < h; y++) putPx(rgba, w, x, y, c1);
-        } else col(x, top, (y) => (y < h - th + 2 ? c1 : c2));
-        break;
-      }
-      case 'sea': {
-        const top = h * 0.3 + Math.sin(x * 0.15) * 1.2;
-        col(x, top, (y) => ((y - Math.floor(top)) % 9 === 0 && (x + y * 3) % 12 < 5 ? c2 : y - top < 2 ? c2 : c1));
-        break;
-      }
-      case 'pagodas': {
-        const cell = Math.floor(x / 40);
-        const lx = x % 40;
-        const kind = hash2(cell, s);
-        let top = h - 6 + n * 2;
-        if (kind > 0.35) {
-          const tiers = 2 + Math.floor(kind * 3);
-          const base = h - 6;
-          for (let t = 0; t < tiers; t++) {
-            const ty = base - 12 - t * 12;
-            const half = 16 - t * 3;
-            const d = Math.abs(lx - 20);
-            if (d < half) top = Math.min(top, ty + (d > half - 4 ? -(d - half + 4) : 0) + 3);
-            if (d < half - 4) top = Math.min(top, ty + 3);
-          }
-          if (Math.abs(lx - 20) < 1) top = base - 12 - tiers * 12 - 4;
-        }
-        col(x, top, (y) => ((y - Math.floor(top)) % 12 === 4 && kind > 0.35 && hash2(x >> 2, y, s) > 0.5 ? c2 : c1));
-        break;
-      }
-      case 'farm': {
-        const cell = Math.floor(x / 70);
-        const lx = x % 70;
-        const kind = hash2(cell, s);
-        const ground = h - 6 + n * 2;
-        let top = ground;
-        if (kind > 0.5 && lx > 10 && lx < 40) top = ground - 22 + Math.max(0, Math.abs(lx - 25) - 6) * 0.9; // barn
-        if (kind > 0.5 && lx >= 44 && lx < 52) top = ground - 34 + (lx === 44 || lx === 51 ? 2 : 0); // silo
-        if (lx % 9 === 0) top = Math.min(top, ground - 5); // fence posts
-        col(x, top, (y) => (kind > 0.5 && lx > 21 && lx < 29 && y > top + 6 && y < top + 10 && hash2(cell, 2) > 0.3 ? c2 : y === Math.floor(ground) - 3 ? shade(c1, 1.3) : c1));
-        break;
-      }
-      case 'domewall': {
-        const top = h * 0.05 + Math.pow((x - w / 2) / (w / 2), 2) * h * 0.25;
-        col(x, top, (y) => {
-          if ((y - Math.floor(top)) % 20 === 6 && x % 6 < 2) return c2; // light bulbs row
-          if ((y - Math.floor(top)) % 20 < 2) return shade(c1, 1.3);
-          return x % 24 === 0 ? shade(c1, 0.75) : c1;
-        });
-        break;
-      }
-      case 'blocks': {
-        const cell = Math.floor(x / 16);
-        const stack = 1 + Math.floor(hash2(cell, s) * 4);
-        const top = h - stack * 14 - 2;
-        const lx = x % 16;
-        col(x, top, (y) => {
-          const b = Math.floor((y - top) / 14);
-          const edge = lx === 0 || lx === 15 || (y - top) % 14 === 0;
-          const cc = hash2(cell, b, s) > 0.5 ? c1 : c2;
-          return edge ? shade(cc, 0.7) : (y - top) % 14 < 3 ? shade(cc, 1.25) : cc;
-        });
-        break;
-      }
-      case 'snowpines': {
-        const cell = Math.floor(x / 9);
-        const cx = cell * 9 + 4;
-        const th = 24 + hash2(cell, s) * 28;
-        const dx = Math.abs(x - cx);
-        const top = h - th + dx * 2.4;
-        const ground = h - 6 + n * 2;
-        col(x, Math.min(top, ground), (y) => (y > top && (y - top) % 8 < 2 ? c2 : y < top + 3 ? c2 : c1));
-        break;
-      }
-      case 'stalactites': {
-        const cell = Math.floor(x / 14);
-        const lx = x % 14;
-        const len = (0.3 + hash2(cell, s) * 0.7) * h;
-        const tip = len * (1 - Math.abs(lx - 7) / 7.5);
-        for (let y = 0; y < Math.min(h, tip); y++) putPx(rgba, w, x, y, lx < 3 && y < tip - 2 ? c2 : c1);
-        break;
-      }
-      case 'cavewall': {
-        const top = h * 0.25 + n * h * 0.2;
-        col(x, top, (y) => {
-          const b = cobbleBg(x, y);
-          return b ? shade(c1, 0.8) : y - top < 2 ? c2 : (x * 3 + y) % 17 === 0 ? mix(c1, c2, 0.4) : c1;
-        });
-        break;
-      }
-      case 'girders': {
-        const cell = Math.floor(x / 48), lx = x % 48;
-        const tw = 10;
-        const top = h * (0.15 + hash2(cell, s) * 0.35);
-        const inTower = lx >= 19 && lx < 19 + tw;
-        if (inTower) {
-          col(x, top, (y) => {
-            const ly = (y - Math.floor(top)) % tw;
-            const tx = lx - 19;
-            if (tx === 0 || tx === tw - 1) return c1;
-            if (ly === 0 || Math.abs(tx - ly) < 1 || Math.abs(tw - 1 - tx - ly) < 1) return c1;
-            if (y - top < 3 && tx % 3 === 0) return c2;
-            return null;
-          });
-        }
-        // horizontal beam between towers
-        const by = Math.floor(h * 0.55 + hash2(cell, s + 1) * 10);
-        for (let y = by; y < by + 3; y++) putPx(rgba, w, x, y, y === by ? c2 : c1);
-        break;
-      }
-      case 'pipes': {
-        const top = h * 0.1;
-        for (let y = Math.floor(top); y < h; y++) {
-          const vx = x % 40;
-          const hy = (y + Math.floor(x / 40) * 13) % 52;
-          let c: RGB | null = null;
-          if (vx >= 6 && vx < 12) c = vx === 6 || vx === 11 ? shade(c1, 0.7) : vx === 8 ? shade(c1, 1.4) : c1;
-          if (hy >= 20 && hy < 25) c = hy === 20 ? shade(c1, 1.4) : hy === 24 ? shade(c1, 0.7) : c1;
-          if (vx >= 6 && vx < 12 && hy === 30 && hash2(Math.floor(x / 40), 1, s) > 0.5) c = c2;
-          if (c) putPx(rgba, w, x, y, c);
-        }
-        break;
-      }
-      case 'craters': {
-        const top = h * 0.5 + n * 6;
-        const cell = Math.floor(x / 40);
-        const cx = cell * 40 + 20, rr = 8 + hash2(cell, s) * 10;
-        const dx = Math.abs(x - cx);
-        const rim = dx < rr ? -Math.max(0, 3 - Math.abs(dx - rr * 0.85)) : 0;
-        col(x, top + rim, (y) => (y - top - rim < 1 ? c2 : c1));
-        break;
-      }
-    }
-  }
-  return { w, h, rgba, factor: spec.factor, bottom: spec.bottom };
+/** One parallax strip; far layers fade toward the theme's horizon colour. */
+export function generateLayer(spec: LayerSpec, theme?: Theme): BgLayer {
+  const sky = theme ? mix(hex(theme.sky[1]), hex(theme.sky[2]), 0.6) : hex(spec.color);
+  return paintLayer(spec, sky);
 }
 
 /** Sky: tall thin gradient with ordered dithering, plus sun/moon/stars & clouds. */

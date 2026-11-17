@@ -248,11 +248,24 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       return p.done(true);
     }
     case 'ufo': {
-      const p = new Pen(44, 20);
-      p.ell(22, 7, 9, 7, C.CY, (dx, dy) => (dx < -0.3 && dy < -0.2 ? C.W : C.CY));
-      p.ell(22, 12, 21, 5, C.LG, (_dx, dy) => (dy > 0.25 ? C.G : C.LG));
-      for (let i = 0; i < 7; i++) p.rect(6 + i * 5, 12, 2, 2, i % 2 ? C.Y : C.LI);
-      p.poly([[16, 16], [28, 16], [26, 19], [18, 19]], C.DG);
+      // seed picks the animation frame of the running lights (0..3)
+      const p = new Pen(56, 26);
+      const f = seed % 4;
+      // glass dome with a little pilot
+      p.ell(28, 9, 11, 9, C.CY, (dx, dy) => (dy > 0.55 ? null : dx < -0.35 && dy < -0.3 ? C.W : dx > 0.45 ? C.TE : C.CY));
+      p.ell(28, 9, 4, 3.5, C.LI);
+      p.rect(26, 7, 1, 1, C.K); p.rect(29, 7, 1, 1, C.K);
+      p.rect(24, 3, 1, 3, C.LI); p.rect(32, 3, 1, 3, C.LI); // antennae
+      // saucer: lit top band, dark rim, belly
+      p.ell(28, 15, 27, 6, C.LG, (_dx, dy) => (dy < -0.45 ? C.W : dy > 0.35 ? C.G : C.LG));
+      p.rect(2, 15, 52, 1, C.DG);
+      for (let i = 0; i < 9; i++) {
+        const on = (i + f) % 3 === 0;
+        p.rect(5 + i * 5.6, 16, 3, 2, on ? C.Y : i % 2 ? C.LI : C.PK);
+        if (on) p.rect(5 + i * 5.6, 16, 2, 1, C.W);
+      }
+      p.poly([[18, 20], [38, 20], [34, 24], [22, 24]], C.DG);
+      p.ell(28, 23, 5, 2, C.LI, (_dx, dy) => (dy < 0 ? C.W : C.LI)); // tractor emitter
       return p.done(true);
     }
     case 'beam': {
@@ -553,6 +566,41 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         if (d < inner / R) return null;
         return d > 0.97 ? C.ORD : Math.abs(Math.atan2(dy, dx) * 8) % 1 < 0.12 ? C.Y : C.OR;
       });
+      return p.done(true);
+    }
+    case 'scarecrow': {
+      const p = new Pen(26, 40);
+      p.rect(12, 8, 2, 32, C.BRD); // post
+      p.rect(2, 15, 22, 2, C.BRD); // arms
+      // shirt with patches
+      p.poly([[6, 14], [20, 14], [19, 28], [7, 28]], C.B);
+      p.rect(9, 18, 3, 3, C.R);
+      p.rect(15, 23, 3, 2, C.Y);
+      p.rect(3, 14, 4, 4, C.B); p.rect(19, 14, 4, 4, C.B);
+      for (const x of [1, 24]) { p.px(x, 15, C.Y); p.px(x, 17, C.Y); p.px(x + (x > 2 ? 1 : -1), 16, C.Y); } // straw hands
+      for (const x of [8, 11, 15, 18]) p.rect(x, 28, 1, 3, C.Y); // straw hem
+      // sack head and hat
+      p.ell(13, 9, 5, 5, C.CR, (dx, dy) => (dx + dy > 0.6 ? C.SAD : C.CR));
+      p.rect(10, 8, 2, 2, C.K); p.rect(15, 8, 2, 2, C.K);
+      p.line(10, 12, 16, 12, C.BRD);
+      p.rect(6, 4, 14, 2, C.BR);
+      p.rect(9, -1, 8, 5, C.BR);
+      p.rect(9, 2, 8, 1, C.R);
+      return p.done(true);
+    }
+    case 'haystack': {
+      const p = new Pen(40, 26);
+      p.ell(20, 22, 20, 18, C.Y, (dx, dy) => {
+        if (dy > 0.2) return null;
+        const band = Math.floor((dy + 1) * 6);
+        if ((band % 2) && Math.abs(Math.sin(dx * 9 + band)) < 0.35) return C.SAD;
+        return dx < -0.4 && dy < -0.3 ? LIT(C.Y) : dx > 0.5 ? C.GO : C.Y;
+      });
+      p.rect(0, 22, 40, 4, C.SAD);
+      for (let x = 2; x < 38; x += 3) p.rect(x, 22, 1, 3, C.Y);
+      p.line(20, 4, 26, -4, C.BRD, 2); // pitchfork
+      p.line(25, -5, 29, -3, C.LG);
+      p.line(24, -4, 28, -2, C.LG);
       return p.done(true);
     }
     case 'ghost': {
@@ -975,10 +1023,14 @@ export function itemGrid(kind: ItemKind, w: number, h: number, ppm: number): Pix
       p.line(W - 2, 1, 1, H - 2, C.SAD);
       break;
     case 'hay':
+      // a square bale: straw rows, two twine bands, a lit top
       p.rect(0, 0, W, H, C.Y);
-      for (let y = 1; y < H; y += 2) for (let x = (y % 4) - 1; x < W; x += 4) p.rect(x, y, 2, 1, C.SAD);
-      p.rect(Math.round(W * 0.3), 0, 1, H, C.BR);
-      p.rect(Math.round(W * 0.7), 0, 1, H, C.BR);
+      for (let y = 2; y < H - 1; y += 2) for (let x = (y % 4); x < W - 1; x += 4) p.rect(x, y, 2, 1, C.SAD);
+      p.rect(0, 0, W, 1, LIT(C.Y));
+      p.rect(0, H - 1, W, 1, C.GO);
+      p.rect(Math.round(W * 0.28), 0, 1, H, C.BRD);
+      p.rect(Math.round(W * 0.72), 0, 1, H, C.BRD);
+      p.px(1, 1, C.W);
       break;
     case 'cow':
       p.rect(1, 1, W - 4, H - 4, C.W);

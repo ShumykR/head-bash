@@ -1,4 +1,4 @@
-import { Container, Sprite } from 'pixi.js';
+import { Container, Sprite, type Texture } from 'pixi.js';
 import type { DecorKind, ThemeId } from '../maps/types';
 import type { Particles } from './particles';
 import { makeGrid, gset, type PixelGrid } from './grid';
@@ -53,7 +53,9 @@ const LIFE: Partial<Record<DecorKind, KindLife>> = {
   silo: { motion: 'stiff', wind: 0, give: 0.08 },
   barn: { motion: 'none' },
   gate: { motion: 'none' },
-  ufo: { motion: 'hover', glow: { color: 0x8cffd0, r: 22, y: 10 } },
+  ufo: { motion: 'hover', glow: { color: 0x8cffd0, r: 26, y: 12 } },
+  scarecrow: { motion: 'stiff', wind: 0.03, speed: 1.3, give: 0.7, shed: [0xffd23f, 0xc8a050] },
+  haystack: { motion: 'rigid', give: 0.12, shed: [0xffd23f, 0xc8a050, 0xfff0a0] },
   portal: { motion: 'none', glow: { color: 0xff7ae0, r: 26, y: 23 } },
 };
 
@@ -69,6 +71,8 @@ interface Live {
   cool: number;
   baseY: number;
   halo?: Sprite;
+  /** Animation frames (e.g. the UFO's running lights). */
+  frames?: Texture[];
 }
 
 /** Things drifting in the air, per theme. */
@@ -123,6 +127,7 @@ export function haloGrid(r: number): PixelGrid {
 
 export class Ambience {
   private live: Live[] = [];
+  private lights: { s: Sprite; mode: 'flicker' | 'pulse' | 'blink'; ph: number }[] = [];
   private acc = 0;
   private theme: ThemeId = 'meadow';
   /** Screen-space twinkling stars. */
@@ -133,6 +138,7 @@ export class Ambience {
 
   reset(theme: ThemeId) {
     this.live = [];
+    this.lights = [];
     this.theme = theme;
     this.acc = 0;
     this.stars.removeChildren();
@@ -140,7 +146,7 @@ export class Ambience {
   }
 
   /** Twinkling stars in the top part of the sky (screen fractions). */
-  addStars(tex: import('pixi.js').Texture, n: number) {
+  addStars(tex: Texture, n: number) {
     for (let i = 0; i < n; i++) {
       const s = new Sprite(tex);
       s.anchor.set(0.5);
@@ -150,11 +156,16 @@ export class Ambience {
   }
 
   /** Register a planted prop sprite (anchored at its bottom center). */
-  add(s: Sprite, kind: DecorKind, x: number, y: number, wPx: number, hPx: number, scale: number, halo?: Sprite): void {
+  add(s: Sprite, kind: DecorKind, x: number, y: number, wPx: number, hPx: number, scale: number, halo?: Sprite, frames?: Texture[]): void {
     const life = LIFE[kind];
     if (!life) return;
     const k = scale / this.ppm;
-    this.live.push({ s, kind, x, y, w: wPx * k, h: hPx * k, life, ang: 0, vel: 0, hop: 0, hopV: 0, phase: hash2(Math.round(x * 10), 5) * 6.28, cool: 0, baseY: s.y, halo });
+    this.live.push({ s, kind, x, y, w: wPx * k, h: hPx * k, life, ang: 0, vel: 0, hop: 0, hopV: 0, phase: hash2(Math.round(x * 10), 5) * 6.28, cool: 0, baseY: s.y, halo, frames });
+  }
+
+  /** A light on the cave wall: its halo flickers (torches, lamps), pulses (crystals) or blinks (alarms). */
+  addLight(s: Sprite, mode: 'flicker' | 'pulse' | 'blink') {
+    this.lights.push({ s, mode, ph: hash2(Math.round(s.x * 10), Math.round(s.y * 10)) * 6.28 });
   }
 
   static glowOf(kind: DecorKind) {
@@ -192,6 +203,7 @@ export class Ambience {
       if (lf.motion === 'hover') {
         l.s.y = l.baseY + Math.sin(time * 1.6 + l.phase) * 0.18;
         l.s.rotation = Math.sin(time * 1.1 + l.phase) * 0.03;
+        if (l.frames) l.s.texture = l.frames[Math.floor(time * 6) % l.frames.length];
         if (l.halo) { l.halo.y = l.s.y - (lf.glow!.y / this.ppm); l.halo.alpha = 0.22 + 0.08 * Math.sin(time * 5); }
         continue;
       }
@@ -235,6 +247,11 @@ export class Ambience {
         l.halo.x = l.x + Math.sin(l.ang) * top;
         l.halo.alpha = 0.26 + 0.08 * Math.sin(time * 3 + l.phase) + (hash2(Math.floor(time * 12), Math.round(l.x)) > 0.93 ? 0.06 : 0);
       }
+    }
+    for (const l of this.lights) {
+      if (l.mode === 'flicker') l.s.alpha = 0.3 + 0.06 * Math.sin(time * 11 + l.ph) + 0.05 * Math.sin(time * 23 + l.ph * 2) + (hash2(Math.floor(time * 14), Math.round(l.ph * 100)) > 0.9 ? -0.08 : 0);
+      else if (l.mode === 'pulse') l.s.alpha = 0.22 + 0.12 * Math.sin(time * 1.6 + l.ph);
+      else l.s.alpha = Math.sin(time * 3 + l.ph) > 0.3 ? 0.42 : 0.04;
     }
     // drifting motes
     const d = DRIFT[this.theme];

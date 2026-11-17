@@ -78,7 +78,7 @@ describe('arena gadgets are real', () => {
     expect(g.cars[0].position.y).toBeLessThan(y0 - 1.5);
   });
   it('props in the arena are pushable items', () => {
-    expect(start('ufo-farm').items.some((i) => i.kind === 'cow' && i.owner === -1)).toBe(true);
+    expect(start('ufo-farm').items.some((i) => i.kind === 'hay' && i.owner === -1)).toBe(true);
     expect(start('motordrome').items.some((i) => i.kind === 'cone')).toBe(true);
     expect(start('toytrack').items.some((i) => i.kind === 'toyblock')).toBe(true);
   });
