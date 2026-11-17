@@ -1,294 +1,7 @@
-import { ART_PPM } from '../physics/constants';
 import { RGB, hex, shade, mix, hash2, bayer } from '../render/color';
-import { PixelGrid, makeGrid, gget, gset, fillPoly } from '../render/grid';
-import type { MapDef, Pt, TerrainMat, ThemeId } from './types';
+import type { ThemeId } from './types';
 
-/* ------------------------------------------------------------------ */
-/* Terrain                                                             */
-/* ------------------------------------------------------------------ */
-
-const MATS: (TerrainMat | 'back')[] = ['grass', 'rock', 'sand', 'metal', 'ice', 'wood', 'snow', 'moon', 'neon', 'brick', 'grave', 'basalt', 'turf', 'track', 'void', 'asphalt', 'tile', 'cave', 'steel', 'amber', 'girder', 'back'];
-/** Materials shaded by distance to open air in every direction (caves have ceilings). */
-const RIMMED = new Set<TerrainMat | 'back'>(['cave', 'steel', 'amber']);
-/** slots per material: 0 outline,1 top,2 surface,3 surface dark,4 base,5 base dark,6 base light,7 detail */
-const SLOTS = 8;
-
-const MAT_COLORS: Record<TerrainMat | 'back', string[]> = {
-  grass: ['#1d2a14', '#b6f05a', '#5cc23a', '#2f8a34', '#8a5a34', '#5e3a22', '#a8734a', '#3d2616'],
-  rock: ['#1b1b24', '#c9c6c0', '#8e8a86', '#6a6670', '#6e6a74', '#4a4752', '#8d8994', '#34323c'],
-  sand: ['#3a2a18', '#fff0b8', '#f2cf7a', '#d9ad55', '#d9a24e', '#b47e36', '#ecc06a', '#9a6a2c'],
-  metal: ['#14161c', '#d6dde6', '#8e98a8', '#5e6878', '#4c5564', '#353c48', '#6c7686', '#a8b4c4'],
-  ice: ['#16263a', '#ffffff', '#c8f0ff', '#8ad6f4', '#6cb6e0', '#4a8ec2', '#a8e2ff', '#e8faff'],
-  wood: ['#24140a', '#e6b06a', '#b97a3c', '#8c5426', '#8c5426', '#5e3416', '#a86a32', '#4a2810'],
-  snow: ['#1c2232', '#ffffff', '#eef4ff', '#c4d2ea', '#6c7890', '#4c566c', '#8a96ae', '#dfe8f8'],
-  moon: ['#15151c', '#e6e4ee', '#b4b2c0', '#8c8a9a', '#77758a', '#56546a', '#9896aa', '#46445a'],
-  neon: ['#06040e', '#ff4fd8', '#5ef0ff', '#2a2050', '#1c1636', '#120e26', '#2c2454', '#7a3cff'],
-  brick: ['#1e0e0c', '#e8a07a', '#c2563c', '#8e3426', '#a8442e', '#6e2a1e', '#c86048', '#e8d6c0'],
-  grave: ['#0e0a12', '#b88ae8', '#5a3e86', '#3e2c62', '#3a2c30', '#261c22', '#4a3a3c', '#7a5aa8'],
-  basalt: ['#0c0808', '#ffb050', '#5a4440', '#423230', '#2e2424', '#1e1818', '#3e3030', '#ff6a1a'],
-  turf: ['#0c1e0e', '#ffffff', '#52c452', '#3aa23e', '#6a4428', '#48301c', '#7c5434', '#ffffff'],
-  track: ['#3a1806', '#ffd8a8', '#ff8c1a', '#e0700e', '#f07a12', '#c45a08', '#ff9e3a', '#ffffff'],
-  void: ['#08040e', '#ff8ae8', '#8a4ae0', '#6430b8', '#2a1648', '#1a0e30', '#3a2060', '#d08aff'],
-  asphalt: ['#0a0a0e', '#ececf0', '#55555e', '#44444c', '#34343c', '#25252b', '#44444c', '#ffd23f'],
-  tile: ['#1a0606', '#ffd84a', '#d02e2e', '#a8201e', '#7e1616', '#5a0e10', '#9a1a1c', '#ffcf3a'],
-  // rim-lit materials: outline, rim, glow, glow fade, base, base dark, base light, mortar
-  cave: ['#120a1a', '#fbe8d6', '#c6a2b2', '#86688e', '#5a4670', '#3c2e52', '#6c5682', '#271c36'],
-  steel: ['#0c1018', '#f2f8ff', '#c2d0e4', '#8ea2be', '#6a7e9c', '#4c5e7c', '#7e92b0', '#34425a'],
-  amber: ['#2a1004', '#fff2a8', '#ffcc48', '#f6a228', '#e08418', '#b0600c', '#ee962a', '#7e3c06'],
-  girder: ['#0a0c12', '#eef4fc', '#c0c8d4', '#8e96a4', '#6c7482', '#4a505c', '#a0a8b6', '#2c3038'],
-  back: ['#07050c', '#1d1729', '#1a1425', '#171221', '#141020', '#0e0b16', '#1b1527', '#110d1a'],
-};
-
-export function terrainPalette(): (RGB | null)[] {
-  const pal: (RGB | null)[] = [null];
-  for (const m of MATS) for (const c of MAT_COLORS[m]) pal.push(hex(c));
-  return pal;
-}
-
-export interface TerrainArt {
-  grid: PixelGrid;
-  /** Dark cave back wall (behind background props), when the map has one. */
-  back: PixelGrid | null;
-  palette: (RGB | null)[];
-  /** World coords of grid pixel (0,0). */
-  x0: number;
-  y0: number;
-  ppm: number;
-}
-
-/** Rasterize map solids into a shaded pixel-art grid. Pure, deterministic. */
-export function generateTerrain(map: MapDef, ppm = ART_PPM): TerrainArt {
-  const pad = 6;
-  const x0 = map.bounds.x0 - pad, y0 = map.bounds.y0 - pad;
-  const w = Math.ceil((map.bounds.x1 - map.bounds.x0 + pad * 2) * ppm);
-  const h = Math.ceil((map.bounds.y1 - map.bounds.y0 + pad * 2) * ppm);
-  const matGrid = makeGrid(w, h);
-  const toPx = (pts: Pt[]) => pts.map(([x, y]) => [(x - x0) * ppm, (y - y0) * ppm] as [number, number]);
-  map.solids.forEach((s) => {
-    const id = MATS.indexOf(s.mat) + 1;
-    fillPoly(toPx(s.pts), w, h, (x, y) => gset(matGrid, x, y, id));
-  });
-  const out = makeGrid(w, h);
-  // Distance to open air in all four directions (rim light for cave-like materials).
-  let dist: Int16Array | null = null;
-  if (map.solids.some((s) => RIMMED.has(s.mat) || s.mat === 'girder') || map.backdrop) {
-    dist = new Int16Array(w * h).fill(99);
-    const q: number[] = [];
-    for (let i = 0; i < w * h; i++) if (!matGrid.data[i]) { dist[i] = 0; q.push(i); }
-    for (let k = 0; k < q.length; k++) {
-      const i = q[k], d = dist[i];
-      if (d >= 16) continue;
-      const x = i % w, y = (i / w) | 0;
-      for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
-        if (j >= 0 && dist[j] > d + 1) { dist[j] = d + 1; q.push(j); }
-      }
-    }
-  }
-  // Dark back wall behind caves (render only): cobbles that fade into shadow next to the rock.
-  // Kept on its own layer so background props stand in front of it but behind the rock.
-  const backOut = map.backdrop ? makeGrid(w, h) : null;
-  if (map.backdrop && backOut) {
-    const back = makeGrid(w, h);
-    for (const b of map.backdrop) fillPoly(toPx(b), w, h, (x, y) => gset(back, x, y, 1));
-    const bb = (MATS.indexOf('back')) * SLOTS + 1;
-    // distance from rock into the air, for a soft shadow
-    const air = new Int16Array(w * h).fill(99);
-    const q: number[] = [];
-    for (let i = 0; i < w * h; i++) if (matGrid.data[i]) { air[i] = 0; q.push(i); }
-    for (let k = 0; k < q.length; k++) {
-      const i = q[k], d = air[i];
-      if (d >= 10) continue;
-      const x = i % w, y = (i / w) | 0;
-      for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
-        if (j >= 0 && air[j] > d + 1) { air[j] = d + 1; q.push(j); }
-      }
-    }
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (!gget(back, x, y) || gget(matGrid, x, y)) continue;
-        const a = air[y * w + x];
-        const cell = cobble(x, y, 13);
-        let sl = cell.edge ? 7 : cell.v > 0.66 ? 1 : cell.v > 0.33 ? 2 : 3;
-        if (a < 4 || (a < 7 && bayer(x, y) * 7 > a - 2)) sl = cell.edge ? 0 : 5;
-        gset(backOut, x, y, bb + sl);
-      }
-    }
-  }
-  const depth = new Int16Array(w * h);
-  for (let x = 0; x < w; x++) {
-    let d = 0;
-    for (let y = 0; y < h; y++) {
-      d = gget(matGrid, x, y) ? d + 1 : 0;
-      depth[y * w + x] = d;
-    }
-  }
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const m = gget(matGrid, x, y);
-      if (!m) continue;
-      const base = (m - 1) * SLOTS + 1;
-      const mat = MATS[m - 1];
-      const d = depth[y * w + x];
-      const edge = !gget(matGrid, x - 1, y) || !gget(matGrid, x + 1, y) || !gget(matGrid, x, y + 1);
-      const n = hash2(x >> 1, y >> 1, m);
-      const dith = bayer(x, y);
-      let s: number;
-      if (dist && (RIMMED.has(mat) || mat === 'girder')) {
-        s = rimShade(mat, dist[y * w + x], x, y, gget(matGrid, x, y - 1) === m ? 1 : 0, depth[y * w + x], matGrid, w, h, m);
-        if (s < 0) continue;
-        gset(out, x, y, base + s);
-        continue;
-      }
-      if (d === 1 || edge) s = 0;
-      else if (d === 2) s = 1;
-      else if (d < 6) s = d === 5 && dith > 0.5 ? 3 : 2;
-      else if (d < 8) s = dith < (d - 5) / 3 ? 4 : 3;
-      else {
-        s = 4;
-        if (n > 0.82) s = 5;
-        else if (n < 0.1) s = 6;
-      }
-      // Material specific detail
-      switch (mat) {
-        case 'grass':
-          if (d === 1 && hash2(x, 3, 7) > 0.55) s = 1; // blades
-          if (d > 9 && hash2(x >> 2, y >> 2, 3) > 0.9) s = 7; // pebbles
-          break;
-        case 'rock':
-          if (d > 3 && (x * 3 + y * 5) % 23 === 0) s = 7;
-          break;
-        case 'metal':
-          if (d > 2 && (x % 16 === 0 || y % 12 === 0)) s = 5;
-          if (d > 2 && x % 16 === 3 && y % 12 === 3) s = 7;
-          break;
-        case 'ice':
-          if (d > 3 && (x + y) % 19 < 2) s = 7;
-          break;
-        case 'wood':
-          if (d > 2 && y % 5 === 0) s = 5;
-          if (d > 2 && (x + (Math.floor(y / 5) % 2) * 9) % 18 === 0) s = 5;
-          break;
-        case 'snow':
-          if (d > 2 && d < 7) s = d < 5 ? 2 : 3;
-          break;
-        case 'moon': {
-          const cx = Math.floor(x / 18), cy = Math.floor(y / 18);
-          const rx = cx * 18 + 9 + Math.floor(hash2(cx, cy, 5) * 6 - 3), ry = cy * 18 + 9;
-          const rr = 2 + hash2(cx, cy, 9) * 5;
-          const dd = Math.hypot(x - rx, y - ry);
-          if (d > 4 && hash2(cx, cy, 2) > 0.45 && dd < rr) s = dd > rr - 1.2 ? 6 : 5;
-          break;
-        }
-        case 'neon':
-          if (d > 3) s = x % 12 === 0 || y % 12 === 0 ? 7 : 4;
-          if (d === 3) s = 2;
-          break;
-        case 'brick': {
-          const row = Math.floor(y / 4);
-          const bx = (x + (row % 2) * 4) % 8;
-          if (d > 2) s = y % 4 === 0 || bx === 0 ? 7 : n > 0.75 ? 5 : 4;
-          break;
-        }
-        case 'sand':
-          if (d > 6 && (y + Math.floor(Math.sin(x * 0.2) * 2)) % 7 === 0) s = 5;
-          break;
-        case 'grave':
-          if (d === 1 && hash2(x, 5, 3) > 0.6) s = 1;
-          if (d > 6 && hash2(x >> 2, y >> 2, 8) > 0.92) s = 7; // bones / stones
-          break;
-        case 'basalt': {
-          // glowing cracks
-          const cx = Math.floor(x / 11), cy = Math.floor(y / 9);
-          if (d > 4 && Math.abs(((x + cy * 5) % 11) - 5 - Math.round(Math.sin(y * 0.7 + cx) * 2)) === 0 && hash2(cx, cy, 4) > 0.55) s = 7;
-          break;
-        }
-        case 'turf':
-          if (d > 2 && d < 7) s = Math.floor(x / 10) % 2 ? 2 : 3; // mowed stripes
-          if (d === 2) s = 1;
-          break;
-        case 'track':
-          if (d > 2 && d < 6) s = 2;
-          if (d === 3 && Math.floor(x / 8) % 2 === 0) s = 7; // dashed line
-          if (d > 6 && (x % 20 === 0)) s = 5;
-          break;
-        case 'void': {
-          const fx = (x + y) % 14, fy = (x - y + 1400) % 14;
-          if (d > 3) s = fx === 0 || fy === 0 ? 7 : n > 0.8 ? 6 : 4;
-          break;
-        }
-        case 'asphalt':
-          if (d === 4 && Math.floor(x / 10) % 2 === 0) s = 7;
-          if (d > 6 && hash2(x, y, 2) > 0.93) s = 6;
-          break;
-        case 'tile': {
-          if (d > 2 && d < 5) s = 7; // gold trim
-          if (d >= 5) s = (Math.floor(x / 8) + Math.floor(y / 6)) % 2 ? 4 : 5;
-          if (d >= 5 && (x % 8 === 0 || y % 6 === 0)) s = 6;
-          break;
-        }
-      }
-      gset(out, x, y, base + s);
-    }
-  }
-  return { grid: out, back: backOut, palette: terrainPalette(), x0, y0, ppm };
-}
-
-/** Voronoi-ish cobblestones: which stone a pixel belongs to and whether it is on a joint. */
-function cobble(x: number, y: number, size: number): { v: number; edge: boolean } {
-  const cx = Math.floor(x / size), cy = Math.floor(y / size);
-  let d1 = 1e9, d2 = 1e9, id = 0;
-  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
-    const gx = cx + i, gy = cy + j;
-    const px = gx * size + hash2(gx, gy, 31) * size, py = gy * size + hash2(gx, gy, 37) * size;
-    const d = (x - px) * (x - px) + (y - py) * (y - py) * 1.3;
-    if (d < d1) { d2 = d1; d1 = d; id = gx * 7919 + gy; } else if (d < d2) d2 = d;
-  }
-  return { v: hash2(id, 3, 5), edge: Math.sqrt(d2) - Math.sqrt(d1) < 1.1 };
-}
-
-/**
- * Rim-lit shading (slot index, -1 = leave transparent): a dark outline, a bright rim,
- * a glow that fades into a textured body. Girders become a see-through lattice.
- */
-function rimShade(mat: TerrainMat | 'back', d: number, x: number, y: number, _up: number, depthTop: number, grid: PixelGrid, _w: number, h: number, id: number): number {
-  if (mat === 'girder') {
-    // vertical extent of the girder through this column
-    let up = depthTop - 1, dn = 0;
-    while (dn < 40 && y + dn + 1 < h && gget(grid, x, y + dn + 1) === id) dn++;
-    const H = up + dn + 1;
-    if (up <= 1 || dn <= 1) return up === 0 || dn === 0 ? 0 : up === 1 ? 1 : 5;
-    const cell = Math.max(6, H - 2);
-    const lx = ((x % (cell * 2)) + cell * 2) % (cell * 2);
-    const t = (up - 1) / Math.max(1, H - 3);
-    const diag = Math.abs(lx / cell - (lx < cell ? t : 2 - t)) * cell;
-    if (lx < 2) return lx === 0 ? 0 : 3;
-    if (diag < 1.2) return diag < 0.6 ? 2 : 4;
-    return -1;
-  }
-  if (d <= 1) return 0;
-  if (d === 2) return 1;
-  if (d === 3) return 2;
-  const glow = d < 7 ? (bayer(x, y) * 4 < 7 - d ? 2 : 3) : 3;
-  if (d < 9 && glow === 2) return 2;
-  if (mat === 'cave') {
-    const c = cobble(x, y, 8);
-    if (c.edge) return 7;
-    if (d < 9) return 3;
-    return c.v > 0.7 ? 6 : c.v < 0.25 ? 5 : 4;
-  }
-  if (mat === 'steel') {
-    const px = ((x % 20) + 20) % 20, py = ((y % 14) + 14) % 14;
-    if (px === 0 || py === 0) return 7;
-    if (px === 1 || py === 1) return 6;
-    if ((px === 3 || px === 17) && (py === 3 || py === 11)) return 2;
-    return d < 9 ? 3 : (x + y * 2) % 23 === 0 ? 6 : 4;
-  }
-  // amber: grainy glow with darker veins
-  const n = hash2(x >> 1, y >> 1, 77);
-  if (d >= 9 && Math.abs(((x + Math.round(Math.sin(y * 0.35) * 3)) % 17) - 8) === 0 && n > 0.4) return 7;
-  if (d < 9) return 3;
-  return n > 0.85 ? 6 : n < 0.12 ? 5 : 4;
-}
+export { generateTerrain, type TerrainArt } from './terrain';
 
 /* ------------------------------------------------------------------ */
 /* Parallax backgrounds                                                */
@@ -570,6 +283,7 @@ function putPx(buf: Uint8ClampedArray, w: number, x: number, y: number, c: RGB, 
 
 export function generateLayer(spec: Theme['layers'][number]): BgLayer {
   const w = BG_W, h = spec.height;
+  const wrap = (xx: number) => ((xx % w) + w) % w;
   const rgba = new Uint8ClampedArray(w * h * 4);
   const c1 = hex(spec.color), c2 = hex(spec.color2 ?? spec.color);
   const s = spec.seed;
@@ -583,14 +297,32 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
     const n = pnoise(x, w, s);
     switch (spec.kind) {
       case 'mountains': {
-        const ridge = (1 - Math.abs(pnoise(x, w, s, 3))) ;
-        const top = h - (0.25 + 0.7 * ridge) * h;
-        col(x, top, (y) => (y - top < 4 + 3 * ridge && ridge > 0.6 ? c2 : y - top < 1 ? shade(c1, 1.1) : (x + y) % 2 === 0 && y - top < 8 ? mix(c1, c2, 0.15) : c1));
+        // light from the upper left: left faces lit, right faces in shadow, jagged snow caps
+        const rid = (xx: number) => 1 - Math.abs(pnoise(wrap(xx), w, s, 3));
+        const topAt = (xx: number) => h - (0.25 + 0.7 * rid(xx)) * h;
+        const top = topAt(x), slope = topAt(x + 1) - topAt(x - 1);
+        const ridge = rid(x);
+        const shadowSide = slope > 0.2;
+        const snow = 3 + 6 * ridge + Math.floor(hash2(x >> 1, s, 2) * 3);
+        const dark = mix(c1, [20, 20, 40], 0.18), lit = mix(c1, c2, 0.22);
+        col(x, top, (y) => {
+          const d = y - top;
+          if (ridge > 0.55 && d < snow) return shadowSide && d > 0 ? mix(c2, c1, 0.3) : c2;
+          if (d < 1) return shadowSide ? c1 : lit;
+          return shadowSide && d < (h - top) * 0.7 ? dark : c1;
+        });
         break;
       }
       case 'hills': {
-        const top = h * 0.35 + n * h * 0.25;
-        col(x, top, (y) => (y - top < 2 ? shade(c1, 1.2) : bayer(x, y) < (y - top) / h ? c2 : c1));
+        const topAt = (xx: number) => h * 0.35 + pnoise(wrap(xx), w, s) * h * 0.25;
+        const top = topAt(x), slope = topAt(x + 2) - topAt(x - 2);
+        col(x, top, (y) => {
+          const d = y - top;
+          if (d < 1) return shade(c1, 1.3);
+          if (d < 3) return shade(c1, 1.12);
+          if (slope > 0.6 && d < 10) return mix(c1, c2, 0.7);
+          return d > (h - top) * 0.55 ? c2 : c1;
+        });
         break;
       }
       case 'trees': {
@@ -612,7 +344,7 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
         col(x, top, (y) => {
           if (y >= ground) return c2;
           if (y - top < 1.5 && !shadeEdge) return shade(c1, 1.3);
-          if (shadeEdge || (bayer(x, y) < 0.25 && y - top > 6)) return c2;
+          if (shadeEdge) return c2;
           return trunk && y > ground - 7 ? shade(c2, 0.7) : c1;
         });
         break;
@@ -646,8 +378,14 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
         break;
       }
       case 'dunes': {
-        const top = h * 0.4 + pnoise(x, w, s, 2) * h * 0.35;
-        col(x, top, (y) => (y - top < 2 ? shade(c1, 1.15) : bayer(x, y) < (y - top) / (h * 0.8) ? c2 : c1));
+        const topAt = (xx: number) => h * 0.4 + pnoise(wrap(xx), w, s, 2) * h * 0.35;
+        const top = topAt(x), slope = topAt(x + 2) - topAt(x - 2);
+        col(x, top, (y) => {
+          const d = y - top;
+          if (d < 1) return shade(c1, 1.25);
+          if (slope > 0.3) return d < (h - top) * 0.6 ? c2 : mix(c1, c2, 0.5);
+          return d > (h - top) * 0.6 ? mix(c1, c2, 0.5) : c1;
+        });
         break;
       }
       case 'ruins': {
@@ -671,7 +409,10 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
           const top = midY - Math.sqrt(r * r - dx * dx) * 0.12 - 1;
           const k = 1 - dx / r;
           const bot = midY + Math.pow(k, 0.7) * r * 1.2 * (0.8 + 0.2 * Math.abs(Math.sin(x * 0.9)));
-          for (let y = Math.floor(top); y < Math.min(h, bot); y++) putPx(rgba, w, x, y, y < top + 2.5 ? c2 : (x + y) % 5 === 0 ? shade(c1, 0.9) : c1);
+          for (let y = Math.floor(top); y < Math.min(h, bot); y++) {
+            const lo = (y - midY) / Math.max(1, bot - midY);
+            putPx(rgba, w, x, y, y < top + 1 ? shade(c2, 1.2) : y < top + 3 ? c2 : lo > 0.55 || x > cx + r * 0.45 ? shade(c1, 0.86) : c1);
+          }
         }
         break;
       }
@@ -681,7 +422,7 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
         const th = 20 + hash2(cell, s) * 50;
         const dx = Math.abs(x - cx);
         const top = h - th + dx * (th / 6);
-        col(x, Math.min(top, h - 8), (y) => (x < cx && y < h - 8 ? c2 : c1));
+        col(x, Math.min(top, h - 8), (y) => (y >= h - 8 ? shade(c1, 0.85) : x === cx ? shade(c2, 1.2) : x < cx ? c2 : x === Math.floor(cx + (y - top < 0 ? 0 : 0)) ? c1 : c1));
         break;
       }
       case 'graves': {
@@ -872,7 +613,7 @@ export function generateLayer(spec: Theme['layers'][number]): BgLayer {
 }
 
 /** Sky: tall thin gradient with ordered dithering, plus sun/moon/stars & clouds. */
-export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8ClampedArray } {
+export function generateSky(theme: Theme, withClouds = true): { w: number; h: number; rgba: Uint8ClampedArray } {
   const w = BG_W, h = 180;
   const rgba = new Uint8ClampedArray(w * h * 4);
   const [a, b, c] = theme.sky.map(hex);
@@ -920,8 +661,21 @@ export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8Cl
       }
     }
   }
-  if (theme.clouds) {
-    const cc = hex(theme.clouds);
+  if (theme.clouds && withClouds) paintClouds(rgba, w, h, theme.clouds);
+  return { w, h, rgba };
+}
+
+/** Clouds alone on a transparent sky-sized layer, so they can drift. */
+export function generateClouds(theme: Theme): { w: number; h: number; rgba: Uint8ClampedArray } {
+  const w = BG_W, h = 180;
+  const rgba = new Uint8ClampedArray(w * h * 4);
+  if (theme.clouds) paintClouds(rgba, w, h, theme.clouds);
+  return { w, h, rgba };
+}
+
+function paintClouds(rgba: Uint8ClampedArray, w: number, h: number, color: string) {
+  {
+    const cc = hex(color);
     for (let i = 0; i < 6; i++) {
       const cx = hash2(i, 5, 2) * w, cy = 20 + hash2(i, 6, 2) * 60;
       const len = 18 + hash2(i, 7) * 26;
@@ -936,5 +690,4 @@ export function generateSky(theme: Theme): { w: number; h: number; rgba: Uint8Cl
       }
     }
   }
-  return { w, h, rgba };
 }

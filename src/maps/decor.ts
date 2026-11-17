@@ -10,7 +10,7 @@ import type { ItemKind, ProjectileKind } from '../cars/types';
  * carries cars round, beams lift, goals score, umbrellas bounce, small props are pushable.
  */
 
-export const DECOR_PAL: (RGB | null)[] = [
+const DECOR_BASE: (RGB | null)[] = [
   null,
   [16, 14, 22], // 1 outline
   [244, 244, 248], // 2 white
@@ -45,6 +45,19 @@ export const DECOR_PAL: (RGB | null)[] = [
   [200, 214, 236], // 31 snow shadow
   [120, 210, 100], // 32 leaf light
 ];
+
+/** Base colors, then a lit and a shaded tone of each (used by the bevel pass). */
+const NB = DECOR_BASE.length - 1;
+const lighten = (c: RGB): RGB => c.map((v) => Math.round(v + (255 - v) * 0.38)) as RGB;
+const darken = (c: RGB): RGB => c.map((v) => Math.round(v * 0.7)) as RGB;
+export const DECOR_PAL: (RGB | null)[] = [
+  ...DECOR_BASE,
+  ...DECOR_BASE.slice(1).map((c) => (c ? lighten(c) : null)),
+  ...DECOR_BASE.slice(1).map((c) => (c ? darken(c) : null)),
+];
+/** Lit / shaded tone of a base color index. */
+export const LIT = (c: number) => NB + c;
+export const SHD = (c: number) => NB * 2 + c;
 
 const C = {
   O: 1, W: 2, LG: 3, G: 4, DG: 5, K: 6, OR: 7, ORD: 8, Y: 9, GR: 10, GRD: 11, BR: 12, BRD: 13, R: 14, RD: 15,
@@ -83,8 +96,31 @@ class Pen {
       this.rect(Math.round(x - (t - 1) / 2), Math.round(y - (t - 1) / 2), t, t, c);
     }
   }
-  done(): PixelGrid {
+  /**
+   * Finish the sprite: optional bevel (lit top/left rim, shaded bottom/right rim, like the cars),
+   * then a 1px dark outline all round.
+   */
+  done(bevel = false): PixelGrid {
     const g = this.g;
+    if (bevel) {
+      const b = Uint8Array.from(g.data);
+      const empty = (x: number, y: number) => {
+        if (x < 0 || y < 0 || x >= g.w || y >= g.h) return true;
+        const v = b[y * g.w + x];
+        return v === 0 || v === C.O;
+      };
+      for (let y = 0; y < g.h; y++)
+        for (let x = 0; x < g.w; x++) {
+          const v = b[y * g.w + x];
+          if (!v || v === C.O || v > NB) continue;
+          const up = empty(x, y - 1), dn = empty(x, y + 1), lf = empty(x - 1, y), rt = empty(x + 1, y);
+          const dn2 = !dn && empty(x, y + 2);
+          if (up && !dn) g.data[y * g.w + x] = LIT(v);
+          else if ((dn || dn2) && !up) g.data[y * g.w + x] = SHD(v);
+          else if (lf && !rt) g.data[y * g.w + x] = LIT(v);
+          else if (rt && !lf) g.data[y * g.w + x] = SHD(v);
+        }
+    }
     const src = Uint8Array.from(g.data);
     for (let y = 0; y < g.h; y++)
       for (let x = 0; x < g.w; x++) {
@@ -108,36 +144,52 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
   const r = rnd(seed + 7);
   switch (kind) {
     case 'tombstone': {
-      const p = new Pen(12, 18);
-      p.rect(0, 5, 12, 13, C.ST);
-      p.ell(6, 5.5, 6, 5.5, C.ST);
-      p.rect(0, 14, 12, 4, C.STD);
-      p.rect(5, 5, 2, 7, C.STD);
-      p.rect(3, 7, 6, 2, C.STD);
-      p.rect(1, 2 + Math.floor(r() * 3), 2, 2, C.GR);
-      return p.done();
+      const p = new Pen(14, 20);
+      p.rect(0, 16, 14, 4, C.STD); // plinth
+      p.rect(1, 6, 12, 11, C.ST);
+      p.ell(7, 6.5, 6, 5.5, C.ST);
+      // engraved cross and lines
+      p.rect(6, 4, 2, 7, SHD(C.STD));
+      p.rect(4, 6, 6, 2, SHD(C.STD));
+      p.rect(3, 12, 8, 1, C.STD);
+      p.rect(4, 14, 6, 1, C.STD);
+      // a crack and moss
+      p.line(10, 2, 9, 5, C.STD);
+      p.line(9, 5, 11, 8, C.STD);
+      const m = Math.floor(r() * 3);
+      p.rect(1, 13 + m, 3, 3, C.GR);
+      p.rect(1, 12 + m, 2, 1, C.LL);
+      p.rect(10, 15, 3, 1, C.GRD);
+      return p.done(true);
     }
     case 'cross': {
       const p = new Pen(10, 18);
       p.rect(4, 0, 3, 18, C.BRD);
       p.rect(0, 4, 11, 3, C.BRD);
       p.rect(4, 0, 1, 18, C.BR);
-      return p.done();
+      return p.done(true);
     }
     case 'pumpkin': {
-      const p = new Pen(18, 14);
-      p.ell(9, 8, 8.6, 6, C.OR, (dx) => (Math.abs(dx) > 0.35 && Math.abs(dx) < 0.48 ? C.ORD : C.OR));
-      p.rect(8, 0, 2, 3, C.GRD);
-      p.poly([[4, 6], [7, 6], [5.5, 4]], C.Y);
-      p.poly([[11, 6], [14, 6], [12.5, 4]], C.Y);
-      p.poly([[4, 9], [14, 9], [12, 12], [6, 12]], C.Y);
-      p.rect(7, 9, 1, 1, C.OR);
-      p.rect(10, 11, 1, 1, C.OR);
-      return p.done();
+      const p = new Pen(18, 15);
+      p.ell(9, 9, 8.6, 6, C.OR, (dx, dy) => {
+        const rib = Math.abs(dx) > 0.33 && Math.abs(dx) < 0.45;
+        if (rib) return C.ORD;
+        return dx < -0.55 && dy < 0 ? LIT(C.OR) : dy > 0.6 ? C.ORD : C.OR;
+      });
+      p.rect(8, 0, 2, 4, C.GRD);
+      p.rect(10, 1, 3, 2, C.GR);
+      // glowing carved face
+      p.poly([[4, 7], [7, 7], [5.5, 5]], C.Y);
+      p.poly([[11, 7], [14, 7], [12.5, 5]], C.Y);
+      p.poly([[4, 10], [14, 10], [12, 13], [6, 13]], C.Y);
+      p.rect(5, 10, 8, 1, LIT(C.Y));
+      p.rect(7, 10, 1, 1, C.OR);
+      p.rect(10, 12, 1, 1, C.OR);
+      return p.done(true);
     }
     case 'deadtree': {
       const p = new Pen(30, 40);
-      p.poly([[12, 40], [18, 40], [16.5, 14], [14, 14]], C.BRD);
+      p.poly([[11, 40], [19, 40], [16.5, 14], [14, 14]], C.BRD);
       p.line(15, 22, 5, 10, C.BRD, 2);
       p.line(5, 10, 2, 11, C.BRD, 1);
       p.line(5, 10, 6, 3, C.BRD, 1);
@@ -145,7 +197,11 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.line(25, 6, 28, 7, C.BRD, 1);
       p.line(21, 10, 21, 2, C.BRD, 1);
       p.line(15, 14, 14, 2, C.BRD, 2);
-      return p.done();
+      p.line(13, 38, 14, 20, C.BR); // bark
+      p.ell(16, 28, 1.5, 2, C.K); // knot hole
+      p.poly([[8, 40], [12, 36], [13, 40]], C.BRD); // roots
+      p.poly([[17, 40], [18, 36], [22, 40]], C.BRD);
+      return p.done(true);
     }
     case 'spruce': {
       const p = new Pen(26, 42);
@@ -158,7 +214,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         p.rect(13 - Math.round(hw), y + 10, Math.round(hw * 2), 1, C.SN);
       }
       p.poly([[13, 0], [14.5, 3], [11.5, 3]], C.Y);
-      return p.done();
+      return p.done(true);
     }
     case 'snowman': {
       const p = new Pen(18, 30);
@@ -167,14 +223,19 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(4, 2, 10, 2, C.K);
       p.rect(6, -1, 6, 4, C.K);
       p.rect(6, 2, 6, 1, C.R);
-      p.rect(6, 12, 2, 2, C.K);
-      p.rect(11, 12, 2, 2, C.K);
-      p.poly([[9, 14], [9, 16], [16, 15]], C.OR);
-      p.rect(8, 20, 2, 2, C.K);
-      p.rect(8, 24, 2, 2, C.K);
+      p.rect(6, 11, 2, 2, C.K);
+      p.rect(11, 11, 2, 2, C.K);
+      p.poly([[9, 13], [9, 15], [16, 14]], C.OR);
+      p.rect(6, 15, 1, 1, C.K); p.rect(8, 16, 1, 1, C.K); p.rect(10, 16, 1, 1, C.K); p.rect(12, 15, 1, 1, C.K); // smile
+      p.rect(3, 17, 12, 2, C.R); // scarf
+      p.rect(11, 19, 3, 4, C.R);
+      p.rect(11, 21, 3, 1, C.RD);
+      p.rect(8, 21, 2, 2, C.K);
+      p.rect(8, 25, 2, 2, C.K);
       p.line(2, 14, -2, 9, C.BRD);
       p.line(15, 14, 19, 9, C.BRD);
-      return p.done();
+      p.px(-2, 8, C.BRD); p.px(19, 8, C.BRD);
+      return p.done(true);
     }
     case 'gift': {
       const p = new Pen(14, 14);
@@ -184,7 +245,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(6, 4, 2, 10, C.Y);
       p.ell(4.5, 2.5, 3, 2.2, C.Y);
       p.ell(9.5, 2.5, 3, 2.2, C.Y);
-      return p.done();
+      return p.done(true);
     }
     case 'ufo': {
       const p = new Pen(44, 20);
@@ -192,7 +253,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.ell(22, 12, 21, 5, C.LG, (_dx, dy) => (dy > 0.25 ? C.G : C.LG));
       for (let i = 0; i < 7; i++) p.rect(6 + i * 5, 12, 2, 2, i % 2 ? C.Y : C.LI);
       p.poly([[16, 16], [28, 16], [26, 19], [18, 19]], C.DG);
-      return p.done();
+      return p.done(true);
     }
     case 'beam': {
       // tractor beam column (drawn dithered so it reads as light)
@@ -218,44 +279,63 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(20, 0, 2, 2, C.CR);
       p.rect(26, 0, 2, 2, C.CR);
       p.line(1, 7, -1, 12, C.W);
-      return p.done();
+      return p.done(true);
     }
     case 'haybale': {
       const p = new Pen(18, 15);
       p.ell(9, 7.5, 9, 7.5, C.Y, (dx, dy) => {
         const d = Math.hypot(dx, dy);
-        return Math.abs(Math.sin(d * 9)) < 0.3 ? C.SAD : C.Y;
+        const a = Math.atan2(dy, dx);
+        if (Math.abs(Math.sin(d * 10 + a * 0.5)) < 0.28) return C.SAD; // rolled spiral
+        return dx + dy < -0.7 ? LIT(C.Y) : dx + dy > 0.8 ? C.GO : C.Y;
       });
-      return p.done();
+      p.px(4, 3, LIT(C.Y));
+      p.px(15, 10, C.SAD);
+      return p.done(true);
     }
     case 'fence': {
       const p = new Pen(26, 12);
-      for (const x of [1, 12, 23]) p.rect(x, 0, 3, 12, C.BR);
+      for (const x of [1, 12, 23]) { p.rect(x, 0, 3, 12, C.BR); p.px(x + 1, 0, LIT(C.BR)); }
       p.rect(0, 3, 26, 2, C.BR);
       p.rect(0, 8, 26, 2, C.BR);
       p.rect(0, 3, 26, 1, C.CR);
-      return p.done();
+      p.rect(0, 8, 26, 1, LIT(C.BR));
+      for (const x of [2, 13, 24]) { p.px(x, 4, C.K); p.px(x, 9, C.K); } // nails
+      return p.done(true);
     }
     case 'barn': {
       const p = new Pen(50, 42);
       p.rect(3, 16, 44, 26, C.R);
-      p.poly([[0, 18], [25, 0], [50, 18]], C.RD);
-      p.poly([[3, 18], [25, 3], [47, 18]], C.W);
-      p.poly([[6, 18], [25, 5], [44, 18]], C.R);
+      for (let x = 6; x < 46; x += 4) p.rect(x, 18, 1, 24, C.RD); // planks
+      p.poly([[-1, 18], [25, -1], [51, 18]], C.DG); // roof
+      p.poly([[1, 17], [25, 1], [49, 17]], C.G);
+      for (let y = 4; y < 18; y += 3) p.line(25 - y * 1.35, y, 25 + y * 1.35, y, C.DG); // shingles
+      p.poly([[5, 18], [25, 4], [45, 18]], C.W);
+      p.poly([[8, 18], [25, 6], [42, 18]], C.R);
+      p.rect(5, 18, 40, 2, C.RD); // shadow under the eaves
       p.rect(17, 24, 16, 18, C.W);
       p.rect(19, 26, 12, 16, C.RD);
       p.line(19, 26, 30, 41, C.W, 2);
       p.line(30, 26, 19, 41, C.W, 2);
-      p.rect(22, 12, 6, 6, C.W);
-      p.rect(23, 13, 4, 4, C.Y);
-      return p.done();
+      p.rect(21, 10, 8, 7, C.W);
+      p.rect(22, 11, 6, 5, C.Y);
+      p.rect(22, 14, 6, 2, C.SAD); // hay in the loft
+      p.rect(7, 24, 7, 6, C.W);
+      p.rect(8, 25, 5, 4, C.K);
+      p.rect(36, 24, 7, 6, C.W);
+      p.rect(37, 25, 5, 4, C.K);
+      return p.done(true);
     }
     case 'silo': {
       const p = new Pen(16, 48);
       p.rect(0, 8, 16, 40, C.LG);
       p.ell(8, 8, 8, 7, C.G);
+      p.rect(3, 2, 2, 4, LIT(C.G));
       for (let y = 12; y < 48; y += 6) p.rect(0, y, 16, 1, C.G);
-      return p.done();
+      p.rect(3, 9, 2, 39, LIT(C.LG)); // sheen
+      p.rect(12, 9, 2, 39, C.G);
+      for (let y = 14; y < 46; y += 3) p.rect(14, y, 1, 1, C.DG); // ladder rungs
+      return p.done(true);
     }
     case 'cone': {
       const p = new Pen(10, 14);
@@ -263,7 +343,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(3, 4, 4, 2, C.W);
       p.rect(2, 8, 6, 2, C.W);
       p.rect(0, 12, 10, 2, C.ORD);
-      return p.done();
+      return p.done(true);
     }
     case 'tires': {
       const p = new Pen(18, 18);
@@ -272,40 +352,51 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         p.rect(1, 13 - i * 6, 16, 1, C.DG);
         p.rect(0, 12 - i * 6 + 2, 18, 1, i === 1 ? C.R : C.W);
       }
-      return p.done();
+      return p.done(true);
     }
     case 'checkflag': {
       const p = new Pen(18, 32);
       p.rect(0, 0, 2, 32, C.LG);
       for (let y = 0; y < 10; y++) for (let x = 0; x < 15; x++) p.px(2 + x, 1 + y + Math.round(Math.sin(x * 0.5)), (Math.floor(x / 3) + Math.floor(y / 3)) % 2 ? C.K : C.W);
-      return p.done();
+      return p.done(true);
     }
     case 'palm': {
       const p = new Pen(40, 54);
       for (let i = 0; i < 12; i++) {
         const t = i / 12;
         const x = 20 + Math.sin(t * 1.6) * 7 - 4;
-        p.rect(Math.round(x) - 2, 52 - i * 4 - 4, 5, 5, i % 2 ? C.BR : C.BRD);
+        p.rect(Math.round(x) - 2, 52 - i * 4 - 4, 5, 5, C.BR);
+        p.rect(Math.round(x) - 2, 52 - i * 4 - 4, 5, 1, C.BRD); // trunk rings
+        p.rect(Math.round(x) - 2, 52 - i * 4 - 3, 1, 3, LIT(C.BR));
       }
       const tx = 22, ty = 8;
       const frond = (dx: number, dy: number) => {
         for (let k = 0; k <= 12; k++) {
           const t = k / 12;
           const x = tx + dx * t * 16, y = ty + dy * t * 10 + t * t * 8;
-          p.rect(Math.round(x), Math.round(y), 2, 2, k % 3 ? C.GR : C.LL);
-          p.rect(Math.round(x), Math.round(y) + 2, 2, 1, C.GRD);
+          const wdt = k < 10 ? 3 : 2;
+          p.rect(Math.round(x), Math.round(y), 2, wdt, C.GR);
+          p.rect(Math.round(x), Math.round(y), 2, 1, C.LL);
+          p.rect(Math.round(x), Math.round(y) + wdt, 2, 1, C.GRD);
+          if (k % 2 === 0 && k > 1) p.rect(Math.round(x), Math.round(y) + wdt + 1, 1, 1, C.GRD); // leaflets
         }
       };
       frond(-1, -0.4); frond(1, -0.4); frond(-0.8, 0.5); frond(0.9, 0.5); frond(0.1, -0.9);
-      p.ell(tx, ty + 2, 2.5, 2.5, C.BRD);
-      p.ell(tx + 3, ty + 3, 2, 2, C.BRD);
-      return p.done();
+      p.ell(tx - 1, ty + 3, 2.5, 2.5, C.BRD);
+      p.ell(tx + 3, ty + 4, 2.5, 2.5, C.BR);
+      p.ell(tx + 1, ty + 6, 2, 2, C.BRD);
+      p.px(tx - 2, ty + 2, LIT(C.BR));
+      return p.done(true);
     }
     case 'umbrella': {
       const p = new Pen(28, 32);
       p.rect(13, 6, 2, 26, C.LG);
+      for (let y = 10; y < 32; y += 4) p.rect(13, y, 2, 2, C.R); // striped pole
       p.ell(14, 8, 14, 8, C.R, (dx, dy) => (dy > 0 ? null : Math.floor((dx + 1) * 3.5) % 2 ? C.W : C.R));
-      return p.done();
+      // scalloped hem
+      for (let i = 0; i < 7; i++) p.ell(2 + i * 4, 8, 2, 1.3, i % 2 ? C.W : C.R);
+      p.rect(13, 0, 2, 1, C.Y);
+      return p.done(true);
     }
     case 'sandcastle': {
       const p = new Pen(26, 20);
@@ -316,7 +407,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(10, 12, 6, 8, C.SAD);
       p.rect(12, -3, 1, 8, C.BRD);
       p.poly([[13, -3], [18, -1], [13, 1]], C.R);
-      return p.done();
+      return p.done(true);
     }
     case 'goal': {
       const p = new Pen(58, 36);
@@ -331,24 +422,33 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       const p = new Pen(10, 22);
       p.rect(0, 0, 2, 22, C.W);
       p.poly([[2, 1], [10, 4], [2, 7]], C.Y);
-      return p.done();
+      return p.done(true);
     }
     case 'floodlight': {
       const p = new Pen(18, 64);
-      p.rect(8, 10, 3, 54, C.G);
+      // lattice mast
+      p.rect(7, 10, 1, 54, C.G);
+      p.rect(11, 10, 1, 54, C.G);
+      for (let y = 12; y < 62; y += 6) { p.line(7, y, 11, y + 3, C.G); p.line(11, y + 3, 7, y + 6, C.G); }
       p.rect(0, 0, 18, 10, C.DG);
-      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) p.rect(1 + i * 6, 1 + j * 5, 4, 3, C.Y);
-      return p.done();
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+        p.rect(1 + i * 6, 1 + j * 5, 4, 3, C.Y);
+        p.rect(1 + i * 6, 1 + j * 5, 2, 1, C.W);
+      }
+      return p.done(true);
     }
     case 'lantern': {
-      const p = new Pen(16, 34);
-      p.rect(7, 12, 2, 22, C.BRD);
+      const p = new Pen(16, 36);
+      p.rect(7, 12, 2, 24, C.BRD);
       p.rect(2, 0, 12, 2, C.RD);
-      p.ell(8, 7, 6, 5, C.R, (dx) => (Math.abs(dx) > 0.55 ? C.RD : Math.abs(dx) < 0.15 ? C.OR : C.R));
+      p.rect(6, -1, 4, 1, C.GO);
+      p.ell(8, 7, 6, 5, C.R, (dx, dy) => (Math.abs(dx) > 0.6 ? C.RD : Math.abs(dx) < 0.18 ? (dy < 0 ? LIT(C.Y) : C.Y) : Math.abs(dx) < 0.4 ? C.OR : C.R));
       p.rect(4, 2, 8, 1, C.GO);
       p.rect(4, 11, 8, 1, C.GO);
-      p.rect(7, 12, 2, 4, C.Y);
-      return p.done();
+      p.rect(7, 12, 2, 2, C.GO);
+      p.rect(6, 14, 4, 4, C.R); // tassel
+      p.rect(7, 18, 2, 2, C.RD);
+      return p.done(true);
     }
     case 'gate': {
       const p = new Pen(62, 52);
@@ -362,7 +462,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(24, 9, 14, 9, C.GO);
       p.rect(26, 11, 10, 5, C.R);
       p.poly([[22, 3], [31, -2], [40, 3]], C.K);
-      return p.done();
+      return p.done(true);
     }
     case 'bamboo': {
       const p = new Pen(16, 52);
@@ -371,17 +471,19 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         for (let y = 52 - h + 6; y < 52; y += 8) p.rect(x, y, 3, 1, C.GRD);
         p.poly([[x + 3, 52 - h + 8], [x + 9, 52 - h + 4], [x + 3, 52 - h + 10]], C.LL);
       }
-      return p.done();
+      return p.done(true);
     }
     case 'crystal': {
       const p = new Pen(20, 30);
       const col = r() > 0.5 ? [C.PU, C.PUD, C.PK] : [C.CY, C.TE, C.W];
-      p.poly([[6, 30], [12, 30], [10, 2], [8, 2]], col[0]);
-      p.poly([[8, 30], [9, 30], [9, 3], [8.5, 3]], col[2]);
-      p.poly([[0, 30], [6, 30], [2, 12]], col[1]);
-      p.poly([[12, 30], [20, 30], [17, 14]], col[0]);
-      p.poly([[13, 30], [15, 30], [17, 16]], col[2]);
-      return p.done();
+      p.poly([[6, 30], [12, 30], [12, 6], [9, 1], [6, 6]], col[0]);
+      p.poly([[6, 30], [9, 30], [9, 1], [6, 6]], col[2]); // lit facet
+      p.poly([[0, 30], [6, 30], [5, 16], [2, 12]], col[1]);
+      p.poly([[0, 30], [3, 30], [2, 12]], col[0]);
+      p.poly([[12, 30], [20, 30], [19, 18], [17, 14], [14, 18]], col[0]);
+      p.poly([[13, 30], [16, 30], [17, 14], [14, 18]], col[2]);
+      p.px(7, 8, C.W); p.px(15, 19, C.W);
+      return p.done(true);
     }
     case 'portal': {
       const p = new Pen(36, 46);
@@ -391,7 +493,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         const a = Math.atan2(dy, dx) + d * 7;
         return Math.sin(a * 3) > 0.2 ? C.PK : d < 0.25 ? C.W : C.PUD;
       });
-      return p.done();
+      return p.done(true);
     }
     case 'skull': {
       const p = new Pen(12, 11);
@@ -402,7 +504,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(5, 7, 2, 1, C.K);
       p.rect(4, 10, 1, 1, C.K);
       p.rect(7, 10, 1, 1, C.K);
-      return p.done();
+      return p.done(true);
     }
     case 'bones': {
       const p = new Pen(22, 8);
@@ -410,7 +512,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.ell(2, 6, 2, 2, C.CR);
       p.ell(20, 2, 2, 2, C.CR);
       p.line(3, 1, 19, 7, C.CR, 2);
-      return p.done();
+      return p.done(true);
     }
     case 'fern': {
       const p = new Pen(24, 18);
@@ -421,14 +523,14 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
           p.rect(Math.round(x), Math.round(y), 2, 2, k % 2 ? C.GR : C.GRD);
         }
       }
-      return p.done();
+      return p.done(true);
     }
     case 'rocks': {
       const p = new Pen(22, 12);
       p.ell(6, 8, 6, 4, C.STD);
       p.ell(15, 7, 7, 5, C.ST, (dx, dy) => (dx + dy > 0.6 ? C.STD : C.ST));
       p.ell(10, 10, 4, 2.5, C.ST);
-      return p.done();
+      return p.done(true);
     }
     case 'block': {
       const p = new Pen(14, 14);
@@ -440,7 +542,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       if (glyph === 0) { p.poly([[4, 10], [7, 4], [10, 10]], col); }
       else if (glyph === 1) { p.rect(5, 5, 2, 5, col); p.rect(5, 5, 4, 2, col); p.rect(5, 8, 4, 2, col); }
       else p.ell(7, 7.5, 2.5, 2.5, col);
-      return p.done();
+      return p.done(true);
     }
     case 'loop': {
       // Real loop-the-loop: inner track radius LOOP_R (4 m), drawn sitting on the ground.
@@ -451,7 +553,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
         if (d < inner / R) return null;
         return d > 0.97 ? C.ORD : Math.abs(Math.atan2(dy, dx) * 8) % 1 < 0.12 ? C.Y : C.OR;
       });
-      return p.done();
+      return p.done(true);
     }
     case 'ghost': {
       const p = new Pen(18, 20);
@@ -461,7 +563,7 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.ell(6, 7, 1.6, 2.2, C.K);
       p.ell(12, 7, 1.6, 2.2, C.K);
       p.ell(9, 12, 2, 1.6, C.K);
-      return p.done();
+      return p.done(true);
     }
     case 'bomb': {
       const p = new Pen(14, 16);
@@ -469,17 +571,22 @@ export function decorGrid(kind: DecorKind, seed = 0): PixelGrid {
       p.rect(5, 3, 4, 2, C.DG);
       p.line(7, 3, 10, 0, C.BR);
       p.rect(10, 0, 2, 1, C.Y);
-      return p.done();
+      return p.done(true);
     }
     case 'cactus': {
       const p = new Pen(16, 26);
-      p.rect(6, 0, 5, 26, C.GR);
+      p.rect(6, 1, 5, 25, C.GR);
+      p.ell(8.5, 1.5, 2.5, 1.5, C.GR);
       p.rect(0, 8, 3, 8, C.GR);
       p.rect(0, 14, 6, 3, C.GR);
       p.rect(13, 5, 3, 8, C.GR);
       p.rect(10, 11, 5, 3, C.GR);
-      p.rect(8, 0, 1, 26, C.GRD);
-      return p.done();
+      p.rect(8, 1, 1, 25, C.GRD); // ribs
+      p.rect(7, 2, 1, 23, C.LL);
+      for (let y = 4; y < 24; y += 4) { p.px(5, y, C.CR); p.px(11, y + 2, C.CR); } // spines
+      p.ell(8.5, -0.5, 2, 1.2, C.PK); // flower
+      p.px(8, -1, C.Y);
+      return p.done(true);
     }
   }
 }
@@ -499,8 +606,8 @@ export function ballGrid(r: number, ppm: number): PixelGrid {
   return g;
 }
 
-const centered = (p: Pen) => {
-  const g = p.done();
+const centered = (p: Pen, bevel = false) => {
+  const g = p.done(bevel);
   g.ox = g.w / 2;
   g.oy = g.h / 2;
   return g;
@@ -957,7 +1064,7 @@ export function itemGrid(kind: ItemKind, w: number, h: number, ppm: number): Pix
       p.rect(1, H - 2, W - 2, 2, C.K);
       break;
   }
-  return centered(p);
+  return centered(p, true);
 }
 
 /** Highest solid surface at x (world y, y grows down), or null. */

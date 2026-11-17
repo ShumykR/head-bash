@@ -1,5 +1,5 @@
 // Offline cache: network-first for navigations, cache-first for hashed assets.
-const CACHE = 'hba-v1';
+const CACHE = 'hba-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

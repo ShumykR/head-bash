@@ -6,7 +6,8 @@ import type { Car } from '../cars/car';
 import type { CarDef, CarPalette, ProjectileKind } from '../cars/types';
 import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
-import { generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
+import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
+import { Ambience, haloGrid } from './ambience';
 import type { MapDef } from '../maps/types';
 import { PROP_PAL, crateGrid, hazardStripGrid, lavaGrid, lavaSurfaceGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid, waterGrid, waterSurfaceGrid } from '../maps/props';
 import { SUDDEN_INFO } from '../maps/sudden';
@@ -388,6 +389,8 @@ export class GameView {
   private lavaTiles: TilingSprite[] = [];
   private bgSprites: { sprite: TilingSprite; factor: number; bottom: number; h: number; fill: Graphics; hang?: boolean }[] = [];
   private sky: Sprite | null = null;
+  private clouds: TilingSprite | null = null;
+  private ambience = new Ambience(this.particles, ART_PPM);
   private cam: Cam = { x: 0, y: 0, zoom: 30 };
   private game: Game | null = null;
   private currentMap: MapDef | null = null;
@@ -537,6 +540,7 @@ export class GameView {
         break;
       }
       case 'blast': {
+        this.ambience.blast(e.x, e.y, e.r, e.power ?? 1);
         if (e.kind === 'punch') {
           this.particles.burst(e.x, e.y, 22, { speed: 8.5, colors: [0xffffff, 0xfff3a0], life: 0.3, size: 0.18, g: 0, drag: 3 });
           this.rings.push({ x: e.x, y: e.y, t: 0, r: e.r, color: 0xffffff });
@@ -1030,6 +1034,7 @@ export class GameView {
     // Background props: planted behind the terrain edge (or in front when asked).
     const front: Sprite[] = [];
     this.beamSprites = [];
+    this.ambience.reset(map.theme);
     for (const d of placedDecor(map)) {
       if (isPropDecor(d.kind)) continue; // pushable props are drawn as items
       const grid = decorGrid(d.kind, d.seed);
@@ -1038,6 +1043,20 @@ export class GameView {
       const k = (d.s ?? 1) / ART_PPM;
       s.scale.set(d.flip ? -k : k, k);
       s.position.set(d.x, d.y + 2 / ART_PPM);
+      // lights get a soft pixel halo behind them
+      const glow = Ambience.glowOf(d.kind);
+      let halo: Sprite | undefined;
+      if (glow) {
+        halo = new Sprite(cached(`halo:${glow.r}`, () => gridTexture(haloGrid(glow.r), [null, [255, 255, 255]])));
+        halo.anchor.set(0.5);
+        halo.tint = glow.color;
+        halo.alpha = 0.28;
+        halo.scale.set(k);
+        halo.position.set(d.x, d.y - glow.y * k);
+        if (d.front) front.push(halo);
+        else this.mapLayer.addChild(halo);
+      }
+      this.ambience.add(s, d.kind, d.x, d.y, grid.w, grid.h, d.s ?? 1, halo);
       if (d.kind === 'beam') this.beamSprites.push(s);
       if (d.front) front.push(s);
       else this.mapLayer.addChild(s);
@@ -1064,9 +1083,19 @@ export class GameView {
     this.bgLayer.removeChildren();
     this.bgSprites = [];
     const theme = THEMES[map.theme];
-    const sky = generateSky(theme);
+    const sky = generateSky(theme, false);
     this.sky = new Sprite(cached(`sky:${map.theme}`, () => rgbaTexture(sky.w, sky.h, sky.rgba)));
     this.bgLayer.addChild(this.sky);
+    if (theme.stars) {
+      this.ambience.addStars(whiteTexture(), 26);
+      this.bgLayer.addChild(this.ambience.stars);
+    }
+    this.clouds = null;
+    if (theme.clouds) {
+      const cl = generateClouds(theme);
+      this.clouds = new TilingSprite({ texture: cached(`clouds:${map.theme}`, () => rgbaTexture(cl.w, cl.h, cl.rgba)), width: 100, height: 100 });
+      this.bgLayer.addChild(this.clouds);
+    }
     theme.layers.forEach((spec, i) => {
       const layer = generateLayer(spec);
       const tex = cached(`bg:${map.theme}:${i}`, () => rgbaTexture(layer.w, layer.h, layer.rgba));
@@ -1135,6 +1164,22 @@ export class GameView {
     if (this.sky) {
       this.sky.width = W;
       this.sky.height = H;
+    }
+    if (this.clouds) {
+      // clouds drift slowly and sit a touch behind the farthest hills in parallax
+      this.clouds.width = W;
+      this.clouds.height = H;
+      this.clouds.tileScale.set(W / 320, H / 180);
+      this.clouds.tilePosition.x = -((this.time * 3 + this.cam.x * 0.4) % 320);
+    }
+    {
+      const z2 = this.cam.zoom;
+      const view = { x0: this.cam.x - W / 2 / z2, x1: this.cam.x + W / 2 / z2, y0: this.cam.y - H / 2 / z2, y1: this.cam.y + H / 2 / z2 };
+      const cars = g.cars.map((c) => {
+        const p = c.chassis.getPosition(), v = c.chassis.getLinearVelocity();
+        return { x: p.x, y: p.y, vx: v.x, vy: v.y };
+      });
+      this.ambience.update(realDt, this.time, cars, view, { w: W, h: H, ps });
     }
     const b = g.map.bounds;
     const cy = (b.y0 + b.y1) / 2;
