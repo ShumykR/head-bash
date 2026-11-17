@@ -141,6 +141,7 @@ export const CNY = group('cny', [
     },
   }],
   ['dragon-monster', 'Dragon Monster', 'Монстр-трак із головою дракона. Пихкає вогнем.', 'monster', ['#e02a2a', '#ffd23f'], {
+    gun: (f) => ({ at: [[f.nose.x + 0.35, -0.6]], aim: 8 }), arch: 'monster',
     o: o({ open: true }),
     parts: ['fangs', 'horns'], hideParts: 'all',
     // A red monster truck that is a dragon: the hood is the dragon's head (its jaw round the fangs),

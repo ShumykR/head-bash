@@ -74,6 +74,7 @@ export type AbilityKind =
   | 'slam' | 'puff' | 'roar' | 'discharge' | 'howl' | 'stasis' | 'beam' | 'storm'
   // self
   | 'fly' | 'glide' | 'shield' | 'shell' | 'reflect' | 'heavy' | 'phase' | 'invis' | 'blink' | 'swap' | 'recall' | 'icewall'
+  | 'charge' | 'flashbang' | 'shadowstep'
   // things
   | 'shoot' | 'drop' | 'dump';
 export type ProjectileKind =
@@ -81,7 +82,8 @@ export type ProjectileKind =
   | 'bone' | 'missile' | 'water' | 'ice' | 'fire' | 'urn' | 'zap' | 'cork' | 'burger' | 'web'
   | 'golf' | 'bullet' | 'bigsnow' | 'bat' | 'penguin' | 'mega' | 'torpedo' | 'volley' | 'tea' | 'plasma'
   | 'seeker' | 'fist' | 'railgun' | 'atom' | 'hook' | 'quill' | 'ink'
-  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot' | 'bigrocket' | 'tankshell';
+  | 'popshell' | 'grapeshot' | 'slush' | 'twinsnow' | 'twinball' | 'tracer' | 'dragonshell' | 'chainshot' | 'bigrocket' | 'tankshell'
+  | 'tentacle' | 'eyelaser' | 'fireball' | 'ghostfire' | 'star';
 
 /** Loose things a car carries (start in the bed and spill out), drops, or an arena scatters around. */
 export type ItemKind =

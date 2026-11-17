@@ -18,6 +18,7 @@ function trackedBase(f: Frame): CarPoly[] {
 
 export const ROBO = group('robo', [
   ['tentabot', 'Tentabot', 'Робот зі щупальцем-гарпуном: хапає суперника й тягне.', 'robot', ['#7a3ae0', '#5ef0ff'], {
+    gun: (f) => ({ at: [[f.roof.x1 + 0.6, f.roof.y + 0.45]], aim: 8 }),
     parts: ['tentacles'], hideParts: true,
     skin: (f) => [
       ...[0, 1, 2].map((i) => path([[f.tail.x + 0.3, f.roof.y + 0.5 + i * 0.15], [f.tail.x - 0.2, f.roof.y + 0.7 + i * 0.25], [f.tail.x - 0.45, f.roof.y + 0.55 + i * 0.35]], 0.1, 'accent')).flat(),
@@ -40,6 +41,7 @@ export const ROBO = group('robo', [
     ],
   }],
   ['doom-bot', 'Doom Bot', 'Важкий бойовий андроїд із лазерними очима.', 'robot', ['#3a3a4a', '#e02a2a'], {
+    gun: (f) => ({ at: [[0.45, f.roof.y + 0.32]], aim: 4 }),
     o: o({ tall: 1.1 }), parts: ['antenna'], hideParts: true,
     skin: (f) => [
       ...robot(f, { face: 'dark' }),

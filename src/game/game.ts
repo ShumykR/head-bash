@@ -761,6 +761,22 @@ export class Game {
       case 'recall':
         if (!this.recall(car)) car.abilityCd = 0.4;
         break;
+      case 'charge':
+        // the team breaks into a gallop: a lunge, then a burst of extra speed
+        car.turboT = 1.5;
+        car.kick(dirX * 8, -1);
+        break;
+      case 'flashbang': {
+        // a flash in front: the foe ahead within reach is stunned
+        const dx = foe.position.x - car.position.x, dy = foe.position.y - car.position.y;
+        if (foe.alive && foe.phaseT <= 0 && dx * dirX > -1 && Math.hypot(dx, dy) < 7) this.stun(1 - p, 1.2, 'zap');
+        const at = car.chassis.getWorldPoint(new Vec2((this.carEnd(car, 1) + 2.5) * car.facing, -0.6));
+        this.emit({ type: 'blast', x: at.x, y: at.y, r: 3.5, kind: 'zap' });
+        break;
+      }
+      case 'shadowstep':
+        if (!foe.alive || !this.shadowstep(car, foe)) car.abilityCd = 0.4;
+        break;
       case 'icewall': {
         const front = this.carEnd(car, 1);
         const at = car.chassis.getWorldPoint(new Vec2((front + 0.9) * car.facing, -0.4));
@@ -798,7 +814,7 @@ export class Game {
       }
     }
     const pos = car.position;
-    const moved = kind === 'blink' || kind === 'swap' || kind === 'recall';
+    const moved = kind === 'blink' || kind === 'swap' || kind === 'recall' || kind === 'shadowstep';
     this.emit({ type: 'ability', player: p, kind, x: pos.x, y: pos.y, from: moved ? from : undefined });
   }
 
@@ -1244,6 +1260,23 @@ export class Game {
       for (const b of car.allBodies) {
         const p = b.getPosition();
         b.setPosition(new Vec2(p.x + dx, p.y + dy));
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /** Reappear just behind the foe (on its far side from us), facing it. */
+  private shadowstep(car: Car, foe: Car): boolean {
+    const p = car.chassis.getPosition(), q = foe.position;
+    const side = Math.sign(q.x - p.x) || car.facing;
+    for (const [dist, lift] of [[3.4, -0.6], [4.2, -1], [2.8, -1.4]]) {
+      const dx = q.x + side * dist - p.x, dy = q.y - p.y + lift;
+      if (!this.carFits(car, dx, dy)) continue;
+      for (const b of car.allBodies) {
+        const o = b.getPosition();
+        b.setPosition(new Vec2(o.x + dx, o.y + dy));
+        b.setLinearVelocity(new Vec2(0, 0));
       }
       return true;
     }

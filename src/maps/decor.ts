@@ -506,6 +506,9 @@ const centered = (p: Pen) => {
   return g;
 };
 
+/** Length of the rocket launcher's big rocket (m): the shot is drawn this long, its hit circle at the nose. */
+export const BIGROCKET_LEN = 4.4;
+
 /** Projectile sprites (origin at the center; long shots point along +x). */
 export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGrid {
   if (kind === 'ball' || kind === 'twinball') return ballGrid(r, ppm);
@@ -528,10 +531,11 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
   };
   switch (kind) {
     case 'laser':
+    case 'eyelaser':
     case 'railgun':
     case 'zap': {
       // a glowing bolt: coloured halo, white-hot core, tapered ends
-      const glow = kind === 'zap' ? C.Y : kind === 'railgun' ? C.PU : C.CY, L = R * 8;
+      const glow = kind === 'zap' ? C.Y : kind === 'railgun' ? C.PU : kind === 'eyelaser' ? C.R : C.CY, L = R * (kind === 'eyelaser' ? 10 : 8);
       p = new Pen(L, D);
       if (kind === 'zap') {
         for (let i = 0; i < 4; i++) p.line(i * R * 2, (i % 2) * (D - 2) + 1, (i + 1) * R * 2, ((i + 1) % 2) * (D - 2) + 1, glow, Math.max(2, Math.round(R * 0.7)));
@@ -568,6 +572,37 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
         p.rect(R * 5, y - 1, 2, 2, C.SA);
       } else if (kind === 'hook') { p.rect(R * 7, y - R, 2, D, C.LG); p.rect(R * 7, y + R - 2, R * 2, 2, C.LG); p.rect(R * 8.5, y, 2, R, C.LG); }
       else p.poly([[R * 7, y - R], [L, y], [R * 7, y + R]], C.K);
+      break;
+    }
+    case 'tentacle': {
+      // a purple tentacle tip with pink suckers, curling at the end
+      const L = R * 7;
+      p = new Pen(L + 1, D + 2);
+      const y = R + 1;
+      p.rect(0, y - 1, R * 5, 3, C.PU);
+      p.ell(R * 5.6, y, R * 1.2, R * 0.9, C.PU);
+      p.ell(R * 6.4, y - R * 0.5, R * 0.6, R * 0.6, C.PUD);
+      for (let x = 2; x < R * 5.5; x += 3) p.px(x, y + 1, C.PK);
+      break;
+    }
+    case 'fireball':
+    case 'ghostfire': {
+      // a ball of flame: hot core, flickering rim
+      const ghost = kind === 'ghostfire';
+      p = new Pen(D, D);
+      p.ell(R, R, R, R, ghost ? C.GR : C.OR, (dx, dy) => (dx * dx + dy * dy < 0.2 ? C.W : dx * dx + dy * dy < 0.5 ? (ghost ? C.LI : C.Y) : (Math.abs(Math.sin(Math.atan2(dy, dx) * 4)) > 0.7 ? (ghost ? C.TE : C.R) : ghost ? C.GR : C.OR)));
+      break;
+    }
+    case 'star': {
+      // a five-pointed yellow star with a white heart
+      p = new Pen(D + 2, D + 2);
+      const pts: Pt[] = [];
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? R * 0.45 : R + 1;
+        pts.push([R + 1 + Math.cos(a) * rr, R + 1 + Math.sin(a) * rr]);
+      }
+      p.poly(pts, C.Y);
+      p.px(R + 1, R + 1, C.W);
       break;
     }
     case 'toast': {
@@ -685,17 +720,21 @@ export function shotGrid(kind: ProjectileKind, r: number, ppm: number): PixelGri
       break;
     }
     case 'bigrocket': {
-      // the launcher's own big rocket off its rail: olive body, white band and star, red nose and fins
-      const L = R * 10;
-      p = new Pen(L + 2, D + 4);
-      const y0 = 2;
-      p.poly([[0, y0 - 2], [R * 1.6, y0], [R * 1.6, y0 + D], [0, y0 + D + 2]], C.R);
-      p.rect(R * 0.6, y0 + 1, R * 7.4, D - 2, C.GRD);
-      p.rect(R * 0.6, y0 + 1, R * 7.4, Math.max(1, Math.round(R * 0.5)), C.GR);
-      p.rect(R * 4.4, y0 + 1, Math.max(2, Math.round(R * 0.6)), D - 2, C.W);
-      p.ell(R * 2.6, y0 + R, R * 0.45, R * 0.45, C.W);
-      p.poly([[R * 8, y0 + 1], [L + 1, y0 + R], [R * 8, y0 + D - 1]], C.R);
-      p.rect(0, y0 + R - 1, R * 0.6, 2, C.DG);
+      // the launcher's own big rocket off its rail, as long as it lies on the truck (BIGROCKET_LEN):
+      // nozzle, red fins, olive body with a white band and star, red nose cone
+      const m = (v: number) => Math.max(1, Math.round(v * ppm));
+      const L = m(BIGROCKET_LEN), fin = m(0.25), n = m(0.17), fl = m(0.43), cone = m(0.55);
+      p = new Pen(L, D + fin * 2);
+      const y0 = fin;
+      p.rect(0, y0 + Math.round(R * 0.5), n, D - Math.round(R * 0.5) * 2, C.DG);
+      p.rect(n, y0, L - cone - n, D, C.GRD);
+      p.rect(n, y0, L - cone - n, Math.max(1, Math.round(R * 0.5)), C.GR);
+      p.rect(m(2.19), y0, m(0.27), D, C.W);
+      p.ell(m(1.44), y0 + R, Math.max(1, R * 0.5), Math.max(1, R * 0.5), C.W);
+      p.poly([[L - cone, y0], [L, y0 + R], [L - cone, y0 + D]], C.R);
+      p.rect(L - cone, y0, Math.round(cone * 0.4), Math.max(1, Math.round(R * 0.4)), C.OR);
+      p.poly([[n, y0], [n + fl, y0], [n - 1, 0]], C.R);
+      p.poly([[n, y0 + D], [n + fl, y0 + D], [n - 1, y0 + D + fin]], C.R);
       break;
     }
     case 'chainshot': {

@@ -1,5 +1,6 @@
 import { HEAD_R } from '../physics/constants';
 import type { CarDef, CarPoly, Pt } from './types';
+import { tuned, tunedDef } from './balance';
 import { buildCar } from './factory';
 import { applyKit } from './kit';
 import { skinOriginal } from './originals';
@@ -585,8 +586,8 @@ const ORIGINALS: CarDef[] = [
 
 /** Every car: the originals first, then the generated collections. */
 export const CARS: CarDef[] = [
-  ...ORIGINALS.map((c) => skinOriginal({ ...c, category: 'originals' as const })),
-  ...ROSTER.map(buildCar),
+  ...ORIGINALS.map((c) => skinOriginal(tunedDef({ ...c, category: 'originals' as const }))),
+  ...ROSTER.map((s) => buildCar(tuned(s))),
 ].map(uniformHead).map(applyKit).map(openCockpit).map(chunkyWheels);
 
 /** The driver's head is the same size in every car. */

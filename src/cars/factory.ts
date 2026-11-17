@@ -1273,7 +1273,8 @@ export function buildCar(spec: CarSpec): CarDef {
     if (p.density !== undefined) fixedMass += ar * p.density;
     else freeArea += ar;
   }
-  def.density = +Math.max(0.35, Math.min(4, (targetMass - wheelMass - fixedMass) / Math.max(0.1, freeArea))).toFixed(3);
+  // a thin hull (sled runners, a bike frame) needs a dense material to weigh what its class weighs
+  def.density = +Math.max(0.35, Math.min(12, (targetMass - wheelMass - fixedMass) / Math.max(0.1, freeArea))).toFixed(3);
   // Parts bolted to the nose or tail shift the center of mass; shift it back to where
   // the bare frame had it so the car does not dive on landings.
   const comX = (ps: CarPoly[]) => {
