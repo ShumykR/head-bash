@@ -115,28 +115,6 @@ export function spikesGrid(w: number, ppm = ART_PPM): PixelGrid {
 }
 
 /** Tileable lava tile (animated by scrolling). */
-export function lavaGrid(): PixelGrid {
-  const W = 32, H = 32;
-  const g = makeGrid(W, H);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const w1 = Math.sin((x / W) * Math.PI * 4 + y * 0.3) + Math.sin((y / H) * Math.PI * 2 * 2 + x * 0.2);
-      let v = w1 > 1.1 ? 12 : w1 > 0.4 ? 10 : w1 > -0.6 ? 9 : 11;
-      gset(g, x, y, v);
-    }
-  return g;
-}
-
-export function lavaSurfaceGrid(): PixelGrid {
-  const W = 32, H = 4;
-  const g = makeGrid(W, H);
-  for (let x = 0; x < W; x++) {
-    const top = Math.round(1.5 + Math.sin((x / W) * Math.PI * 4) * 1.5);
-    for (let y = top; y < H; y++) gset(g, x, y, y === top ? 12 : 10);
-  }
-  return g;
-}
-
 function blockGrid(size: number, ppm: number, style: 'ice' | 'stone'): PixelGrid {
   const n = Math.round(size * ppm);
   const g = makeGrid(n, n, n / 2, n / 2);
@@ -155,27 +133,6 @@ function blockGrid(size: number, ppm: number, style: 'ice' | 'stone'): PixelGrid
 }
 
 /** Tileable water (render only). */
-export function waterGrid(): PixelGrid {
-  const W = 32, H = 32;
-  const g = makeGrid(W, H);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const w1 = Math.sin((x / W) * Math.PI * 4 + y * 0.25) + Math.sin((y / H) * Math.PI * 4 + x * 0.15);
-      gset(g, x, y, w1 > 1.3 ? 14 : w1 > -0.4 ? 15 : 16);
-    }
-  return g;
-}
-
-export function waterSurfaceGrid(): PixelGrid {
-  const W = 32, H = 4;
-  const g = makeGrid(W, H);
-  for (let x = 0; x < W; x++) {
-    const top = Math.round(1.5 + Math.sin((x / W) * Math.PI * 4) * 1.5);
-    for (let y = top; y < H; y++) gset(g, x, y, y === top ? 14 : 15);
-  }
-  return g;
-}
-
 /** Tileable riveted steel for the closing walls (spiked inner edge drawn separately). */
 export function wallGrid(): PixelGrid {
   const W = 32, H = 32;

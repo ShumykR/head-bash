@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { MAPS, MAP_BY_ID } from '../src/maps/defs';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../src/maps/art';
 import { fitCamera } from '../src/render/camera';
+import { BODY_H, DEEP, LIQ_W, SURF_H, liquidBody, liquidSurface } from '../src/maps/liquids';
 import { isPropDecor } from '../src/maps/arena';
 import { DECOR_PAL, decorGrid, placedDecor } from '../src/maps/decor';
 import { gridToRGBA, type PixelGrid } from '../src/render/grid';
@@ -92,10 +93,23 @@ export function renderArena(map: MapDef, W = 915, H = 412, zoomMul = 1): Canvas 
   };
   drawDecor(false);
   for (const wv of [...(map.water ?? []), ...(map.lava ?? [])]) {
-    const lava = (map.lava ?? []).includes(wv);
-    const c: RGB = lava ? [255, 120, 30] : [40, 140, 220];
+    const kind = (map.lava ?? []).includes(wv) ? 'lava' : 'water';
+    const body = liquidBody(kind), top = liquidSurface(kind);
     for (let y = Math.max(0, Math.round(ty(wv.y))); y < Math.min(H, ty(wv.y + wv.h)); y++)
-      for (let x = Math.max(0, Math.round(tx(wv.x))); x < Math.min(W, tx(wv.x + wv.w)); x++) cv.put(x, y, ...c);
+      for (let x = Math.max(0, Math.round(tx(wv.x))); x < Math.min(W, tx(wv.x + wv.w)); x++) {
+        const py = Math.floor((y - ty(wv.y)) / s), px = ((Math.floor((x - tx(wv.x)) / s) % LIQ_W) + LIQ_W) % LIQ_W;
+        if (py >= BODY_H) { cv.put(x, y, ...DEEP[kind]); continue; }
+        const i = (py * LIQ_W + px) * 4;
+        cv.put(x, y, body.rgba[i], body.rgba[i + 1], body.rgba[i + 2]);
+      }
+    for (let x = Math.round(tx(wv.x)); x < tx(wv.x + wv.w); x += 1) {
+      const px = ((Math.floor((x - tx(wv.x)) / s) % LIQ_W) + LIQ_W) % LIQ_W;
+      for (let r = 0; r < SURF_H; r++) {
+        const i = (r * LIQ_W + px) * 4;
+        if (!top.rgba[i + 3]) continue;
+        for (let q = 0; q < s; q++) cv.put(x, Math.round(ty(wv.y) + (r - 4) * s + q), top.rgba[i], top.rgba[i + 1], top.rgba[i + 2]);
+      }
+    }
   }
   cv.blit(gridToRGBA(art.grid, art.palette), art.grid.w, art.grid.h, tx(art.x0), ty(art.y0), s);
   drawDecor(true);

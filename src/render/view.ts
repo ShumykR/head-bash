@@ -9,8 +9,9 @@ import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
 import { BgLife } from './bglife';
+import { LiquidView } from './liquid';
 import type { MapDef } from '../maps/types';
-import { PROP_PAL, crateGrid, hazardStripGrid, lavaGrid, lavaSurfaceGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid, waterGrid, waterSurfaceGrid } from '../maps/props';
+import { PROP_PAL, crateGrid, hazardStripGrid, padGrid, plateGrid, sawGrid, spikesGrid, wallGrid } from '../maps/props';
 import { SUDDEN_INFO } from '../maps/sudden';
 import { BIGROCKET_LEN, DECOR_PAL, ballGrid, decorGrid, flailGrid, itemGrid, placedDecor, shotGrid } from '../maps/decor';
 import { isPropDecor } from '../maps/arena';
@@ -387,9 +388,8 @@ export class GameView {
   private wallSprites: Container[] = [];
   private blocks = new Map<object, Sprite>();
   private itemSprites = new Map<number, Sprite>();
-  private riseLava: TilingSprite | null = null;
-  private riseTop: TilingSprite | null = null;
-  private lavaTiles: TilingSprite[] = [];
+  private riseLiquid: LiquidView | null = null;
+  private liquids: LiquidView[] = [];
   private bgSprites: { sprite: TilingSprite; factor: number; bottom: number; h: number; fill: Graphics; hang?: boolean }[] = [];
   private sky: Sprite | null = null;
   private clouds: TilingSprite | null = null;
@@ -983,8 +983,7 @@ export class GameView {
     this.itemSprites.clear();
     // Sudden-death lava belongs to the previous round: remove its sprites too.
     for (const c of this.fxLayer.removeChildren()) c.destroy();
-    this.riseLava = null;
-    this.riseTop = null;
+    this.riseLiquid = null;
     this.carLayer.removeChildren();
     const sameCar = g.cars[0].def.id === g.cars[1].def.id;
     this.carViews = g.cars.map((c) => new CarView(c, sameCar && c.player === 1));
@@ -1018,32 +1017,16 @@ export class GameView {
       this.ambience.addLight(halo, l.mode);
     }
 
-    // lava pools
-    this.lavaTiles = [];
-    const lavaTex = cached('lava', () => gridTexture(lavaGrid(), PROP_PAL));
-    const lavaTop = cached('lavaTop', () => gridTexture(lavaSurfaceGrid(), PROP_PAL));
-    for (const l of map.lava ?? []) {
-      const t = new TilingSprite({ texture: lavaTex, width: l.w * ART_PPM, height: l.h * ART_PPM });
-      t.position.set(l.x, l.y);
-      t.scale.set(1 / ART_PPM);
-      const top = new TilingSprite({ texture: lavaTop, width: l.w * ART_PPM, height: 4 });
-      top.position.set(l.x, l.y - 3 / ART_PPM);
-      top.scale.set(1 / ART_PPM);
-      this.lavaTiles.push(t, top);
-      this.mapLayer.addChild(t, top);
-    }
-    // Decorative water
-    const waterTex = cached('water', () => gridTexture(waterGrid(), PROP_PAL));
-    const waterTop = cached('waterTop', () => gridTexture(waterSurfaceGrid(), PROP_PAL));
-    for (const wv of map.water ?? []) {
-      const t = new TilingSprite({ texture: waterTex, width: wv.w * ART_PPM, height: wv.h * ART_PPM });
-      t.position.set(wv.x, wv.y);
-      t.scale.set(1 / ART_PPM);
-      const top = new TilingSprite({ texture: waterTop, width: wv.w * ART_PPM, height: 4 });
-      top.position.set(wv.x, wv.y - 3 / ART_PPM);
-      top.scale.set(1 / ART_PPM);
-      this.lavaTiles.push(t, top);
-      this.mapLayer.addChild(t, top);
+    // lava pools and decorative water
+    this.liquids = [];
+    const liqTex = (key: string, make: () => { w: number; h: number; rgba: Uint8ClampedArray }) => cached(key, () => { const t = make(); return rgbaTexture(t.w, t.h, t.rgba); });
+    for (const [kind, list] of [['lava', map.lava ?? []], ['water', map.water ?? []]] as const) {
+      for (const l of list) {
+        const lv = new LiquidView(kind, l.w, l.h, liqTex, whiteTexture());
+        lv.place(l.x, l.y);
+        this.liquids.push(lv);
+        this.mapLayer.addChild(lv.root);
+      }
     }
     // Background props: planted behind the terrain edge (or in front when asked).
     const front: Sprite[] = [];
@@ -1308,26 +1291,15 @@ export class GameView {
       s.destroy();
       this.blocks.delete(k);
     }
-    for (const t of this.lavaTiles) t.tilePosition.x = Math.round(this.time * 6) % 32;
+    for (const lv of this.liquids) lv.update(simDt, this.time, this.particles);
     if (g.arena.riseBody) {
-      if (!this.riseLava) {
-        const sea = g.arena.riseKind === 'flood';
-        const body = sea ? cached('water', () => gridTexture(waterGrid(), PROP_PAL)) : cached('lava', () => gridTexture(lavaGrid(), PROP_PAL));
-        const top = sea ? cached('waterTop', () => gridTexture(waterSurfaceGrid(), PROP_PAL)) : cached('lavaTop', () => gridTexture(lavaSurfaceGrid(), PROP_PAL));
-        this.riseLava = new TilingSprite({ texture: body, width: (b.x1 - b.x0 + 40) * ART_PPM, height: 60 * ART_PPM });
-        this.riseLava.scale.set(1 / ART_PPM);
-        this.riseTop = new TilingSprite({ texture: top, width: (b.x1 - b.x0 + 40) * ART_PPM, height: 4 });
-        this.riseTop.scale.set(1 / ART_PPM);
-        this.fxLayer.addChild(this.riseLava, this.riseTop);
+      if (!this.riseLiquid) {
+        const liqTex = (key: string, make: () => { w: number; h: number; rgba: Uint8ClampedArray }) => cached(key, () => { const t = make(); return rgbaTexture(t.w, t.h, t.rgba); });
+        this.riseLiquid = new LiquidView(g.arena.riseKind === 'flood' ? 'water' : 'lava', b.x1 - b.x0 + 40, 60, liqTex, whiteTexture());
+        this.fxLayer.addChild(this.riseLiquid.root);
       }
-      this.riseLava.position.set(b.x0 - 20, g.arena.riseY);
-      this.riseTop!.position.set(b.x0 - 20, g.arena.riseY - 3 / ART_PPM);
-      this.riseLava.tilePosition.x = Math.round(this.time * 8) % 32;
-      this.riseTop!.tilePosition.x = Math.round(-this.time * 10) % 32;
-      if (Math.random() < 0.3) this.particles.spawn(b.x0 + Math.random() * (b.x1 - b.x0), g.arena.riseY, { vy: -3, g: 8, life: 0.6, size: 0.15, color: g.arena.riseKind === 'flood' ? 0xe8f8ff : 0xffd060 });
-    }
-    for (const l of g.map.lava ?? []) {
-      if (Math.random() < l.w * 0.01) this.particles.spawn(l.x + Math.random() * l.w, l.y, { vy: -3 - Math.random() * 3, g: 10, life: 0.6, size: 0.14, color: Math.random() > 0.5 ? 0xffd060 : 0xff7020 });
+      this.riseLiquid.place(b.x0 - 20, g.arena.riseY);
+      this.riseLiquid.update(simDt, this.time, this.particles);
     }
 
     this.renderAbilities(alpha, simDt);
