@@ -92,6 +92,10 @@ export interface ProjectileInfo {
   recoil?: number;
   /** Steers toward the opponent: the most it can turn per step (rad). Small = lazy and dodgeable. */
   seek?: number;
+  /** A 'boom' shot that lands on a car also slams it this hard before it blows up. */
+  impact?: number;
+  /** Mortar: keeps its steep barrel angle and reaches a near target by launching slower, so it always arcs. */
+  mortar?: boolean;
 }
 
 export const PROJECTILES: Record<ProjectileKind, ProjectileInfo> = {
@@ -99,7 +103,7 @@ export const PROJECTILES: Record<ProjectileKind, ProjectileInfo> = {
   snowball: { r: 0.22, speed: 20, density: 1.2, gravity: 1, life: 2.2, bounce: 0.05, name: 'сніжка', pop: true },
   ball: { r: 0.34, speed: 19, density: 0.6, gravity: 1, life: 3.2, bounce: 0.75, name: 'м\'яч' },
   laser: { r: 0.12, speed: 34, density: 2, gravity: 0.25, life: 0.7, bounce: 0, name: 'лазер', pop: true },
-  firework: { r: 0.18, speed: 21, density: 1, gravity: 0.85, life: 2.8, bounce: 0, name: 'петарда', pop: true, effect: 'boom', blast: 2.6 },
+  firework: { r: 0.18, speed: 21, density: 1, gravity: 0.85, life: 2.8, bounce: 0, name: 'петарда', pop: true, effect: 'boom', blast: 2.8, mortar: true },
   toast: { r: 0.2, speed: 18, density: 0.8, gravity: 1, life: 2.4, bounce: 0.2, name: 'тости', count: 2, spread: 0.25, flight: 'lob' },
   harpoon: { r: 0.14, speed: 28, density: 2, gravity: 0.5, life: 1.0, bounce: 0, name: 'гарпун', pop: true, effect: 'pull' },
   bubble: { r: 0.4, speed: 9, density: 0.1, gravity: -0.05, life: 2.6, bounce: 0.9, name: 'бульбашка', pop: true, effect: 'lift', harmless: true },
@@ -138,8 +142,8 @@ export const PROJECTILES: Record<ProjectileKind, ProjectileInfo> = {
   tracer: { r: 0.07, speed: 36, density: 3, gravity: 0.4, life: 0.7, bounce: 0, name: 'трасер', pop: true, cd: 0.55, recoil: 0.5 },
   dragonshell: { r: 0.2, speed: 20, density: 1, gravity: 0.6, life: 1.6, bounce: 0, name: 'драконячий снаряд', pop: true, effect: 'boom', blast: 2 },
   chainshot: { r: 0.26, speed: 18, density: 3.5, gravity: 1, life: 2.4, bounce: 0.2, name: 'ланцюгове ядро', effect: 'knock', recoil: 1.5 },
-  bigrocket: { r: 0.22, speed: 17, density: 1.2, gravity: 0.3, life: 2.2, bounce: 0, name: 'велика ракета', pop: true, effect: 'boom', blast: 4.4, power: 1.5, cd: 1.6, seek: 0.02 },
-  tankshell: { r: 0.12, speed: 30, density: 4, gravity: 0.5, life: 1.3, bounce: 0, name: 'бронебійний снаряд', effect: 'knock', cd: 1.2, recoil: 2 },
+  bigrocket: { r: 0.22, speed: 17, density: 1.2, gravity: 0.3, life: 2.2, bounce: 0, name: 'велика ракета', pop: true, effect: 'boom', blast: 5.4, power: 2.1, impact: 6, cd: 1.6, seek: 0.02 },
+  tankshell: { r: 0.12, speed: 30, density: 4, gravity: 0.5, life: 1.3, bounce: 0, name: 'фугасний снаряд', pop: true, effect: 'boom', blast: 3.2, power: 1.4, impact: 9, cd: 1.2, recoil: 2.4 },
   ink: { r: 0.3, speed: 14, density: 0.3, gravity: 0.5, life: 1.3, bounce: 0, name: 'чорнило', pop: true, effect: 'slow', harmless: true },
 };
 

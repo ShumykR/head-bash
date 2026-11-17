@@ -831,15 +831,23 @@ export class Game {
       const pos = bodies[0].getWorldCenter();
       const dx = pos.x - c.x, dy = pos.y - c.y;
       const d = Math.hypot(dx, dy);
-      if (d > r || d < 1e-3) return;
+      if (d > r || d < 1e-3) return 0;
       const k = (1 - d / r) * power * scale;
-      const vx = (dx / d) * (4 + 9 * k), vy = (dy / d) * (4 + 9 * k) - 6 * k;
+      const vx = (dx / d) * (5 + 12 * k), vy = (dy / d) * (5 + 12 * k) - 8 * k;
       for (const b of bodies) {
         const v = b.getLinearVelocity();
         b.setLinearVelocity(new Vec2(v.x + vx, v.y + vy));
       }
+      return k;
     };
-    for (const car of this.cars) if (car.player !== p && car.phaseT <= 0) push(car.allBodies, 1);
+    for (const car of this.cars) if (car.player !== p && car.phaseT <= 0) {
+      // a big blast also tumbles the car away from it
+      const k = push(car.allBodies, 1);
+      if (k && kind !== 'slam' && kind !== 'roar') {
+        const dx = car.position.x - c.x;
+        car.chassis.setAngularVelocity(car.chassis.getAngularVelocity() + Math.sign(dx || 1) * Math.min(6, 3.2 * k));
+      }
+    }
     for (const b of this.arena.balls) push([b.body], 1.4);
     for (const b of this.arena.blocks) push([b.body], 1.2);
     for (const it of this.items) if (!it.dead) push([it.body], 1.2);
@@ -919,6 +927,8 @@ export class Game {
         break;
       }
       case 'boom':
+        // a heavy warhead hits like a ram before it goes off
+        if (pr.impact) car.kick(ux * pr.impact, uy * pr.impact * 0.5 - pr.impact * 0.45);
         s.dead = true;
         break;
       default:
@@ -941,7 +951,7 @@ export class Game {
     const f = car.forward();
     const n = pr.count ?? 1;
     const cv = car.chassis.getLinearVelocity();
-    const lift = this.assistAim(p, pr, muzzles[(this.shotId + 1) % muzzles.length], ab?.aim ?? (pr.flight === 'flat' || pr.flight === 'skid' ? 0 : pr.flight === 'lob' ? 0.6 : 0.12));
+    const [lift, pace] = this.assistAim(p, pr, muzzles[(this.shotId + 1) % muzzles.length], ab?.aim ?? (pr.flight === 'flat' || pr.flight === 'skid' ? 0 : pr.flight === 'lob' ? 0.6 : 0.12));
     let dir = f;
     for (let i = 0; i < n; i++) {
       // aim along the barrel; pellets fan out
@@ -970,7 +980,7 @@ export class Game {
         filterMaskBits: MASK.DEBRIS,
         userData: { kind: 'shot', owner: p, proj: kind, id } satisfies FixtureTag,
       });
-      const sp = pr.speed * (n > 1 ? 0.92 + 0.16 * this.rand() : 1);
+      const sp = pr.speed * pace * (n > 1 ? 0.92 + 0.16 * this.rand() : 1);
       body.setLinearVelocity(new Vec2(dir.x * sp + cv.x * 0.5, dir.y * sp + cv.y * 0.5));
       this.shots.push({ id, body, owner: p, proj: kind, born: this.time, dead: false, phase: this.rand() * 6 });
     }
@@ -982,40 +992,57 @@ export class Game {
    * Aim assist: nudge the launch angle (at most AIM_ASSIST either way from the barrel) so the
    * shot's path passes as close as it can to where the opponent's head is right now. The
    * player still has to face the foe and time the shot; a moving target can drive out of it.
+   * A mortar keeps near its steep barrel angle and picks its launch speed instead, so even a
+   * close target gets a high arc. Returns [launch angle, speed factor].
    */
-  private assistAim(p: number, pr: (typeof PROJECTILES)[ProjectileKind], muzzle: [number, number], lift: number): number {
+  private assistAim(p: number, pr: (typeof PROJECTILES)[ProjectileKind], muzzle: [number, number], lift: number): [number, number] {
     const car = this.cars[p];
-    if (pr.flight === 'flat' || pr.flight === 'skid' || pr.flight === 'homing' || pr.flight === 'wobble') return lift;
+    if (pr.flight === 'flat' || pr.flight === 'skid' || pr.flight === 'homing' || pr.flight === 'wobble') return [lift, 1];
     const foe = this.cars[1 - p];
-    if (!foe.alive) return lift;
+    if (!foe.alive) return [lift, 1];
     const f = car.forward();
     const from = car.chassis.getWorldPoint(new Vec2(muzzle[0] * car.facing, muzzle[1]));
     const hp = foe.headWorld();
     // aim at the crown of the helmet: a shot that skims in over the bonnet still finds it
     const crown = foe.chassis.getWorldVector(new Vec2(0, -foe.def.head.r * 0.7));
     const tx = hp.x + crown.x - from.x, ty = hp.y + crown.y - from.y;
-    if (tx * f.x + ty * f.y <= 0.5) return lift;
+    if (tx * f.x + ty * f.y <= 0.5) return [lift, 1];
     const g = (this.map.gravity ?? DEFAULT_GRAVITY) * pr.gravity;
     const cv = car.chassis.getLinearVelocity();
+    const miss = (a: number, pace: number) => {
+      const up = a * car.facing;
+      const vx = (f.x * Math.cos(up) + f.y * Math.sin(up)) * pr.speed * pace + cv.x * 0.5;
+      const vy = (-f.x * Math.sin(up) + f.y * Math.cos(up)) * pr.speed * pace + cv.y * 0.5;
+      let d = Infinity;
+      for (let k = 1; k <= 48; k++) {
+        const t = (k / 48) * pr.life;
+        d = Math.min(d, Math.hypot(vx * t - tx, vy * t + 0.5 * g * t * t - ty));
+      }
+      return d;
+    };
+    if (pr.mortar) {
+      // the barrel's angle, give or take a little; the charge does the rest
+      let best: [number, number] = [lift, 1], bestD = Infinity;
+      for (let i = 0; i <= 8; i++) for (let j = 0; j <= 24; j++) {
+        const a = lift - 0.22 + (i / 8) * 0.3, pace = 0.25 + (j / 24) * 0.95;
+        const d = miss(a, pace);
+        // a hit from higher up counts as better: it drops in over the bonnet
+        if (d - (d < 0.2 ? a : 0) < bestD) { bestD = d - (d < 0.2 ? a : 0); best = [a, pace]; }
+      }
+      return best;
+    }
     let best = lift, bestD = Infinity, high: number | undefined;
-    const N = 32, T = 40;
+    const N = 32;
     // A barrel that points at the sky may still be levelled.
     const lo = Math.min(lift - AIM_ASSIST, 0.03), hi = lift + AIM_ASSIST;
     for (let i = 0; i <= N; i++) {
       const a = lo + (i / N) * (hi - lo);
-      const up = a * car.facing;
-      const vx = (f.x * Math.cos(up) + f.y * Math.sin(up)) * pr.speed + cv.x * 0.5;
-      const vy = (-f.x * Math.sin(up) + f.y * Math.cos(up)) * pr.speed + cv.y * 0.5;
-      let d = Infinity;
-      for (let k = 1; k <= T; k++) {
-        const t = (k / T) * pr.life;
-        d = Math.min(d, Math.hypot(vx * t - tx, vy * t + 0.5 * g * t * t - ty));
-      }
+      const d = miss(a, 1);
       // Of the angles that find the head, the steepest drops in over the bonnet.
       if (d < 0.2) high = a;
       if (d < bestD) { bestD = d; best = a; }
     }
-    return high ?? best;
+    return [high ?? best, 1];
   }
 
   private stepShots() {
