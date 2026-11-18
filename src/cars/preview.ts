@@ -36,7 +36,7 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
     const ic = gridCanvas(ig, DECOR_PAL);
     for (const [x, y] of cargoSlots(def.cargo)) items.push({ g: ig, c: ic, x: x * CAR_PPM - ig.ox, y: y * CAR_PPM - ig.oy });
   }
-  if (!def.cabin && !def.rider?.front) items.push(riderItem);
+  if (!def.rider?.front) items.push(riderItem);
   const linkItems = (behind: boolean) => (def.links ?? []).forEach((ld, i) => {
     if (!!ld.behind !== behind) return;
     const lg = generateLinkGrid(def, i);
@@ -45,7 +45,7 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
   });
   linkItems(true);
   items.push({ g: body, c: gridCanvas(body, carPalette(palette)), x: -body.ox, y: -body.oy });
-  if (!def.cabin && def.rider?.front) items.push(riderItem);
+  if (def.rider?.front) items.push(riderItem);
   const fxg = generateFxGrid(def);
   // Animated previews leave room for the effects but draw them live (see animateFx).
   if (fxg) items.push({ g: fxg, c: gridCanvas(fxg, carPalette(palette)), x: -fxg.ox, y: -fxg.oy, ghost: animate });

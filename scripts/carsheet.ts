@@ -51,7 +51,7 @@ cars.forEach((def, i) => {
   const dpal = driverPalette('#3ec1ff');
   const torso = generateRiderGrid(def);
   const rider = () => blit(torso, riderPalette('#3ec1ff'), ox - torso.ox, oy - torso.oy);
-  if (!def.cabin && !def.rider?.front) rider();
+  if (!def.rider?.front) rider();
   // Cargo lies in the bed behind the body (as in the game).
   if (def.cargo) {
     const info = ITEMS[def.cargo.kind];
@@ -68,7 +68,7 @@ cars.forEach((def, i) => {
   blit(body, carPalette(def.palette), ox - body.ox, oy - body.oy);
   const fxg = generateFxGrid(def);
   if (fxg) blit(fxg, carPalette(def.palette), ox - fxg.ox, oy - fxg.oy);
-  if (!def.cabin && def.rider?.front) rider();
+  if (def.rider?.front) rider();
   const head = generateHeadGrid(def.head.r);
   blit(head, dpal, Math.round(ox + def.head.x * CAR_PPM - head.ox), Math.round(oy + def.head.y * CAR_PPM - head.oy));
   for (const w of def.wheels) {

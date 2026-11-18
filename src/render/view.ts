@@ -156,7 +156,7 @@ class CarView {
     this.torso = new Sprite(cached(`rider:${def.id}:${car.player}`, () => gridTexture(tg, riderPalette(PLAYER_COLORS[car.player]))));
     this.torso.anchor.set(tg.ox / tg.w, tg.oy / tg.h);
     this.torso.scale.set(1 / CAR_PPM);
-    this.torso.visible = !def.cabin;
+    this.torso.visible = true;
     const riderFront = !!def.rider?.front;
 
     this.flame = new Sprite(whiteTexture());
@@ -312,7 +312,7 @@ class CarView {
     this.body.scale.set(c.facing * puff, puff);
     const alive = c.alive;
     this.head.visible = alive;
-    this.torso.visible = alive && !this.car.def.cabin;
+    this.torso.visible = alive;
     this.marker.visible = alive && c.invisT <= 0;
     this.marker.position.set(this.body.x, this.body.y - 2.1 + Math.sin(time * 4) * 0.08);
     const def = c.def;
