@@ -195,22 +195,31 @@ export function pincer(f: Frame, ny: number, mat: CarMat = 'body', tip: CarMat =
  * Used for animals that pull a vehicle (chariot horse, Santa's reindeer): pure art, no physics.
  */
 export function steed(x: number, g: number, o: { mat?: CarMat; mane?: CarMat; deer?: boolean; nose?: CarMat; s?: number; phase?: number } = {}): CarPoly[] {
-  const s = o.s ?? 1, m = o.mat ?? 'brown', mn = o.mane ?? 'dark', ph = o.phase ?? 0;
+  const s = o.s ?? 1, m = o.mat ?? 'brown', mn = o.mane ?? 'dark';
   const P = (dx: number, dy: number): Pt => [x + dx * s, g + dy * s];
-  // A leg swings from the hip as the car rolls (a trot: the diagonal pairs move together).
-  const leg = (pts: Pt[], phase: number) => {
-    const gait = { at: pts[0], amp: 26, phase: (ph + phase) % 1 };
-    const [hx, hy] = pts[pts.length - 1];
-    return [...path(pts, 0.085 * s, m, { gait }), rect(hx - 0.05 * s, hy - 0.05 * s, hx + 0.05 * s, hy + 0.02 * s, 'black', { gait })];
+  // A gallop drawn pose by pose (four frames, shown in turn as the car rolls): legs bend at the
+  // knee, reach out, land, gather under the body and push off.
+  const BH: [number, number] = [-0.26, -0.56], FH: [number, number] = [0.27, -0.56];
+  type L = [[number, number], [number, number]];
+  // per frame: far back, far front, near back, near front legs as [knee, hoof]
+  const frames: [L, L, L, L][] = [
+    [[[-0.45, -0.36], [-0.66, -0.16]], [[0.46, -0.4], [0.68, -0.22]], [[-0.42, -0.33], [-0.6, -0.1]], [[0.44, -0.36], [0.64, -0.14]]],
+    [[[-0.22, -0.36], [-0.36, -0.14]], [[0.42, -0.3], [0.5, 0]], [[-0.12, -0.36], [-0.24, -0.16]], [[0.36, -0.3], [0.34, 0]]],
+    [[[-0.1, -0.32], [0.02, -0.04]], [[0.2, -0.3], [0.08, 0]], [[-0.04, -0.3], [0.1, 0]], [[0.22, -0.42], [0.32, -0.2]]],
+    [[[-0.36, -0.3], [-0.5, 0]], [[0.4, -0.46], [0.42, -0.24]], [[-0.3, -0.28], [-0.42, 0]], [[0.46, -0.44], [0.56, -0.3]]],
+  ];
+  const n = frames.length, f0 = Math.round((o.phase ?? 0) * n);
+  const leg = (hip: [number, number], [k, h]: L, i: number, far: boolean) => {
+    const pose = { n, i: (i + f0) % n };
+    const hp = P(...h);
+    return [...path([P(...hip), P(...k), hp], (far ? 0.08 : 0.085) * s, far ? mn : m, { pose }), rect(hp[0] - 0.055 * s, hp[1] - 0.05 * s, hp[0] + 0.05 * s, hp[1] + 0.02 * s, 'black', { pose })];
   };
   const out: CarPoly[] = [
     // far legs and the tail
-    ...leg([P(-0.28, -0.6), P(-0.34, -0.3), P(-0.3, 0)], 0),
-    ...leg([P(0.28, -0.6), P(0.32, -0.3), P(0.28, 0)], 0.5),
+    ...frames.flatMap((fr, i) => [...leg(BH, fr[0], i, true), ...leg(FH, fr[1], i, true)]),
     ...path([P(-0.4, -0.72), P(-0.62, -0.6), P(-0.7, -0.42)], 0.09 * s, mn),
     // near legs, then the body over their tops
-    ...leg([P(-0.25, -0.55), P(-0.2, -0.28), P(-0.26, 0)], 0.5),
-    ...leg([P(0.26, -0.55), P(0.3, -0.28), P(0.24, 0)], 0),
+    ...frames.flatMap((fr, i) => [...leg(BH, fr[2], i, false), ...leg(FH, fr[3], i, false)]),
     ell(P(0, -0.66)[0], P(0, -0.66)[1], 0.44 * s, 0.2 * s, m),
     // neck and head
     ...path([P(0.28, -0.7), P(0.42, -0.92), P(0.5, -1.02)], 0.17 * s, m),

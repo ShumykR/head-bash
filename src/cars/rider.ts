@@ -1,4 +1,4 @@
-import { blob, circ, path, rr, seg } from './draw';
+import { circ, path, rr, seg } from './draw';
 import type { CarDef, CarMat, CarPalette, CarPoly, Gait, Pt, RiderDef } from './types';
 
 /*
@@ -18,6 +18,8 @@ export interface FigureOpts {
   ground?: number;
   /** Standing figures: stride swing (degrees) and phase of the near leg; the far leg runs half a step behind. */
   walk?: { amp: number; phase?: number };
+  /** Hips this far behind the shoulders (default: a little when riding). */
+  lean?: number;
   suit?: CarMat; legs?: CarMat; sleeve?: CarMat; glove?: CarMat; boot?: CarMat; stripe?: CarMat;
 }
 
@@ -45,9 +47,10 @@ export function figure(x: number, y: number, r: number, o: FigureOpts): CarPoly[
   const u = r / 0.26;
   const suit = o.suit ?? 'body', legs = o.legs ?? 'dark', sleeve = o.sleeve ?? 'body', glove = o.glove ?? 'black', boot = o.boot ?? 'black', stripe = o.stripe ?? 'accent';
   const out: CarPoly[] = [];
-  const lean = o.pose === 'ride' ? 0.08 * u : 0;
+  const lean = (o.lean ?? (o.pose === 'ride' ? 0.08 : 0)) * u;
   const neck: Pt = [x - 0.02 * u, y + 0.26 * u];
-  const hip: Pt = [neck[0] - 0.04 * u - lean, neck[1] + (o.pose === 'ride' ? 0.27 : 0.31) * u];
+  const drop = o.pose === 'ride' ? Math.sqrt(Math.max(0.01, 0.27 * 0.27 - (lean / u) * (lean / u) * 0.6)) : 0.31;
+  const hip: Pt = [neck[0] - 0.04 * u - lean, neck[1] + drop * u];
   const lw = 0.13 * u, aw = 0.11 * u;
   const leg = (h: Pt, k: Pt, f: Pt, g?: Gait): CarPoly[] => {
     const x0 = g ? { gait: g } : {};
@@ -73,7 +76,9 @@ export function figure(x: number, y: number, r: number, o: FigureOpts): CarPoly[
   }
   // the torso: rounded shoulders, a little narrower at the hips, a stripe down the side
   const sh = 0.14 * u, hp = 0.12 * u;
-  out.push(blob([[neck[0] - sh, neck[1] + 0.02 * u], [neck[0] + sh * 0.9, neck[1]], [hip[0] + hp, hip[1]], [hip[0] - hp, hip[1] + 0.01 * u]], suit, {}, 1));
+  // (a capsule from the shoulders to the hips, so it holds its shape at any lean)
+  const tw = sh + hp;
+  out.push(seg(neck, hip, tw, suit), circ(neck[0], neck[1] + 0.02 * u, tw / 2, suit), circ(hip[0], hip[1], hp, suit));
   out.push(seg([neck[0] - 0.02 * u, neck[1] + 0.06 * u], [hip[0] - 0.02 * u, hip[1] - 0.03 * u], 0.06 * u, stripe, { flat: true }));
   // a dark belt where the suit meets the legs
   out.push(seg([hip[0] - hp, hip[1] - 0.02 * u], [hip[0] + hp, hip[1] - 0.03 * u], 0.05 * u, legs, { flat: true }));
@@ -91,7 +96,7 @@ export const SEATED: RiderDef = { pose: 'sit' };
 /** The player's driver body (render only), car-local. */
 export function riderPolys(def: CarDef): CarPoly[] {
   const rd = def.rider ?? SEATED;
-  return figure(def.head.x, def.head.y, def.head.r, { pose: rd.pose, hand: rd.hand, foot: rd.foot }).map((p) => ({ ...p, deco: true }));
+  return figure(def.head.x, def.head.y, def.head.r, { pose: rd.pose, hand: rd.hand, foot: rd.foot, lean: rd.lean }).map((p) => ({ ...p, deco: true }));
 }
 
 /** Palette the driver body is drawn in: the player's colour on the sleeves and stripe, a dark suit. */

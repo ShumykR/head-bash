@@ -1,5 +1,5 @@
 import { withDrive } from './drive';
-import type { RiderDef, Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
+import type { RibbonDef, RiderDef, Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
 import { estimateMass, drivenWheels } from './stats';
 
 /*
@@ -1070,6 +1070,8 @@ export interface CarSpec {
   headOn?: number;
   /** Move the driver: car-local head position override. */
   head?: (f: Frame) => Pt;
+  /** A wall of light left behind (a light cycle's): from `at` (car-local) up `h` metres. */
+  ribbon?: (f: Frame) => RibbonDef;
   /** Metres rolled per step of the swinging limbs (pieces with a gait). */
   stride?: number;
   /** Bikes: where the big round headlamp sits (null: none). Defaults to the top of the front fork. */
@@ -1202,16 +1204,15 @@ export function buildCar(spec: CarSpec): CarDef {
       polys.push(q);
     }
   }
-  // Bikes carry a big round headlamp with a beam ahead: a bike reads as a bike at a glance.
-  let lampAt: Pt | null = null;
+  // Bikes carry a big round headlamp up front: a bike reads as a bike at a glance.
   if (bikeLike && spec.lamp !== null) {
     const fw = f.wheels[f.wheels.length - 1];
-    const [lx, ly] = lampAt = spec.lamp?.(f) ?? [fw.x - 0.16, -0.42];
+    const [lx, ly] = spec.lamp?.(f) ?? [fw.x - 0.16, -0.42];
     polys.push(
-      { ...circ8(lx - 0.02, ly, 0.2, 'black'), deco: true },
-      { ...circ8(lx, ly, 0.17, 'chrome'), deco: true },
-      { ...circ8(lx + 0.02, ly, 0.12, 'light'), deco: true },
-      { ...circ8(lx + 0.05, ly - 0.04, 0.045, 'white'), deco: true, flat: true },
+      { ...circ8(lx - 0.02, ly, 0.22, 'black'), deco: true },
+      { ...circ8(lx, ly, 0.19, 'chrome'), deco: true, ring: true },
+      { ...circ8(lx + 0.03, ly, 0.14, 'light'), deco: true },
+      { ...circ8(lx + 0.06, ly - 0.03, 0.07, 'white'), deco: true, flat: true },
     );
   }
   const s = spec.s ?? 1;
@@ -1266,11 +1267,8 @@ export function buildCar(spec: CarSpec): CarDef {
     const g = spec.gun(f);
     def.gun = { at: g.at.map((q) => scalePt(q, s)), aim: +((g.aim * Math.PI) / 180).toFixed(3) };
   }
-  if (lampAt) {
-    const beam: FxDef = { kind: 'beam', at: [lampAt[0] + 0.14, lampAt[1]], to: [lampAt[0] + 1.2, lampAt[1] + 0.14], size: 0.22, mat: 'light' };
-    def.fx = [beam, ...(def.fx ?? [])].map((e) => e === beam ? { ...e, at: scalePt(e.at, s), to: scalePt(e.to!, s), size: +(0.22 * s).toFixed(3) } : e);
-  }
-  if (spec.fx) def.fx = [...(def.fx ?? []), ...spec.fx(f).map((e) => ({ ...e, at: scalePt(e.at, s), ...(e.to ? { to: scalePt(e.to, s) } : {}), size: +((e.size ?? 0.2) * s).toFixed(3) }))];
+  if (spec.fx) def.fx = spec.fx(f).map((e) => ({ ...e, at: scalePt(e.at, s), ...(e.to ? { to: scalePt(e.to, s) } : {}), size: +((e.size ?? 0.2) * s).toFixed(3) }));
+  if (spec.ribbon) { const rb = spec.ribbon(f); def.ribbon = { ...rb, at: scalePt(rb.at, s), h: rb.h * s }; }
   // Frame limbs first (so a car's own links can hang off them: a jaw on a neck), then the car's, then its parts'.
   const nLimb = f.limbs?.length ?? 0;
   const linkSpecs = [...autoLinks.slice(0, nLimb), ...(spec.links?.(f) ?? []), ...autoLinks.slice(nLimb)];

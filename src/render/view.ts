@@ -4,7 +4,7 @@ import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
 import type { CarDef, CarPalette, CarPoly, Gait, ProjectileKind } from '../cars/types';
-import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
+import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
@@ -130,6 +130,12 @@ class CarView {
   readonly links: Container[] = [];
   /** Limbs that swing as the car rolls, with their pivot and swing. */
   private readonly gaits: { sp: Sprite; g: Gait }[] = [];
+  /** Frame-by-frame poses (a gallop): only the current one shows. */
+  private readonly poses: { sp: Sprite; n: number; i: number }[] = [];
+  /** A light cycle's wall of light: where its foot has been (world), newest last. */
+  private readonly trail: { x: number; y: number; ux: number; uy: number; t: number }[] = [];
+  readonly ribbon = new Graphics();
+  private ribbonCol: [number, number] = [0x5ef0ff, 0xe8ffff];
 
   constructor(readonly car: Car, alt: boolean) {
     const def = car.def;
@@ -167,6 +173,14 @@ class CarView {
         sp.position.set(gp.gait.at[0], gp.gait.at[1]);
         into.addChildAt(sp, Math.max(0, into.getChildIndex(under)));
         this.gaits.push({ sp, g: gp.gait });
+      }
+      for (const pg of generatePoseGrids(def, polys)) {
+        const sp = new Sprite(cached(`pose:${key}:${pg.n}:${pg.i}:${alt}`, () => gridTexture(pg.grid, carPalette(pal))));
+        sp.anchor.set(pg.grid.ox / pg.grid.w, pg.grid.oy / pg.grid.h);
+        sp.scale.set(1 / CAR_PPM);
+        sp.visible = pg.i === 0;
+        into.addChildAt(sp, Math.max(0, into.getChildIndex(under)));
+        this.poses.push({ sp, n: pg.n, i: pg.i });
       }
     };
     this.body.addChild(this.flame, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
@@ -222,6 +236,11 @@ class CarView {
       const cp = carPalette(pal), m = def.belt.mat;
       this.beltCol = [0x14121c, toHex(cp[tone(m, 1)]!), toHex(cp[tone(m, 3)]!), 0x16141c];
     }
+    if (def.ribbon) {
+      const cp = carPalette(pal);
+      this.ribbonCol = [toHex(cp[tone(def.ribbon.mat, 2)]!), toHex(cp[tone(def.ribbon.mat, 4)]!)];
+      this.root.addChild(this.ribbon);
+    }
     this.root.addChild(this.chain, ...behind, this.body, ...(def.belt ? [this.gear] : []), ...this.wheels, ...front, this.marker);
     if (def.flail) {
       const fl = def.flail;
@@ -267,6 +286,12 @@ class CarView {
       }
     }
     if (this.ammo) this.ammo.visible = c.abilityCd <= 0;
+    if (this.poses.length) {
+      const w0 = c.wheels[0], travel = w0 ? w0.getAngle() * c.def.wheels[0].r * c.facing : 0;
+      const cyc = travel / (c.def.stride ?? 1.2);
+      for (const p of this.poses) p.sp.visible = (((Math.floor(cyc * p.n) % p.n) + p.n) % p.n) === p.i;
+    }
+    if (c.def.ribbon) this.drawRibbon(time);
     if (this.gaits.length) {
       // legs step with the distance rolled: still when the car stands, quicker the faster it goes
       const w0 = c.wheels[0], travel = w0 ? w0.getAngle() * c.def.wheels[0].r * c.facing : 0;
@@ -303,6 +328,35 @@ class CarView {
     } else this.flame.visible = false;
     this.drawFx(time);
     this.drawGear(time);
+  }
+
+  /**
+   * A light cycle's wall of light: the foot of the ribbon is traced behind the bike as it goes and
+   * drawn as a glowing band up the car's own "up" at each point, its bright top edge fading out.
+   */
+  private drawRibbon(time: number) {
+    const rb = this.car.def.ribbon!, c = this.car, g = this.ribbon.clear();
+    const a = this.body.rotation, fc = c.facing;
+    const ux = Math.sin(a), uy = -Math.cos(a);
+    const x = this.body.x + Math.cos(a) * rb.at[0] * fc - Math.sin(a) * rb.at[1], y = this.body.y + Math.sin(a) * rb.at[0] * fc + Math.cos(a) * rb.at[1];
+    const tr = this.trail, last = tr[tr.length - 1];
+    if (c.alive && c.invisT <= 0 && (!last || Math.hypot(x - last.x, y - last.y) > 0.08)) {
+      // a big jump (a respawn, a portal) starts a new wall instead of drawing one across the arena
+      if (last && Math.hypot(x - last.x, y - last.y) > 3) tr.length = 0;
+      tr.push({ x, y, ux, uy, t: time });
+    }
+    while (tr.length && time - tr[0].t > rb.life) tr.shift();
+    if (tr.length < 2) return;
+    const [col, hi] = this.ribbonCol;
+    for (let i = 1; i < tr.length; i++) {
+      const p = tr[i - 1], q = tr[i];
+      const k = 1 - (time - q.t) / rb.life;
+      if (k <= 0) continue;
+      const pts = [p.x, p.y, q.x, q.y, q.x + q.ux * rb.h, q.y + q.uy * rb.h, p.x + p.ux * rb.h, p.y + p.uy * rb.h];
+      g.poly(pts).fill({ color: col, alpha: 0.45 * k });
+      g.moveTo(p.x + p.ux * rb.h, p.y + p.uy * rb.h).lineTo(q.x + q.ux * rb.h, q.y + q.uy * rb.h).stroke({ width: 0.07, color: hi, alpha: k });
+      g.moveTo(p.x, p.y).lineTo(q.x, q.y).stroke({ width: 0.04, color: hi, alpha: 0.7 * k });
+    }
   }
 
   /**

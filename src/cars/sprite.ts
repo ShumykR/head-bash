@@ -106,7 +106,9 @@ export function generateAmmoGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
  * gear (a track belt), which the game draws itself.
  */
 export function generateCarGrid(def: CarDef, ppm = CAR_PPM, live = false): PixelGrid {
-  if (live && def.body.some((p) => p.ammo || p.gait || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !p.gait && !(p.gear && def.belt)) };
+  if (live && def.body.some((p) => p.ammo || p.gait || p.pose || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !p.gait && !p.pose && !(p.gear && def.belt)) };
+  // still pictures show a frame-by-frame cycle at its first pose
+  else if (def.body.some((p) => p.pose && p.pose.i !== 0)) def = { ...def, body: def.body.filter((p) => !p.pose || p.pose.i === 0) };
   const b = carBounds(def);
   const pad = 3;
   const ox = Math.ceil(-b.x0 * ppm) + pad;
@@ -275,6 +277,19 @@ export function generateGaitGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM):
     groups.set(key, g);
   }
   return [...groups.entries()].map(([key, g]) => ({ key, gait: g.gait, grid: generateCarGrid({ ...def, body: g.polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm) }));
+}
+
+/** Poses of a frame-by-frame cycle (pieces with `pose`), one sprite per pose; same origin as the body grid. */
+export function generatePoseGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM): { n: number; i: number; grid: PixelGrid }[] {
+  const groups = new Map<string, { n: number; i: number; polys: CarPoly[] }>();
+  for (const p of polys) {
+    if (!p.pose || p.hide) continue;
+    const key = `${p.pose.n}:${p.pose.i}`;
+    const g = groups.get(key) ?? { n: p.pose.n, i: p.pose.i, polys: [] };
+    g.polys.push({ ...p, pose: undefined });
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({ n: g.n, i: g.i, grid: generateCarGrid({ ...def, body: g.polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm) }));
 }
 
 /** The driver's small body under the helmet (render only); same origin as the body grid. Draw it with riderPalette. */

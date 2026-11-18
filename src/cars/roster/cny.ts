@@ -71,7 +71,7 @@ export const CNY = group('cny', [
           const g = f.wheels[i].y + f.wheels[i].r, hy = -0.34, r = f.head.r;
           return [
             ...figure(x - 0.04, hy, r, { pose: 'stand', ground: g, walk: { amp: 24, phase: i ? 0 : 0.5 }, hand: [x + 0.2, -0.17], suit: 'body', sleeve: 'body', legs: 'dark', stripe: 'accent' }),
-            ...crew(x - 0.04, hy, r * 1.2, { helm: 'white', stripe: 'body', style: 'conical', body: false }),
+            ...crew(x - 0.04, hy, r * 1.2, { helm: 'body', stripe: 'white', style: 'conical', body: false }),
           ];
         }),
       ];

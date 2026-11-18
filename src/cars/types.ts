@@ -39,10 +39,18 @@ export interface CarPoly {
    * Pieces with the same pivot, swing and phase move as one.
    */
   gait?: Gait;
+  /** Render only: one pose of a frame-by-frame cycle (see PoseFrame). */
+  pose?: PoseFrame;
 }
 
 /** `spin`: the piece turns round and round instead (a roller of that radius rolling along). */
 export interface Gait { at: Pt; amp: number; phase?: number; spin?: number }
+
+/** Render only: frame `i` of an `n`-frame cycle (a gallop drawn pose by pose); shown in turn as the car rolls. */
+export interface PoseFrame { n: number; i: number }
+
+/** A light cycle's wall of light: a glowing ribbon traced behind from `at` (car-local, its foot) up `h` m, fading over `life` s. */
+export interface RibbonDef { at: Pt; h: number; mat: CarMat; life: number }
 
 /** How the driver sits: in a seat (legs out in front, under the bodywork) or astride, feet on the pegs. */
 export interface RiderDef {
@@ -53,6 +61,8 @@ export interface RiderDef {
   foot?: Pt;
   /** Drawn over the car (a rider astride a bike) rather than behind its bodywork. */
   front?: boolean;
+  /** How far the hips sit behind the shoulders (m; a racer lying along a light cycle leans a lot). */
+  lean?: number;
 }
 
 export interface WheelDef {
@@ -264,6 +274,8 @@ export interface CarDef {
   cabin?: boolean;
   /** The driver's small body under the helmet (default: seated). */
   rider?: RiderDef;
+  /** A wall of light left behind (render only). */
+  ribbon?: RibbonDef;
   /** Stride of the animated limbs (`gait` pieces), metres rolled per step cycle (default 1.2). */
   stride?: number;
   /** Moving pieces on hinges (trailers, booms, tails, saws). */

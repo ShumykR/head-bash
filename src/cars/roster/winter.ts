@@ -151,7 +151,7 @@ export const WINTER = group('winter', [
     skin: (f) => [...bike(f, { style: 'scooter' }), circ(f.deck.x0 - 0.05, f.deck.y - 0.3, 0.4, 'white'), circ(f.deck.x0 + 0.05, f.deck.y - 0.42, 0.1, 'sky')],
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
-    float: 0.8, cargo: ['gift', 3],
+    float: 0.8, cargo: ['gift', 3], stride: 1.5,
     // As in Drive Ahead, two reindeer pull the sleigh, trotting on hidden little wheels under their hooves. They are one
     // real piece, hitched to the sleigh's nose: you can hit them and they bump over the ground.
     links: () => {
