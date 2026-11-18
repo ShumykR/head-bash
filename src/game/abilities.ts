@@ -261,9 +261,12 @@ export function abilityName(a: AbilityDef): string {
   return info.name;
 }
 
+const BOOST_LABEL = '🚀 Реактивний двигун';
+const BOOST_BLURB = 'Тримай кнопку дії — реактивний двигун штовхає вперед, доки є пальне; відпусти, щоб воно відновилось.';
+
 export function abilityLabel(def: CarDef): string {
   const a = abilityOf(def);
-  const tl = traitLabel(def);
+  const tl = [def.boost ? BOOST_LABEL : '', traitLabel(def)].filter(Boolean).join(' · ');
   if (!a) return tl || '— без здібності';
   return `${ABILITY_INFO[a.kind].icon} ${abilityName(a)}${tl ? ` · ${tl}` : ''}`;
 }
@@ -271,7 +274,7 @@ export function abilityLabel(def: CarDef): string {
 /** One-line description of the action (garage card). */
 export function abilityBlurb(def: CarDef): string {
   const a = abilityOf(def);
-  const passive = (def.traits ?? []).map(traitBlurb).join(' ');
+  const passive = [...(def.boost ? [a ? 'Не відпускай кнопку після дії — горить реактивний двигун, доки є пальне.' : BOOST_BLURB] : []), ...(def.traits ?? []).map(traitBlurb)].join(' ');
   if (!a) return passive || (def.cargo ? 'Без спецдії: зброя — вантаж, що згодом поповнюється, і фізика.' : def.flail ? 'Без спецдії: зброя — вантаж і фізика.' : 'Без спецдії: лише кермо, газ і фізика.');
   return `${actionBlurb(a)}${passive ? ` ${passive}` : ''}`;
 }
@@ -353,6 +356,7 @@ export function abilityTypes(def: CarDef): AbilityType[] {
   const out: AbilityType[] = [];
   const a = abilityOf(def);
   if (a) out.push(ABILITY_TYPES[TYPE_OF[a.kind] ?? 'guard']);
+  else if (def.boost) out.push(ABILITY_TYPES.strike);
   if (def.traits?.length || def.cargo || def.flail) out.push(ABILITY_TYPES.passive);
   return out;
 }

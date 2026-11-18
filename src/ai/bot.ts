@@ -33,6 +33,8 @@ export class Bot implements Controller {
   private modeT = 0;
   private avoidDir: -1 | 1 = 1;
   private stuckT = 0;
+  /** Booster: burning now (runs the tank dry, then waits for it to refill). */
+  private burning = false;
   private rng: () => number;
 
   constructor(readonly level: BotLevel, seed = 1) {
@@ -116,6 +118,17 @@ export class Bot implements Controller {
     // Constant pressure wins most exchanges in this genre: keep pushing toward the foe.
     void foe;
     return toward;
+  }
+
+  /** Rocket booster: light it to rush the foe when lined up with him, burn the tank, let it refill. */
+  boost(game: Game, player: number): boolean {
+    const me = game.cars[player], foe = game.cars[1 - player];
+    if (!me.def.boost || !me.alive || !foe.alive || game.phase !== 'play') return (this.burning = false);
+    const dx = foe.position.x - me.position.x;
+    const lined = Math.sign(dx) === Math.sign(me.forward().x) && Math.abs(me.angle) < 0.7 && this.out === me.facing && Math.abs(dx) < 12;
+    if (!lined || me.boostCharge <= 0) this.burning = false;
+    else if (!this.burning && me.boostCharge > (this.level === 'easy' ? 0.95 : 0.6) && this.rng() < (this.level === 'easy' ? 0.03 : 0.15)) this.burning = true;
+    return this.burning;
   }
 
   /** Use the special action when the situation suits it. */

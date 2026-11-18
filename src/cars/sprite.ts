@@ -301,10 +301,19 @@ export function generateRiderGrid(def: CarDef, ppm = CAR_PPM): PixelGrid {
   const car = generateCarGrid(def, ppm, true);
   const bottom = new Int32Array(car.w).fill(-1);
   for (let x = 0; x < car.w; x++) for (let y = car.h - 1; y >= 0; y--) if (gget(car, x, y)) { bottom[x] = y; break; }
+  // An open seat (a kart's tub, a tractor's) has no floor drawn right under the driver: there the
+  // floor is the lower of the bodywork either side of the gap, within about a metre.
+  const W = Math.round(ppm * 1.1), floor = bottom.slice();
+  for (let x = 0; x < car.w; x++) {
+    let l = -1, r = -1;
+    for (let k = Math.max(0, x - W); k <= x; k++) l = Math.max(l, bottom[k]);
+    for (let k = x; k <= Math.min(car.w - 1, x + W); k++) r = Math.max(r, bottom[k]);
+    floor[x] = Math.max(bottom[x], Math.min(l, r));
+  }
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (!gget(g, x, y)) continue;
     const cx = x - g.ox + car.ox, cy = y - g.oy + car.oy;
-    if (cx < 0 || cx >= car.w || bottom[cx] < cy) gset(g, x, y, 0);
+    if (cx < 0 || cx >= car.w || floor[cx] < cy) gset(g, x, y, 0);
   }
   return g;
 }

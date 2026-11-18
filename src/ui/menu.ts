@@ -220,7 +220,7 @@ export class Menu {
       // can put them in a column beside the preview instead of below it.
       const info = el('div', 'car-info');
       info.appendChild(el('div', 'car-name', `${def.name} <small>${cat.icon} ${ARCH_NAMES[def.archetype]}</small>`));
-      const ab = el('div', `ability ${abilityOf(def) || def.traits?.length ? '' : 'none'}`, abilityLabel(def));
+      const ab = el('div', `ability ${abilityOf(def) || def.boost || def.traits?.length ? '' : 'none'}`, abilityLabel(def));
       ab.title = abilityBlurb(def);
       info.appendChild(ab);
       info.appendChild(el('div', 'blurb', def.blurb));

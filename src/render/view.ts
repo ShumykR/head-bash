@@ -939,12 +939,17 @@ export class GameView {
       }
       // charge bar under the P1/P2 marker
       const view = this.carViews[c.player];
-      if (!view || !c.ability) continue;
+      if (!view || !c.hasAction) continue;
       const mx = view.marker.x, my = view.marker.y + 0.18;
       const k = c.abilityCharge;
       const col = toHex(hex(PLAYER_COLORS[c.player]));
       fx.rect(mx - 0.6, my, 1.2, 0.16).fill({ color: 0x0c0914, alpha: 0.7 });
       fx.rect(mx - 0.56, my + 0.04, 1.12 * k, 0.08).fill({ color: k >= 1 ? (Math.sin(this.time * 8) > 0 ? 0xffffff : col) : col, alpha: k >= 1 ? 1 : 0.6 });
+      // a car with both an action and a booster: the booster's fuel in orange under the action's bar
+      if (c.ability && c.def.boost) {
+        fx.rect(mx - 0.6, my + 0.16, 1.2, 0.1).fill({ color: 0x0c0914, alpha: 0.7 });
+        fx.rect(mx - 0.56, my + 0.18, 1.12 * c.boostCharge, 0.06).fill({ color: 0xff9a30, alpha: 0.9 });
+      }
     }
     for (const t of g.tethers) {
       const a = g.cars[t.a].position, b = g.cars[t.b].position;
@@ -1541,7 +1546,7 @@ export class GameView {
     this.touchLabels.removeChildren();
     if (!this.showTouch) return;
     for (const z of this.input.zones) {
-      if (z.btn === 'action' && this.game && !this.game.cars[z.player]?.ability) continue;
+      if (z.btn === 'action' && this.game && !this.game.cars[z.player]?.hasAction) continue;
       const pressed = this.input.touch[z.player][z.btn];
       const col = toHex(hex(PLAYER_COLORS[z.player]));
       const pad = 6;

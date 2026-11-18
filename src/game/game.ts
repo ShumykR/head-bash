@@ -40,6 +40,8 @@ export interface Controller {
   decide(game: Game, player: number, dt: number): -1 | 0 | 1;
   /** Hold the action button this step? */
   action?(game: Game, player: number): boolean;
+  /** Hold the rocket booster this step? (Bots decide it apart from the action; for people it is the same button.) */
+  boost?(game: Game, player: number): boolean;
 }
 
 export interface Shot {
@@ -277,6 +279,7 @@ export class Game {
       const act = ctrl ? (ctrl.action?.(this, p) ?? false) : this.actions[p];
       if (act && !this.prevAction[p]) this.useAbility(p);
       this.prevAction[p] = act;
+      this.cars[p].boostHeld = this.phase === 'play' && (ctrl ? (ctrl.boost?.(this, p) ?? false) : act);
       this.cars[p].tickAbility(dt);
     }
     for (const c of this.cars) c.preStep(dt);
