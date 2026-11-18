@@ -341,7 +341,7 @@ export const RIFT = group('rift', [
   ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол на чотирьох колесах: низький сегментований панцир і серпоподібна клешня — найсильніший удар у світі.', 'tracked', ['#b0a6d8', '#ff3a9a'], {
     // After the reference: a low lavender body of overlapping plates tapering into a pointed tail
     // behind, pink lights along its belly, and the raised scythe of a claw in front (it punches).
-    o: o({ len: 1.0, wheel: 1.3, rim: 'disc' }), arch: 'ram', noLights: true, accel: 1.2,
+    o: o({ len: 1.0, wheel: 1.12, rim: 'disc' }), arch: 'ram', noLights: true, accel: 1.2,
     // The scythe is a piece of its own: hinged at the shoulder on a spring, it sways as the
     // shrimp drives and lashes forward and down when it punches.
     links: (f) => {

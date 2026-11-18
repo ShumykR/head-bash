@@ -100,28 +100,28 @@ export const ROBO = group('robo', [
     // After the reference: a round red shell with angry yellow eyes and a yellow mouth plate, thin
     // red legs down to four spiky wheels, and a huge open claw on a steel bolt at each side
     // (the front one is the real, solid claw).
-    o: o({ len: 1.0, wheel: 1.25, rim: 'star' }), parts: ['claw'], noLights: true, hideParts: true, accel: 1.2,
+    o: o({ len: 1.0, wheel: 1.05, rim: 'star' }), parts: ['claw'], noLights: true, hideParts: true, accel: 1.2,
     head: () => [-0.05, -1.3],
     skin: (f) => {
       const claw = (sx: number, sy: number, side: 1 | -1): CarPoly[] => {
-        // two long blades opening upward and outward in a V, each a sharp kite: broad in the middle,
-        // tapering to a needle point, the inner edge yellow and toothed in black
-        const blade = (ang: number, len: number, w: number): CarPoly[] => {
+        // two separate blades like an open pair of shears: each pinned on the bolt with its own
+        // narrow heel, a gap between them, broad in the middle and drawn out to a needle point,
+        // the cutting edge (the one facing the other blade) yellow with black teeth
+        const blade = (ang: number, len: number, w: number, off: number): CarPoly[] => {
           const ux = Math.sin(ang) * side, uy = -Math.cos(ang), nx = -uy, ny = ux;
-          const at = (a: number, b: number): [number, number] => [sx + ux * a + nx * b, sy + uy * a + ny * b];
-          const tip = at(len, 0), mid0 = at(len * 0.45, -w), mid1 = at(len * 0.45, w);
-          // the edge facing the other blade of the pair
+          const at = (a: number, b: number): [number, number] => [sx + ux * a + nx * (b + off), sy + uy * a + ny * (b + off)];
           const inner = ang > 0.2 ? -side : side;
+          const tip = at(len, 0);
           return [
-            poly([at(0.12, -w * 0.45), mid0, tip, mid1, at(0.12, w * 0.45)], 'body'),
-            poly([at(0.2, -inner * w * 0.2), at(len * 0.45, -inner * w * 0.7), tip], 'red', { flat: true }),
-            seg(at(0.25, inner * w * 0.82), tip, 0.08, 'accent'),
-            ...[0.35, 0.5, 0.65, 0.8].map((k) => circ(...at(len * k, inner * w * (k < 0.45 ? 0.75 + (k - 0.25) * 0.5 : (1 - k) * 1.75)), 0.04, 'black', { flat: true })),
+            poly([at(0.05, -w * 0.25), at(len * 0.5, -w), tip, at(len * 0.5, w), at(0.05, w * 0.25)], 'body'),
+            poly([at(0.15, -inner * w * 0.1), at(len * 0.5, -inner * w * 0.75), tip], 'red', { flat: true }),
+            seg(at(len * 0.18, inner * w * 0.55), tip, 0.08, 'accent'),
+            ...[0.32, 0.46, 0.6, 0.74].map((k) => circ(...at(len * k, inner * w * (k < 0.5 ? 0.62 + (k - 0.3) * 0.6 : (1 - k) * 1.5)), 0.04, 'black', { flat: true })),
           ];
         };
         return [
-          ...blade(0.62, 1.55, 0.42),
-          ...blade(-0.18, 1.45, 0.4),
+          ...blade(0.78, 1.5, 0.34, side * 0.06),
+          ...blade(-0.32, 1.4, 0.32, -side * 0.06),
           // the steel bolt joint
           circ(sx, sy, 0.22, 'grey'), circ(sx, sy, 0.15, 'chrome'),
           seg([sx - 0.09, sy - 0.09], [sx + 0.09, sy + 0.09], 0.05, 'dark'), seg([sx - 0.09, sy + 0.09], [sx + 0.09, sy - 0.09], 0.05, 'dark'),

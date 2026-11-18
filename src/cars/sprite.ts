@@ -294,7 +294,19 @@ export function generatePoseGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM):
 
 /** The driver's small body under the helmet (render only); same origin as the body grid. Draw it with riderPalette. */
 export function generateRiderGrid(def: CarDef, ppm = CAR_PPM): PixelGrid {
-  return generateCarGrid({ ...def, body: riderPolys(def), windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm);
+  const g = generateCarGrid({ ...def, body: riderPolys(def), windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm);
+  if (def.rider?.front || def.headOn !== undefined) return g;
+  // A seated driver sits behind the bodywork: keep only what has bodywork somewhere below it in
+  // the same column (seen over the side or through a window), so no legs poke out under the floor.
+  const car = generateCarGrid(def, ppm, true);
+  const bottom = new Int32Array(car.w).fill(-1);
+  for (let x = 0; x < car.w; x++) for (let y = car.h - 1; y >= 0; y--) if (gget(car, x, y)) { bottom[x] = y; break; }
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+    if (!gget(g, x, y)) continue;
+    const cx = x - g.ox + car.ox, cy = y - g.oy + car.oy;
+    if (cx < 0 || cx >= car.w || bottom[cx] < cy) gset(g, x, y, 0);
+  }
+  return g;
 }
 export const riderPalette = (playerColor: string) => carPalette(riderColors(playerColor));
 
