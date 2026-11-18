@@ -68,7 +68,7 @@ export const DOME = group('dome', [
         ...path([clamp, [clamp[0] - 0.12, clamp[1] - 0.12], [grip[0] + 0.12, grip[1] - 0.08], grip], 0.07, 'chrome'),
         seg([grip[0] + 0.08, grip[1] - 0.02], [grip[0] - 0.04, grip[1] + 0.02], 0.08, 'black'),
         rr(top[0] - 0.1, top[1] - 0.06, top[0] + 0.14, top[1] + 0.04, 0.03, 'chrome'),
-        circ(top[0] + 0.05, top[1] + 0.3, 0.1, 'chrome'), circ(top[0] + 0.07, top[1] + 0.3, 0.06, 'light'),
+        ell(top[0] + 0.05, top[1] + 0.3, 0.08, 0.1, 'chrome'), ell(top[0] + 0.12, top[1] + 0.3, 0.03, 0.08, 'light'),
         rearLamp(rw.x - 0.36, -0.1, 0.1),
       ];
     },

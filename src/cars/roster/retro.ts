@@ -648,7 +648,7 @@ export const RETRO = group('retro', [
         fender(rw.x, rw.y, rw.r, 0.12, 'body'),
         // the long raked fork, chrome all the way down to the front hub, a small front fender
         seg([fw.x, fw.y], top, 0.11, 'chrome'), seg([fw.x + 0.08, fw.y], [top[0] + 0.08, top[1]], 0.06, 'grey'),
-        circ(top[0] - 0.05, top[1] + 0.25, 0.11, 'chrome'), circ(top[0] - 0.03, top[1] + 0.25, 0.07, 'light'),
+        ell(top[0] - 0.05, top[1] + 0.25, 0.09, 0.11, 'chrome'), ell(top[0] + 0.03, top[1] + 0.25, 0.035, 0.09, 'light'),
         // tall ape-hanger bars, swept back to the rider's gloves
         ...path([[top[0], top[1]], [top[0] - 0.08, top[1] - 0.3], [grip[0] + 0.1, grip[1] - 0.16], grip], 0.07, 'chrome'),
         seg([grip[0] + 0.08, grip[1] - 0.02], [grip[0] - 0.04, grip[1] + 0.02], 0.08, 'black'),
