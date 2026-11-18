@@ -109,7 +109,7 @@ export const KIT: Record<string, Kit> = {
   mechasaurus: { ab: 'shoot:missile|Ракети' },
 
   // ---------------------------------------------------------------- robo
-  'rocket-fist': { ab: 'shoot:fist|Ракетний кулак', blurb: 'Робот із кулаком на ракеті. Кулак летить і відкидає суперника.' },
+  'rocket-fist': { ab: 'rocketfist|Ракетний удар', blurb: 'Ракета з кулаком на носі. Вмикає форсаж і за мить врізається кулаком: суперника відкидає далеко назад.' },
   'laser-tank': { ab: 'shoot:railgun|Рейкотрон', blurb: 'Танк із рейкотроном: надшвидкий заряд прошиває все наскрізь.' },
   tripod: { ab: 'shoot:zap|Тепловий промінь' },
 
@@ -177,7 +177,7 @@ export const KIT: Record<string, Kit> = {
 
 const KINDS = new Set<AbilityKind>([
   'jump', 'stomp', 'bounce', 'rear', 'surprise', 'ollie', 'pounce', 'hydraulics', 'backflip', 'moonjump',
-  'nitro', 'drs', 'dash', 'sting', 'gore', 'flip', 'bump', 'bite', 'frenzy', 'slide', 'punch', 'kick', 'scoop', 'tailwhip',
+  'nitro', 'drs', 'dash', 'sting', 'gore', 'flip', 'bump', 'bite', 'frenzy', 'slide', 'punch', 'kick', 'scoop', 'tailwhip', 'rocketfist',
   'slam', 'puff', 'roar', 'discharge', 'howl', 'stasis', 'beam', 'storm',
   'fly', 'glide', 'shield', 'shell', 'reflect', 'heavy', 'phase', 'invis', 'blink', 'swap', 'recall', 'icewall',
   'shoot', 'drop', 'dump', 'charge', 'flashbang', 'shadowstep',

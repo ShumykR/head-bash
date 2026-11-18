@@ -1,7 +1,8 @@
 import { arc, blob, circ, ell, eyeball, path, poly, rect, rr, seg, smooth, spikesAlong, stripe } from '../draw';
 import { rocket, tracks, monsterTruck } from '../skins';
 import type { CarPoly } from '../types';
-import { dims, dragonHead, quadruped, saddle } from '../critters';
+import { crew, dims, dragonHead, quadruped, saddle } from '../critters';
+import { figure } from '../rider';
 import { group, o } from './util';
 
 /** Paper lantern hanging from a pole. */
@@ -64,16 +65,13 @@ export const CNY = group('cny', [
         rr(hx - 0.5, sy - 0.05, hx + 0.3, -0.5, 0.03, 'body', { ring: true }), ...stripes(hx - 0.45, hx + 0.25, sy + 0.05, -0.54),
         rr(hx - 0.5, sy - 0.12, hx + 0.3, sy - 0.03, 0.03, 'white'),
         rr(hx + 0.25, sy - 0.3, hx + 0.45, -0.5, 0.03, 'body'), rr(hx + 0.22, sy - 0.36, hx + 0.48, sy - 0.27, 0.03, 'white'),
-        // the porters under the pole ends, their faces hidden by the hats
+        // the porters under the pole ends: the player's own small body under a helmet with a
+        // straw hat, walking in step as the carriage rolls (the rear one half a stride behind)
         ...[f.tail.x - 0.12, f.nose.x + 0.12].flatMap((x, i) => {
-          const g = f.wheels[i].y + f.wheels[i].r, s = i ? 0.08 : -0.08;
+          const g = f.wheels[i].y + f.wheels[i].r, hy = -0.34, r = f.head.r;
           return [
-            ...path([[x - 0.04, -0.05], [x - 0.08 - s, g - 0.12]], 0.1, 'dark'), ...path([[x + 0.06, -0.05], [x + 0.12 + s, g - 0.12]], 0.1, 'dark'),
-            rr(x - 0.2 - s, g - 0.12, x - 0.0 - s, g, 0.03, 'green'), rr(x + 0.06 + s, g - 0.12, x + 0.26 + s, g, 0.03, 'green'),
-            rr(x - 0.18, -0.45, x + 0.18, 0.02, 0.06, 'body'), rect(x - 0.18, -0.12, x + 0.18, -0.06, 'accent', { flat: true }),
-            seg([x - 0.15, -0.42], [x + 0.15, -0.1], 0.05, 'accent'),
-            circ(x + 0.03, -0.48, 0.12, 'tan'),
-            poly([[x - 0.38, -0.44], [x + 0.03, -0.82], [x + 0.44, -0.44]], 'gold'), rect(x - 0.38, -0.46, x + 0.44, -0.42, 'brown', { flat: true }),
+            ...figure(x - 0.04, hy, r, { pose: 'stand', ground: g, walk: { amp: 24, phase: i ? 0 : 0.5 }, hand: [x + 0.2, -0.17], suit: 'body', sleeve: 'body', legs: 'dark', stripe: 'accent' }),
+            ...crew(x - 0.04, hy, r * 1.2, { helm: 'white', stripe: 'body', style: 'conical', body: false }),
           ];
         }),
       ];

@@ -3,7 +3,7 @@ import { ARCH_NAMES, CATEGORIES, CATEGORY_BY_ID, categoryOf, countByCategory, fi
 import { carPreviewCanvas } from '../cars/preview';
 import type { Archetype, CarDef } from '../cars/types';
 import { audio } from '../audio/audio';
-import { abilityBlurb, abilityLabel, abilityOf } from '../game/abilities';
+import { ABILITY_TYPES, abilityBlurb, abilityLabel, abilityOf, abilityTypes } from '../game/abilities';
 import { button, el, statBars } from './dom';
 
 const thumbCache = new Map<string, string>();
@@ -115,7 +115,10 @@ export function openCarBrowser(host: HTMLElement, o: BrowserOpts): CarBrowser {
       img.draggable = false;
       card.appendChild(img);
       card.appendChild(el('div', 'gcar-name', def.name));
-      card.title = `${def.name} — ${def.blurb}`;
+      // little badges in the corner: what kind of special it has (an action, a passive)
+      const types = abilityTypes(def);
+      if (types.length) card.appendChild(el('div', 'gcar-badges', types.map((t) => `<i style="background:${t.color}" title="${t.name}">${t.icon}</i>`).join('')));
+      card.title = `${def.name} — ${def.blurb}${types.length ? `\n${types.map((t) => t.name).join(' · ')}: ${abilityLabel(def)}` : ''}`;
       card.addEventListener('click', () => {
         audio.unlock();
         audio.click();
@@ -129,7 +132,8 @@ export function openCarBrowser(host: HTMLElement, o: BrowserOpts): CarBrowser {
     }
     grid.scrollTop = 0;
     empty.style.display = list.length ? 'none' : 'block';
-    foot.textContent = `${list.length} з ${CARS.length} авто`;
+    // count, then the badge legend
+    foot.innerHTML = `${list.length} з ${CARS.length} авто <span class="gcar-legend">${Object.values(ABILITY_TYPES).map((t) => `<i style="background:${t.color}">${t.icon}</i>${t.name}`).join(' ')}</span>`;
   };
 
   // Details card (browse mode)

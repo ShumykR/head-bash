@@ -29,6 +29,7 @@ export const ABILITY_INFO: Record<AbilityKind, AbilityInfo> = {
   bite: { name: 'Хватка', icon: '🦈', cd: 3.8, blurb: 'Ривок; схопленого суперника жбурляє собі за спину.' },
   frenzy: { name: 'Шал', icon: '🐟', cd: 3.8, blurb: 'Три короткі ривки поспіль.' },
   slide: { name: 'Ковзання', icon: '🐧', cd: 5, blurb: 'Поштовх і дві секунди ковзання без тертя.' },
+  rocketfist: { name: 'Ракетний удар', icon: '🥊', cd: 3.2, blurb: 'Блискавичний ракетний ривок: хто під кулак потрапить — відлітає далеко назад.' },
   punch: { name: 'Удар', icon: '👊', cd: 3, blurb: 'Миттєвий удар перед собою: суперника відкидає далеко вбік.' },
   kick: { name: 'Удар ногою', icon: '👟', cd: 2.8, blurb: 'Підбиває суперника й м\'ячі поперед себе вгору.' },
   scoop: { name: 'Ківш', icon: '🏗️', cd: 3.4, blurb: 'Підчіплює суперника попереду й перекидає собі за спину.' },
@@ -184,7 +185,7 @@ export const ITEMS: Record<ItemKind, ItemInfo> = {
   crate: { shape: 'box', w: 0.44, h: 0.44, density: 0.5, bounce: 0.1, name: 'ящики' },
   hay: { shape: 'box', w: 0.6, h: 0.4, density: 0.3, bounce: 0.1, name: 'сіно' },
   cow: { shape: 'box', w: 0.8, h: 0.5, density: 0.5, bounce: 0.2, name: 'корова' },
-  penguin: { shape: 'box', w: 0.3, h: 0.46, density: 0.5, bounce: 0.2, name: 'пінгвіни' },
+  penguin: { shape: 'box', w: 0.42, h: 0.66, density: 0.5, bounce: 0.2, name: 'пінгвіни' },
   coal: { shape: 'circle', w: 0.16, h: 0.16, density: 1.4, bounce: 0.05, name: 'вугілля' },
   mine: { shape: 'box', w: 0.5, h: 0.16, density: 2, bounce: 0, name: 'міна', friction: 1.2 },
   bomb: { shape: 'circle', w: 0.26, h: 0.26, density: 1.2, bounce: 0.3, name: 'бомба' },
@@ -202,6 +203,7 @@ export const ITEMS: Record<ItemKind, ItemInfo> = {
   flame: { shape: 'box', w: 0.34, h: 0.14, density: 1, bounce: 0, name: 'вогонь', friction: 1.5 },
   cone: { shape: 'box', w: 0.34, h: 0.44, density: 0.2, bounce: 0.2, name: 'конуси' },
   toyblock: { shape: 'box', w: 0.5, h: 0.5, density: 0.3, bounce: 0.2, name: 'кубики' },
+  toycar: { shape: 'box', w: 0.92, h: 0.34, density: 0.35, bounce: 0.05, name: 'машинки', friction: 1 },
 };
 
 /** Effect an item has when a car drops it on purpose (cargo and arena props have none). */
@@ -323,5 +325,34 @@ export function cargoSlots(cg: CargoDef): [number, number][] {
     const span = inRow * (it.w + 0.02);
     out.push([(x0 + x1) / 2 - span / 2 + (col + 0.5) * (it.w + 0.02) + (row % 2 ? 0.05 : 0), top - it.h / 2 - 0.03 - row * (it.h + 0.02)]);
   }
+  return out;
+}
+
+/** What kind of special a car has, for the small badges on the garage cards. */
+export interface AbilityType { id: string; icon: string; name: string; color: string }
+export const ABILITY_TYPES: Record<string, AbilityType> = {
+  leap: { id: 'leap', icon: '⤒', name: 'Стрибок', color: '#5ad06a' },
+  strike: { id: 'strike', icon: '✊', name: 'Ривок / удар', color: '#ff7a3a' },
+  wave: { id: 'wave', icon: '◎', name: 'Хвиля', color: '#b07aff' },
+  guard: { id: 'guard', icon: '⛨', name: 'Захист / рух', color: '#4ab8ff' },
+  shot: { id: 'shot', icon: '➶', name: 'Постріл', color: '#ff4a5a' },
+  trap: { id: 'trap', icon: '▼', name: 'Пастка', color: '#ffc83a' },
+  passive: { id: 'passive', icon: '✦', name: 'Пасивка', color: '#9a94b0' },
+};
+const TYPE_OF: Partial<Record<AbilityKind, keyof typeof ABILITY_TYPES>> = {};
+for (const k of ['jump', 'stomp', 'bounce', 'rear', 'surprise', 'ollie', 'pounce', 'hydraulics', 'backflip', 'moonjump'] as AbilityKind[]) TYPE_OF[k] = 'leap';
+for (const k of ['nitro', 'drs', 'dash', 'sting', 'gore', 'flip', 'bump', 'bite', 'frenzy', 'slide', 'punch', 'kick', 'scoop', 'tailwhip', 'rocketfist', 'charge'] as AbilityKind[]) TYPE_OF[k] = 'strike';
+for (const k of ['slam', 'puff', 'roar', 'discharge', 'howl', 'stasis', 'beam', 'storm', 'flashbang'] as AbilityKind[]) TYPE_OF[k] = 'wave';
+for (const k of ['fly', 'glide', 'shield', 'shell', 'reflect', 'heavy', 'phase', 'invis', 'blink', 'swap', 'recall', 'icewall', 'shadowstep'] as AbilityKind[]) TYPE_OF[k] = 'guard';
+TYPE_OF.shoot = 'shot';
+TYPE_OF.drop = 'trap';
+TYPE_OF.dump = 'trap';
+
+/** Badges for a car: its action's type (if it has one), then "passive" for quirks, cargo or a chain weight. */
+export function abilityTypes(def: CarDef): AbilityType[] {
+  const out: AbilityType[] = [];
+  const a = abilityOf(def);
+  if (a) out.push(ABILITY_TYPES[TYPE_OF[a.kind] ?? 'guard']);
+  if (def.traits?.length || def.cargo || def.flail) out.push(ABILITY_TYPES.passive);
   return out;
 }

@@ -89,7 +89,7 @@ export class Car {
   stompDelay = 0;
   /** Strike window after a dash-type action: the first car hit gets `strikeFx`. */
   strikeT = 0;
-  strikeFx: 'sting' | 'gore' | 'flip' | 'bump' | 'bite' | null = null;
+  strikeFx: 'sting' | 'gore' | 'flip' | 'bump' | 'bite' | 'fist' | null = null;
   /** Rubber body (jelly). */
   bounceT = 0;
   /** Queued hops (hydraulics) / dashes (frenzy). */
@@ -547,7 +547,12 @@ export class Car {
         const lb = this.links[i], parent = j.getBodyA();
         // hold up the piece's own weight, so it rests where it was drawn and only sways with the motion
         const g = lb.getWorld().getGravity(), c = lb.getWorldCenter(), h = parent.getWorldPoint(j.getLocalAnchorA());
-        const tg = lb.getMass() * ((c.x - h.x) * g.y - (c.y - h.y) * g.x);
+        let tg = lb.getMass() * ((c.x - h.x) * g.y - (c.y - h.y) * g.x);
+        // a piece that carries the flail (a crane jib with its ball) holds that weight up too
+        if (this.flail && d.flail?.on === i) {
+          const a = lb.getWorldPoint(new Vec2(d.flail.at[0] * this.facing, d.flail.at[1]));
+          tg += this.flail.getMass() * ((a.x - h.x) * g.y - (a.y - h.y) * g.x);
+        }
         const t = Math.max(-sp.max, Math.min(sp.max, -tg - sp.k * j.getJointAngle() - sp.c * (lb.getAngularVelocity() - parent.getAngularVelocity())));
         lb.applyTorque(t, true);
         parent.applyTorque(-t, true);

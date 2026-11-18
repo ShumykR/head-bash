@@ -158,7 +158,7 @@ export class Bot implements Controller {
       case 'jump': case 'stomp': case 'bounce': case 'rear': case 'ollie': case 'hydraulics': case 'backflip': case 'moonjump': case 'surprise':
         return dist < 4.5 && dy > -1.5;
       case 'pounce': return dist > 2 && dist < 8;
-      case 'nitro': case 'dash': case 'charge': case 'drs': case 'sting': case 'gore': case 'flip': case 'bump': case 'bite': case 'frenzy': case 'slide':
+      case 'nitro': case 'dash': case 'charge': case 'drs': case 'sting': case 'gore': case 'flip': case 'bump': case 'bite': case 'frenzy': case 'slide': case 'rocketfist':
         return facingFoe && level && dist > 2.5 && dist < 10 && !me.inAir;
       case 'fly': case 'glide': return dist < 6 || (k === 'glide' && me.inAir);
       case 'shield': case 'shell': case 'heavy': case 'invis': return dist < 3.2;

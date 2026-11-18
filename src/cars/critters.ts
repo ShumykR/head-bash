@@ -194,20 +194,24 @@ export function pincer(f: Frame, ny: number, mat: CarMat = 'body', tip: CarMat =
  * A galloping horse (or reindeer) seen from the side, facing right, hooves on the ground line g.
  * Used for animals that pull a vehicle (chariot horse, Santa's reindeer): pure art, no physics.
  */
-export function steed(x: number, g: number, o: { mat?: CarMat; mane?: CarMat; deer?: boolean; nose?: CarMat; s?: number } = {}): CarPoly[] {
-  const s = o.s ?? 1, m = o.mat ?? 'brown', mn = o.mane ?? 'dark';
+export function steed(x: number, g: number, o: { mat?: CarMat; mane?: CarMat; deer?: boolean; nose?: CarMat; s?: number; phase?: number } = {}): CarPoly[] {
+  const s = o.s ?? 1, m = o.mat ?? 'brown', mn = o.mane ?? 'dark', ph = o.phase ?? 0;
   const P = (dx: number, dy: number): Pt => [x + dx * s, g + dy * s];
-  const leg = (pts: Pt[]) => path(pts, 0.085 * s, m);
+  // A leg swings from the hip as the car rolls (a trot: the diagonal pairs move together).
+  const leg = (pts: Pt[], phase: number) => {
+    const gait = { at: pts[0], amp: 26, phase: (ph + phase) % 1 };
+    const [hx, hy] = pts[pts.length - 1];
+    return [...path(pts, 0.085 * s, m, { gait }), rect(hx - 0.05 * s, hy - 0.05 * s, hx + 0.05 * s, hy + 0.02 * s, 'black', { gait })];
+  };
   const out: CarPoly[] = [
-    // far legs (stretched out in the gallop) and the tail
-    ...leg([P(-0.28, -0.6), P(-0.5, -0.32), P(-0.62, -0.05)]),
-    ...leg([P(0.28, -0.6), P(0.5, -0.35), P(0.62, -0.12)]),
+    // far legs and the tail
+    ...leg([P(-0.28, -0.6), P(-0.34, -0.3), P(-0.3, 0)], 0),
+    ...leg([P(0.28, -0.6), P(0.32, -0.3), P(0.28, 0)], 0.5),
     ...path([P(-0.4, -0.72), P(-0.62, -0.6), P(-0.7, -0.42)], 0.09 * s, mn),
-    // body, near legs tucked under
+    // near legs, then the body over their tops
+    ...leg([P(-0.25, -0.55), P(-0.2, -0.28), P(-0.26, 0)], 0.5),
+    ...leg([P(0.26, -0.55), P(0.3, -0.28), P(0.24, 0)], 0),
     ell(P(0, -0.66)[0], P(0, -0.66)[1], 0.44 * s, 0.2 * s, m),
-    ...leg([P(-0.25, -0.55), P(-0.2, -0.28), P(-0.3, 0)]),
-    ...leg([P(0.26, -0.55), P(0.3, -0.28), P(0.22, 0)]),
-    ...[P(-0.3, 0), P(0.22, 0), P(-0.62, -0.05), P(0.62, -0.12)].map(([hx, hy]) => rect(hx - 0.05 * s, hy - 0.05 * s, hx + 0.05 * s, hy + 0.02 * s, 'black')),
     // neck and head
     ...path([P(0.28, -0.7), P(0.42, -0.92), P(0.5, -1.02)], 0.17 * s, m),
     blob([P(0.4, -1.12), P(0.58, -1.12), P(0.8, -0.95), P(0.78, -0.86), P(0.55, -0.9), P(0.42, -0.98)], m, {}, 1),

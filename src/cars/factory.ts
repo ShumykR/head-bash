@@ -1,5 +1,5 @@
 import { withDrive } from './drive';
-import type { Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
+import type { RiderDef, Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
 import { estimateMass, drivenWheels } from './stats';
 
 /*
@@ -1011,7 +1011,7 @@ export interface LinkSpec {
 
 /** Turn a link spec into a definition (render-only art + hidden collision shapes), scaled. */
 export function makeLink(l: LinkSpec, s = 1): LinkDef {
-  const sp = (p: CarPoly) => ({ ...p, pts: p.pts.map((q) => scalePt(q, s)) });
+  const sp = (p: CarPoly) => ({ ...p, pts: p.pts.map((q) => scalePt(q, s)), ...(p.gait ? { gait: { ...p.gait, at: scalePt(p.gait.at, s) } } : {}) });
   return {
     polys: [...l.art.map((p) => ({ ...sp(p), deco: true })), ...(l.hit ?? []).map((p) => ({ ...sp(p), deco: false, hide: true }))],
     at: scalePt(l.at, s),
@@ -1070,6 +1070,12 @@ export interface CarSpec {
   headOn?: number;
   /** Move the driver: car-local head position override. */
   head?: (f: Frame) => Pt;
+  /** Metres rolled per step of the swinging limbs (pieces with a gait). */
+  stride?: number;
+  /** Bikes: where the big round headlamp sits (null: none). Defaults to the top of the front fork. */
+  lamp?: ((f: Frame) => Pt) | null;
+  /** How the driver's body sits (bikes default to astride, hands on the bars, boots on the pegs). */
+  rider?: (f: Frame) => RiderDef;
   /** The drawn barrel / launcher: muzzle point(s) and launch angle in degrees above forward. */
   gun?: (f: Frame) => { at: Pt[]; aim: number };
   /** Animated decoration (smoke, steam, sparks, beams…): drawn only, outside the sprite and the physics. */
@@ -1110,6 +1116,16 @@ const darken = (h: string, k: number) => {
 
 const scalePt = (p: Pt, s: number): Pt => [+(p[0] * s).toFixed(3), +(p[1] * s).toFixed(3)];
 
+/** Round lamp outline (render only). */
+function circ8(cx: number, cy: number, r: number, mat: CarMat): CarPoly {
+  const pts: Pt[] = [];
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push([+(cx + Math.cos(a) * r).toFixed(3), +(cy + Math.sin(a) * r).toFixed(3)]); }
+  return { pts, mat };
+}
+
+/** How much higher a bike rider's helmet sits than the bare frame had it (room for the body). */
+const BIKE_SIT = 0.36;
+
 /** Car-local y where sled runners meet the ground. */
 export const SLED_GLIDE = 0.27;
 
@@ -1131,6 +1147,9 @@ export function buildCar(spec: CarSpec): CarDef {
     f.wheels = f.wheels.map((w) => ({ ...w, y: +(g - w.r).toFixed(3), hidden: true }));
   }
   if (spec.head) { const [hx, hy] = spec.head(f); f.head = { ...f.head, x: hx, y: hy }; }
+  // A rider astride a bike sits up on it: the helmet rides a body's height above the seat.
+  const bikeLike = spec.frame === 'bike' || spec.frame === 'trike';
+  if (bikeLike && !spec.rider) f.head = { ...f.head, y: +(f.head.y - BIKE_SIT).toFixed(3) };
   const skinned = !!spec.skin;
   const polys = skinned ? f.polys.map((p) => ({ ...p, hide: true })) : [...f.polys];
   const windows = skinned ? [] : [...f.windows];
@@ -1183,6 +1202,18 @@ export function buildCar(spec: CarSpec): CarDef {
       polys.push(q);
     }
   }
+  // Bikes carry a big round headlamp with a beam ahead: a bike reads as a bike at a glance.
+  let lampAt: Pt | null = null;
+  if (bikeLike && spec.lamp !== null) {
+    const fw = f.wheels[f.wheels.length - 1];
+    const [lx, ly] = lampAt = spec.lamp?.(f) ?? [fw.x - 0.16, -0.42];
+    polys.push(
+      { ...circ8(lx - 0.02, ly, 0.2, 'black'), deco: true },
+      { ...circ8(lx, ly, 0.17, 'chrome'), deco: true },
+      { ...circ8(lx + 0.02, ly, 0.12, 'light'), deco: true },
+      { ...circ8(lx + 0.05, ly - 0.04, 0.045, 'white'), deco: true, flat: true },
+    );
+  }
   const s = spec.s ?? 1;
   const pre = PRESETS[arch];
   const body = polys.map((p) => ({ ...p, pts: p.pts.map((q) => scalePt(q, s)) }));
@@ -1213,6 +1244,9 @@ export function buildCar(spec: CarSpec): CarDef {
   };
   if (boost) def.boost = { accel: 9, fuel: 1.3, regen: 0.35 };
   if (spec.noLights) def.lights = false;
+  if (spec.stride) def.stride = +(spec.stride * s).toFixed(3);
+  // swinging limbs pivot at car-local points too: scale them with the car
+  if (s !== 1) for (const p of def.body) if (p.gait) p.gait = { ...p.gait, at: scalePt(p.gait.at, s), ...(p.gait.spin ? { spin: p.gait.spin * s } : {}) };
   if (spec.cargo) {
     const [kind, n] = spec.cargo;
     const [cx0, cx1, cy] = spec.cargoAt?.(f) ?? [f.deck.x0, f.deck.x1, f.deck.y];
@@ -1232,7 +1266,11 @@ export function buildCar(spec: CarSpec): CarDef {
     const g = spec.gun(f);
     def.gun = { at: g.at.map((q) => scalePt(q, s)), aim: +((g.aim * Math.PI) / 180).toFixed(3) };
   }
-  if (spec.fx) def.fx = spec.fx(f).map((e) => ({ ...e, at: scalePt(e.at, s), ...(e.to ? { to: scalePt(e.to, s) } : {}), size: +((e.size ?? 0.2) * s).toFixed(3) }));
+  if (lampAt) {
+    const beam: FxDef = { kind: 'beam', at: [lampAt[0] + 0.14, lampAt[1]], to: [lampAt[0] + 1.2, lampAt[1] + 0.14], size: 0.22, mat: 'light' };
+    def.fx = [beam, ...(def.fx ?? [])].map((e) => e === beam ? { ...e, at: scalePt(e.at, s), to: scalePt(e.to!, s), size: +(0.22 * s).toFixed(3) } : e);
+  }
+  if (spec.fx) def.fx = [...(def.fx ?? []), ...spec.fx(f).map((e) => ({ ...e, at: scalePt(e.at, s), ...(e.to ? { to: scalePt(e.to, s) } : {}), size: +((e.size ?? 0.2) * s).toFixed(3) }))];
   // Frame limbs first (so a car's own links can hang off them: a jaw on a neck), then the car's, then its parts'.
   const nLimb = f.limbs?.length ?? 0;
   const linkSpecs = [...autoLinks.slice(0, nLimb), ...(spec.links?.(f) ?? []), ...autoLinks.slice(nLimb)];
@@ -1258,6 +1296,11 @@ export function buildCar(spec: CarSpec): CarDef {
   // A piece with a driven wheel (a horse) pulls the car: then the car's own wheels just roll.
   if (def.links?.some((l) => l.wheels?.some((w) => w.drive === true))) def.wheels = def.wheels.map((w) => ({ ...w, drive: false }));
   if (spec.headOn !== undefined) def.headOn = spec.headOn;
+  {
+    // Astride a bike: the rider leans to the bars, boots on the pegs, drawn over the bike.
+    const rd = spec.rider?.(f) ?? (bikeLike ? { pose: 'ride' as const, front: true, hand: [f.wheels[f.wheels.length - 1].x - 0.64, -0.66] as Pt, foot: [f.head.x + 0.1, 0.06] as Pt } : undefined);
+    if (rd) def.rider = { ...rd, ...(rd.hand ? { hand: scalePt(rd.hand, s) } : {}), ...(rd.foot ? { foot: scalePt(rd.foot, s) } : {}) };
+  }
   if (f.cabin && !spec.head && spec.headOn === undefined) def.cabin = true;
   if (spec.float ?? f.float) def.float = spec.float ?? f.float;
   // Running gear: a skin's track belt makes a tracked car, sled runners and hover skirts their own kinds.

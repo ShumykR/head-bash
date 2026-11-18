@@ -353,7 +353,7 @@ export const RETRO = group('retro', [
     ],
   }],
   ['wrecking-crane', 'Wrecking Ball Crane', 'Кран зі справжнім ядром на ланцюгу: воно розгойдується і трощить усе.', 'truck', ['#f0b020', '#2a2a2a'], {
-    flail: { from: [2.8, -1.85], len: 1.1, r: 0.36, look: 'wrecking', on: 0 },
+    flail: { from: [2.8, -1.85], len: 0.95, r: 0.36, look: 'wrecking', on: 0 },
     wheelie: 0.45, air: 1.3,
     // The jib is hinged at the turret and nods under the swinging ball.
     links: (f) => [{
@@ -500,7 +500,8 @@ export const RETRO = group('retro', [
     ],
   }],
   ['steamroller', 'Steamroller', 'Паровий дорожній коток: розплющує все на шляху.', 'box', ['#e0b020', '#3a3a3a'], {
-    s: 0.9, parts: ['roller', 'stack'], hideParts: true,
+    // a stubby boiler behind the driver, much too short for the roller in front: on purpose
+    s: 0.9, o: o({ len: 0.72 }), parts: ['roller', 'stack'], hideParts: true,
     skin: (f) => [
       rr(f.tail.x, -0.4, f.nose.x - 0.1, 0.25, 0.08, 'body'),
       tank(-0.3, f.nose.x - 0.05, -0.6, 0.28, 'black'), ...[0.2, 0.55].map((x) => rect(x, -0.88, x + 0.08, -0.32, 'gold', { flat: true })),
@@ -527,8 +528,11 @@ export const RETRO = group('retro', [
     o: o({ wheel: 1.1 }), arch: 'bouncy',
     skin: (f) => [...bike(f, { style: 'dirt' }), circ(0.15, -0.12, 0.12, 'white'), rect(0.12, -0.18, 0.18, -0.06, 'black', { flat: true })],
   }],
-  ['car-carrier', 'Car Carrier', 'Тягач із двоярусним автовозом-напівпричепом, повним машинок.', 'truck', ['#3a5ab0', '#e0e0e0'], {
+  ['car-carrier', 'Car Carrier', 'Тягач із двоярусним автовозом-напівпричепом. Машинки на верхньому ярусі стоять вільно й висипаються на ямах і під ударами.', 'truck', ['#3a5ab0', '#e0e0e0'], {
     o: o({ len: 0.55, wheels: 2 }), wheelie: 0.15,
+    // The top deck is open: its toy cars are loose cargo, like the logs on the timber lorry.
+    cargo: ['toycar', 3],
+    cargoAt: (f) => [f.wheels[0].x - 3.25, f.wheels[0].x - 0.05, f.deck.y - 0.78],
     skin: (f) => [...truckCab(f)],
     links: (f) => [semi(f, (x0, x1, y) => {
       const mini = (x: number, yy: number, m: 'red' | 'yellow' | 'green' | 'blue') => [
@@ -538,12 +542,13 @@ export const RETRO = group('retro', [
         rect(x + 0.93, yy - 0.16, x + 1.0, yy - 0.1, 'light'), stripe(x + 0.05, x + 0.95, yy - 0.1, 0.03, 'white'),
       ];
       return {
-        hit: [rect(x0 + 0.05, y - 0.78, x1 - 0.45, y - 0.68), rect(x0 + 0.02, y - 1.2, x0 + 0.12, y), rect(x1 - 0.55, y - 1.2, x1 - 0.45, y)],
+        // low stops at both ends of the top deck: the cars roll off over them on a bump
+        hit: [rect(x0 + 0.05, y - 0.78, x1 - 0.45, y - 0.68), rect(x0 + 0.02, y - 0.9, x0 + 0.12, y), rect(x1 - 0.55, y - 0.9, x1 - 0.45, y)],
         art: [
-          ...[x0 + 0.02, (x0 + x1) / 2 - 0.25, x1 - 0.55].map((x) => rect(x, y - 1.2, x + 0.09, y, 'chrome')),
-          rect(x0, y - 0.8, x1 - 0.45, y - 0.7, 'chrome'), rect(x0, y - 1.24, x1 - 0.45, y - 1.17, 'chrome'),
+          ...[x0 + 0.02, (x0 + x1) / 2 - 0.25, x1 - 0.55].map((x) => rect(x, y - 0.9, x + 0.09, y, 'chrome')),
+          rect(x0, y - 0.8, x1 - 0.45, y - 0.7, 'chrome'),
+          ...[x0 + 0.02, x1 - 0.55].map((x) => rect(x - 0.03, y - 0.94, x + 0.12, y - 0.88, 'yellow')),
           ...mini(x0 + 0.25, y - 0.1, 'red'), ...mini(x0 + 1.45, y - 0.1, 'yellow'), ...mini(x0 + 2.6, y - 0.1, 'blue'),
-          ...mini(x0 + 0.5, y - 0.88, 'green'), ...mini(x0 + 1.9, y - 0.88, 'red'),
         ],
       };
     })],
@@ -564,7 +569,8 @@ export const RETRO = group('retro', [
     ],
   }],
   ['forklift-truck', 'Forklift Truck', 'Складський навантажувач: вила підхоплюють суперника.', 'box', ['#ffc020', '#2a2a2a'], {
-    axles: [0.75, 1.1],
+    // short as the real thing: the seat sits right over the counterweight, no deck behind it
+    o: o({ len: 0.7 }), axles: [0.75, 1.1],
     s: 0.85, arch: 'scoop',
     skin: (f) => [
       rr(f.tail.x, -0.35, f.nose.x - 0.1, 0.3, 0.08, 'body'),

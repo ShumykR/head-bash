@@ -152,10 +152,10 @@ export const WINTER = group('winter', [
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
     float: 0.8, cargo: ['gift', 3],
-    // As in Drive Ahead, two reindeer pull the sleigh, on little wheels under their hooves. They are one
+    // As in Drive Ahead, two reindeer pull the sleigh, trotting on hidden little wheels under their hooves. They are one
     // real piece, hitched to the sleigh's nose: you can hit them and they bump over the ground.
     links: () => {
-      const g = 0.27 - 0.2, w = (x: number) => ({ x, y: g + 0.1, r: 0.1, rim: 'disc' as const, drive: false });
+      const g = 0.27, w = (x: number) => ({ x, y: g - 0.1, r: 0.1, rim: 'disc' as const, drive: false, hidden: true });
       return [{
         at: [1.45, -0.25], swing: [-12, 12], spring: 10, density: 0.25,
         wheels: [w(1.75), w(2.45), w(2.35), w(3.05)],
@@ -163,7 +163,7 @@ export const WINTER = group('winter', [
         art: [
           ...steed(2.75, g, { mat: 'brown', deer: true, s: 0.95 }),
           ...path([[1.45, -0.3], [2.5, -0.65], [2.95, -0.72]], 0.035, 'gold'),
-          ...steed(2.15, g + 0.02, { mat: 'brown', deer: true, nose: 'red', s: 1.0 }),
+          ...steed(2.15, g + 0.02, { mat: 'brown', deer: true, nose: 'red', s: 1.0, phase: 0.25 }),
           ...path([[1.45, -0.25], [2.1, -0.6]], 0.035, 'gold'),
         ],
       }];
@@ -296,11 +296,12 @@ export const WINTER = group('winter', [
       const t0 = a.x - a.r - 0.1, t1 = b.x - 0.25, ty0 = g - 0.62;
       return [
         // rubber track under the rear two thirds, with lugs, bogies and a sprocket
-        rr(t0, ty0, t1, g, 0.31, 'rubber'),
-        ...Array.from({ length: 11 }, (_, i) => rect(t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) - 0.04, g - 0.02, t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) + 0.04, g + 0.05, 'rubber')),
-        rr(t0 + 0.1, ty0 + 0.1, t1 - 0.1, g - 0.1, 0.21, 'dark'),
-        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.15, 'grey')),
-        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.05, 'chrome')),
+        // (running gear: the game draws the belt live, its lugs and bogies turning as it drives)
+        rr(t0, ty0, t1, g, 0.31, 'rubber', { gear: true }),
+        ...Array.from({ length: 11 }, (_, i) => rect(t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) - 0.04, g - 0.02, t0 + 0.2 + i * ((t1 - t0 - 0.4) / 10) + 0.04, g + 0.05, 'rubber', { gear: true })),
+        rr(t0 + 0.1, ty0 + 0.1, t1 - 0.1, g - 0.1, 0.21, 'dark', { gear: true }),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.15, 'grey', { gear: true })),
+        ...Array.from({ length: 5 }, (_, i) => circ(t0 + 0.32 + i * ((t1 - t0 - 0.64) / 4), g - 0.3, 0.05, 'chrome', { gear: true })),
         // front ski on a sprung leg
         ...path([[b.x - 0.1, ty0 + 0.05], [b.x + 0.05, g - 0.08]], 0.11, 'dark'),
         ...path([[b.x - 0.4, g - 0.04], [b.x + 0.35, g - 0.04], [b.x + 0.55, g - 0.16], [b.x + 0.55, g - 0.3]], 0.09, 'chrome'),
@@ -369,8 +370,9 @@ export const WINTER = group('winter', [
     o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true, glide: 0.82,
     skin: () => [
       // track loop under a robot dog
-      rr(-1.05, 0.18, 1.05, 0.82, 0.3, 'rubber'), rr(-0.92, 0.28, 0.92, 0.72, 0.2, 'dark'),
-      ...[-0.65, -0.2, 0.25, 0.7].map((x) => circ(x, 0.5, 0.11, 'grey')),
+      // (running gear: the game draws the belt live round the road wheels, its lugs running)
+      rr(-1.05, 0.18, 1.05, 0.82, 0.3, 'rubber', { gear: true }), rr(-0.92, 0.28, 0.92, 0.72, 0.2, 'dark', { gear: true }),
+      ...[-0.65, -0.2, 0.25, 0.7].map((x) => circ(x, 0.5, 0.11, 'grey', { gear: true })),
       // dog body: rounded steel barrel with a blue collar and back plates
       blob([[-1.25, 0.1], [-1.2, -0.45], [-0.6, -0.65], [0.5, -0.65], [0.95, -0.45], [1.0, 0.1]], 'metal', {}, 2),
       ...[[-0.95, -0.4], [-0.45, -0.52], [0.05, -0.52]].map(([x, y]) => rr(x, y, x + 0.4, y + 0.3, 0.05, 'grey', { ring: true })),
@@ -444,13 +446,15 @@ export const WINTER = group('winter', [
   }],
   ['penguin-prisoner', 'Penguin Prisoner', 'Візок із пінгвіном у клітці. Пінгвін може вистрибнути!', 'cart', ['#3a3a4a', '#ffa020'], {
     // The penguin rides in a barred cage at the back, the driver sits up front.
-    o: o({ len: 1.35 }), cargo: ['penguin', 1], noLights: true, wheelie: 0.6,
-    cargoAt: (f) => [f.tail.x + 0.12, f.tail.x + 0.62, f.deck.y],
+    o: o({ len: 1.2 }), cargo: ['penguin', 1], noLights: true, wheelie: 0.6,
+    cargoAt: (f) => [f.tail.x + 0.12, f.tail.x + 0.88, f.deck.y],
     head: (f) => [f.nose.x - 0.42, f.deck.y - 0.32],
     skin: (f) => [
       // the cage: roof and bars in front of the penguin (the penguin itself is the cargo, it can hop out)
-      rr(f.tail.x - 0.02, f.deck.y - 0.86, f.tail.x + 0.76, f.deck.y - 0.76, 0.03, 'accent'),
-      ...[0.02, 0.37, 0.7].map((dx) => rect(f.tail.x + dx, f.deck.y - 0.78, f.tail.x + dx + 0.05, f.deck.y, 'grey')),
+      // a big cage right behind the driver's seat
+      rr(f.tail.x - 0.04, f.deck.y - 1.06, f.tail.x + 1.04, f.deck.y - 0.95, 0.03, 'accent'),
+      ...[0.0, 0.33, 0.66, 0.96].map((dx) => rect(f.tail.x + dx, f.deck.y - 0.97, f.tail.x + dx + 0.06, f.deck.y, 'grey')),
+      rect(f.tail.x, f.deck.y - 0.55, f.tail.x + 1.02, f.deck.y - 0.5, 'grey'),
       rr(f.tail.x, f.deck.y, f.nose.x, 0.18, 0.05, 'body'),
       stripe(f.tail.x, f.nose.x, f.deck.y + 0.2, 0.08, 'accent'),
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.1 + i * 0.32, 0.12], [f.tail.x + 0.25 + i * 0.32, 0.12], [f.tail.x + 0.35 + i * 0.32, f.deck.y + 0.08], [f.tail.x + 0.2 + i * 0.32, f.deck.y + 0.08]], 'yellow', { flat: true })),

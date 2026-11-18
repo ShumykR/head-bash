@@ -33,6 +33,26 @@ export interface CarPoly {
   ammo?: boolean;
   /** Render only: running gear at rest (a track belt) that the game draws live, following the wheels. */
   gear?: boolean;
+  /**
+   * Render only: a limb that swings as the car rolls (a horse's leg, a porter's stride, a spider's
+   * leg). It turns about `at` by `amp` degrees each way, once per stride, `phase` (0..1) into it.
+   * Pieces with the same pivot, swing and phase move as one.
+   */
+  gait?: Gait;
+}
+
+/** `spin`: the piece turns round and round instead (a roller of that radius rolling along). */
+export interface Gait { at: Pt; amp: number; phase?: number; spin?: number }
+
+/** How the driver sits: in a seat (legs out in front, under the bodywork) or astride, feet on the pegs. */
+export interface RiderDef {
+  pose: 'sit' | 'ride' | 'stand';
+  /** Where the gloves hold on (handlebar grip), car-local. */
+  hand?: Pt;
+  /** Where the boots rest (foot peg), car-local. */
+  foot?: Pt;
+  /** Drawn over the car (a rider astride a bike) rather than behind its bodywork. */
+  front?: boolean;
 }
 
 export interface WheelDef {
@@ -69,7 +89,7 @@ export type AbilityKind =
   | 'jump' | 'stomp' | 'bounce' | 'rear' | 'surprise' | 'ollie' | 'pounce' | 'hydraulics' | 'backflip' | 'moonjump'
   // rushes and strikes
   | 'nitro' | 'drs' | 'dash' | 'sting' | 'gore' | 'flip' | 'bump' | 'bite' | 'frenzy' | 'slide'
-  | 'punch' | 'kick' | 'scoop' | 'tailwhip'
+  | 'punch' | 'kick' | 'scoop' | 'tailwhip' | 'rocketfist'
   // area effects
   | 'slam' | 'puff' | 'roar' | 'discharge' | 'howl' | 'stasis' | 'beam' | 'storm'
   // self
@@ -90,7 +110,7 @@ export type ItemKind =
   | 'ball' | 'log' | 'barrel' | 'gift' | 'pumpkin' | 'snowball' | 'trash' | 'rock' | 'egg' | 'bone'
   | 'crate' | 'hay' | 'cow' | 'penguin' | 'coal' | 'mine' | 'bomb' | 'peel'
   | 'icecream' | 'coffin' | 'concrete' | 'oil' | 'tar' | 'spikes' | 'sandbag' | 'melon' | 'tire'
-  | 'icewall' | 'flame' | 'cone' | 'toyblock';
+  | 'icewall' | 'flame' | 'cone' | 'toyblock' | 'toycar';
 
 export interface AbilityDef {
   kind: AbilityKind;
@@ -190,7 +210,15 @@ export interface CarDef {
   /** Running gear (default: wheels). */
   drive?: DriveKind;
   /** A live track belt round the wheels: how far it stands off the wheel rims and its material. */
-  belt?: { grow: number; mat: CarMat };
+  belt?: {
+    grow: number; mat: CarMat;
+    /**
+     * A belt that runs round its own idlers rather than the road wheels (a snow coach's track under
+     * the rear of the body, with a ski in front): idler centres x0..x1 at height y, radius r, car-local,
+     * and that many bogie wheels drawn turning inside it.
+     */
+    idlers?: { x0: number; x1: number; y: number; r: number; bogies: number };
+  };
   /** Render-only decoration: window polygons, stripes. */
   windows?: Pt[][];
   stripe?: { y: number; h: number };
@@ -234,6 +262,10 @@ export interface CarDef {
   flail?: FlailDef;
   /** The driver sits inside a cab under a roof: only the helmet shows, in the open window. */
   cabin?: boolean;
+  /** The driver's small body under the helmet (default: seated). */
+  rider?: RiderDef;
+  /** Stride of the animated limbs (`gait` pieces), metres rolled per step cycle (default 1.2). */
+  stride?: number;
   /** Moving pieces on hinges (trailers, booms, tails, saws). */
   links?: LinkDef[];
   /** The driver rides on this link (a crane basket, a howdah) instead of the chassis; `head` stays in car-local rest coordinates. */

@@ -325,7 +325,6 @@ export function bike(f: Frame, o: { mat?: CarMat; style?: 'road' | 'chopper' | '
   // fenders
   out.push(fender(rw.x, rw.y, rw.r, 0.1, m), fender(fw.x, fw.y, fw.r, 0.1, st === 'dirt' ? 'white' : m));
   out.push(seg(forkTop, [forkTop[0] - 0.1, forkTop[1] - 0.2], 0.08, 'chrome'), seg([forkTop[0] - 0.1, forkTop[1] - 0.2], [forkTop[0] - 0.32, forkTop[1] - 0.22], 0.08, 'black'));
-  out.push(circ(forkTop[0] + 0.12, forkTop[1] + 0.08, 0.1, 'chrome'), circ(forkTop[0] + 0.14, forkTop[1] + 0.08, 0.065, 'light'));
   if (o.fairing || st === 'sport') out.push(blob([[forkTop[0] - 0.15, forkTop[1] - 0.12], [forkTop[0] + 0.05, forkTop[1] - 0.28], [forkTop[0] + 0.28, forkTop[1] + 0.1], [hx + 0.6, 0.18], [hx + 0.35, -0.06]], m, {}, 1));
   out.push(rearLamp(rw.x - 0.36, -0.1, 0.1));
   return out;
