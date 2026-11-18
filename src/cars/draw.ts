@@ -158,13 +158,47 @@ export function truss(a: Pt, b: Pt, w = 0.2, mat: CarMat = 'yellow', n = 0): Car
   }
   return out;
 }
-/** Seat back behind the driver. */
+/** Seat back behind the driver (drawn behind the driver's body). */
 export const seat = (x: number, y: number, h = 0.42, mat: CarMat = 'black'): CarPoly[] => [
-  rr(x - 0.24, y - h, x - 0.08, y, 0.06, mat),
-  rr(x - 0.24, y - 0.1, x + 0.2, y, 0.04, mat),
+  rr(x - 0.24, y - h, x - 0.08, y, 0.06, mat, { back: true }),
+  rr(x - 0.24, y - 0.1, x + 0.2, y, 0.04, mat, { back: true }),
 ];
 /** Steering wheel in front of the driver. */
 export const wheel = (x: number, y: number): CarPoly[] => [seg([x, y], [x + 0.16, y - 0.24], 0.06, 'black'), seg([x + 0.08, y - 0.34], [x + 0.24, y - 0.14], 0.07, 'black')];
+/**
+ * An open cockpit let into a body drawn before it: the near side is cut down to `sill` between
+ * x0 and x1 (rounded at the bottom), and behind the driver go the far wall of the tub (`top` down
+ * to below the sill), a seat back with a headrest at `seat` (its base) and a steering wheel whose
+ * rim the glove holds at `grip`. Place it right after the body it cuts; details drawn after it
+ * (stripes, a windscreen, a roll bar) stay whole.
+ */
+export function cockpit(x0: number, x1: number, top: number, sill: number, o: { seat?: Pt; seatH?: number; grip?: Pt; inner?: CarMat; seatMat?: CarMat; round?: number; window?: boolean } = {}): CarPoly[] {
+  const rd = o.round ?? Math.min(0.12, (sill - top) * 0.6);
+  // window: a closed cab's door window cut down to the sill (top is then the roof's underside)
+  const hole = o.window ? rr(x0, top, x1, sill, Math.min(0.06, rd)) : rr(x0, top - 0.6, x1, sill, rd);
+  const out: CarPoly[] = [{ ...hole, deco: true, cut: true }];
+  out.push(rr(x0 - 0.04, top, x1 + 0.04, sill + 0.08, 0.04, o.inner ?? 'grey', { back: true, under: true }));
+  if (o.seat) {
+    const [sx, sy] = o.seat, h = o.seatH ?? 0.5, m = o.seatMat ?? 'black';
+    out.push(rr(sx - 0.16, sy - h, sx, sy, 0.06, m, { back: true }), rr(sx - 0.18, sy - h - 0.06, sx - 0.02, sy - h + 0.14, 0.05, m, { back: true }));
+  }
+  if (o.grip) {
+    const [gx, gy] = o.grip;
+    out.push(seg([gx - 0.03, gy - 0.1], [gx + 0.05, gy + 0.12], 0.06, 'black', { back: true }), seg([gx + 0.02, gy + 0.04], [gx + 0.22, gy + 0.2], 0.05, 'chrome', { back: true }));
+  }
+  return out;
+}
+/**
+ * A shallow notch in the bodywork right under the helmet, so the driver's shoulders show over the
+ * door: cut from just above the helmet's bottom down `depth` below it, with the far side of the
+ * cab behind. Roof, screen and pillars stay; place it after the bodywork it notches and before the
+ * details that must stay whole.
+ */
+export function shoulders(head: { x: number; y: number; r: number }, o: { depth?: number; back?: number; front?: number; inner?: CarMat } = {}): CarPoly[] {
+  const u = head.r / 0.26, bot = head.y + head.r * 1.2;
+  const x0 = head.x - (o.back ?? 0.2) * u, x1 = head.x + (o.front ?? 0.22) * u;
+  return cockpit(x0, x1, bot - 0.1 * u, bot + (o.depth ?? 0.2) * u, { window: true, inner: o.inner, round: 0.05 });
+}
 /** Handlebar for bikes. */
 export const handlebar = (x: number, y: number, h = 0.4): CarPoly[] => [seg([x, y], [x - 0.08, y - h], 0.07, 'chrome'), seg([x - 0.08, y - h], [x - 0.26, y - h - 0.02], 0.07, 'black')];
 /** Upright exhaust stack. */

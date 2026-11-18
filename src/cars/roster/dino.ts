@@ -1,4 +1,4 @@
-import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong } from '../draw';
+import { arc, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, shoulders } from '../draw';
 import { arm, browEye, dims, maw, quadruped, saddle, theropod } from '../critters';
 import type { CarMat, CarPoly, Pt } from '../types';
 import { group, o } from './util';
@@ -14,6 +14,7 @@ export const DINO = group('dino', [
         ...quadruped(f, { hump: 0.08, peak: 0.3, belly: null, tail: 0.3, tailUp: -0.1, leg: 0.38, saddle: null, chest: 1.0 }),
         // shaggy coat hanging over the legs
         ...[-1.0, -0.72, -0.44, -0.16, 0.12, 0.4, 0.68].map((x) => poly([[x - 0.04, -0.1], [x + 0.28, -0.1], [x + 0.1, 0.12]], 'body')),
+        ...shoulders(f.head),
         ...[[-0.75, -0.75], [0.15, -0.8], [-0.3, -0.4], [0.4, -0.38]].map(([x, y]) => poly([[x - 0.12, y], [x + 0.12, y - 0.04], [x + 0.02, y + 0.18]], 'dark', { flat: true })),
         // domed head, big ear, trunk curling down, long tusks sweeping forward and up
         blob([[0.85, -1.2], [1.2, -1.28], [1.48, -0.98], [1.45, -0.45], [1.15, -0.25], [0.85, -0.5]], 'body', {}, 2),
@@ -30,6 +31,7 @@ export const DINO = group('dino', [
     s: 1.1, o: o({ mat: 'wood', wheel: 1.3 }), noLights: true,
     skin: (f) => [
       ...[-0.25, -0.05].map((y) => rr(f.tail.x, y - 0.06, f.nose.x, y + 0.06, 0.06, 'wood')),
+      ...shoulders(f.head),
       ...[-0.7, 0.0, 0.6].map((x) => rect(x, -0.3, x + 0.08, 0.1, 'brown')),
       ...path([[-0.7, -0.05], [-0.6, -0.85]], 0.08, 'wood'), ...path([[0.5, -0.05], [0.4, -0.85]], 0.08, 'wood'),
       blob([[-0.85, -0.85], [-0.1, -0.95], [0.6, -0.85], [0.5, -0.7], [-0.75, -0.72]], 'tan', {}, 1),
@@ -52,6 +54,7 @@ export const DINO = group('dino', [
       blob([[1.0, -0.9], [1.35, -0.92], [2.1, -0.66], [1.4, -0.56], [1.05, -0.62]], 'body', {}, 1),
       poly([[1.4, -0.62], [2.1, -0.66], [1.4, -0.58]], 'dark', { flat: true }),
       ...browEye(1.25, -0.78, 0.07, 'black', 'accent'),
+      ...shoulders(f.head),
     ],
   }],
   ['sauropod', 'Sauropod', 'Довгошиїй завропод: голова високо, хвіст довгий.', 'creature', ['#6aa04a', '#c0e080'], {
@@ -60,6 +63,7 @@ export const DINO = group('dino', [
       ...quadruped(f, { hump: 0.25, peak: -0.1, tail: 1.15, tailUp: 0.0, leg: 0.34, belly: 'accent' }),
       // long neck rising in a gentle S to a small head
       ...path([[0.65, -0.7], [1.05, -1.0], [1.3, -1.25], [1.45, -1.42]], 0.42, 'body'),
+      ...shoulders(f.head),
       ...path([[0.9, -0.42], [1.2, -0.8], [1.38, -1.15]], 0.1, 'accent'),
       blob([[1.2, -1.55], [1.55, -1.75], [1.95, -1.6], [1.95, -1.36], [1.32, -1.3]], 'body', {}, 1),
       rect(1.55, -1.42, 1.84, -1.39, 'dark', { flat: true }),
@@ -80,6 +84,7 @@ export const DINO = group('dino', [
         ...[[-1.6, -0.62], [-1.8, -0.6]].map(([x, y]) => poly([[x - 0.06, y], [x + 0.06, y], [x - 0.08, y - 0.3]], 'bone')),
         // small low head
         blob([[0.8, -0.65], [1.2, -0.72], [1.6, -0.62], [1.72, -0.48], [1.2, -0.4], [0.85, -0.38]], 'body', {}, 1),
+        ...shoulders(f.head),
         rect(1.35, -0.48, 1.68, -0.45, 'dark', { flat: true }),
         ...eyeball(1.35, -0.6, 0.06),
       ];
@@ -96,6 +101,7 @@ export const DINO = group('dino', [
       ...[[0.56, -1.18], [0.72, -1.45], [0.98, -1.52]].map(([x, y]) => circ(x, y, 0.065, 'bone')),
       // big head with a hooked beak
       blob([[0.85, -1.12], [1.35, -1.15], [1.72, -0.92], [1.8, -0.62], [1.5, -0.5], [0.95, -0.55]], 'body', {}, 1),
+      ...shoulders(f.head),
       poly([[1.66, -0.92], [1.95, -0.72], [1.66, -0.58]], 'dark'),
       // three horns: two long brow horns forward, a short one on the nose
       poly([[1.18, -1.04], [1.36, -1.16], [2.05, -1.34]], 'bone'), poly([[1.3, -0.96], [1.46, -1.08], [2.1, -1.14]], 'bone'),
@@ -120,6 +126,7 @@ export const DINO = group('dino', [
       ...theropod(f, { bulk: 1, tail: 1.0, tailUp: 0.35, saddle: null }),
       // neck and the huge boxy skull
       blob([[0.75, -1.0], [1.2, -1.18], [1.42, -0.72], [1.05, -0.45]], 'body', {}, 1),
+      ...shoulders(f.head),
       blob([[1.15, -1.2], [1.65, -1.28], [2.05, -1.15], [2.24, -0.95], [2.22, -0.68], [1.4, -0.64], [1.15, -0.85]], 'body', {}, 1),
       poly([[1.35, -0.66], [2.2, -0.68], [2.14, -0.56], [1.4, -0.54]], 'black', { flat: true }),
       ...fangs(1.5, 2.18, -0.67, 5, 0.11),
@@ -146,6 +153,7 @@ export const DINO = group('dino', [
       ...arm(0.85, -0.42),
       // the sickle claw
       ...path([[0.82, 0.12], [0.98, 0.04], [1.02, 0.14]], 0.07, 'bone'),
+      ...shoulders(f.head, { depth: 0.34 }),
     ],
   }],
   ['fossil', 'Fossil', 'Ожилий скелет: кістки, ребра й порожні очниці.', 'creature', ['#e8dcc0', '#8a7a5a'], {
@@ -161,6 +169,7 @@ export const DINO = group('dino', [
           const t = i / 7, x = -0.95 + (tx + 0.95) * t, y = -0.62 + 0.42 * t * t;
           return [circ(x, y, 0.09 - t * 0.05, 'bone'), poly([[x - 0.03, y - 0.04], [x + 0.03, y - 0.04], [x - 0.02, y - 0.16 + t * 0.08]], 'bone', { flat: true })];
         }).flat(),
+        ...shoulders(f.head),
         // backbone with a crest of neural spines
         ...path(Array.from({ length: 7 }, (_, i) => spine(i / 6)), 0.11, 'bone'),
         ...Array.from({ length: 9 }, (_, i) => {
@@ -186,8 +195,9 @@ export const DINO = group('dino', [
   }],
   ['egg-mobile', 'Egg Mobile', 'Капсула-яйце динозавра. Закидає яйця-перешкоди вперед.', 'blob', ['#f0e8d0', '#7ab04a'], {
     o: o({ shape: 'egg' }), noLights: true,
-    skin: () => [
+    skin: (f) => [
       blob([[-0.75, 0.2], [-0.95, -0.35], [-0.6, -1.05], [0.0, -1.3], [0.6, -1.05], [0.95, -0.35], [0.75, 0.2]], 'body', {}, 2),
+      ...shoulders(f.head),
       ...[[-0.4, -0.7, 0.14], [0.3, -0.95, 0.1], [0.5, -0.3, 0.12], [-0.5, -0.15, 0.09], [0.1, -0.5, 0.07]].map(([x, y, r]) => ell(x, y, r, r * 0.8, 'accent')),
       ...path([[-0.9, -0.55], [-0.6, -0.65], [-0.4, -0.5], [-0.2, -0.62], [-0.05, -0.5], [0.15, -0.6]], 0.05, 'brown'),
       ...eyeball(0.55, -0.6, 0.1),
@@ -202,6 +212,7 @@ export const DINO = group('dino', [
       ...[-0.75, -0.4, -0.05, 0.3].map((x) => poly([[x - 0.1, -0.72], [x + 0.1, -0.74], [x + 0.02, -0.45]], 'accent', { flat: true })),
       // neck up to a duck-billed head with the long tube crest swept back
       ...path([[0.7, -0.5], [1.05, -0.8], [1.25, -0.95]], 0.34, 'body'),
+      ...shoulders(f.head),
       ...path([[1.25, -1.12], [0.95, -1.28], [0.62, -1.36], [0.42, -1.34]], 0.17, 'accent'),
       ...path([[1.15, -1.08], [0.9, -1.2], [0.6, -1.27]], 0.05, 'orange'),
       blob([[1.05, -1.15], [1.4, -1.18], [1.75, -0.98], [1.85, -0.82], [1.55, -0.76], [1.1, -0.78]], 'body', {}, 1),
@@ -216,6 +227,7 @@ export const DINO = group('dino', [
       ...theropod(f, { bulk: 0.9, tail: 1.0, tailUp: 0.25, stripes: null, belly: 'accent' }),
       ...spikesAlong(-1.3, 0.55, -0.82, 9, 0.13, 'dark'),
       blob([[0.62, -0.78], [1.02, -0.98], [1.15, -0.62], [0.85, -0.42]], 'body', {}, 1),
+      ...shoulders(f.head),
       blob([[0.98, -0.98], [1.4, -1.02], [1.8, -0.82], [1.84, -0.64], [1.2, -0.58], [1.0, -0.7]], 'body', {}, 1),
       ...maw(1.18, 1.82, -0.6, 0.11, 4),
       blob([[1.2, -0.56], [1.78, -0.54], [1.55, -0.42], [1.22, -0.44]], 'body', {}, 1),
@@ -243,6 +255,7 @@ export const DINO = group('dino', [
         ...fangs(n - 0.58, n - 0.02, -0.04, 4, 0.12), ...fangs(n - 0.56, n - 0.06, 0.15, 4, 0.12, true),
         ...browEye(n - 0.48, -0.3, 0.1, 'red'),
         rr(-0.95, 0.28, 0.95, 0.4, 0.05, 'dark'),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -278,6 +291,7 @@ export const DINO = group('dino', [
       rect(1.28, -0.64, 1.8, -0.58, 'black', { flat: true }), ...fangs(1.32, 1.78, -0.62, 4, 0.08),
       rr(1.2, -0.9, 1.5, -0.8, 0.03, 'red'), rect(1.35, -0.88, 1.47, -0.83, 'light', { flat: true }),
       ...arm(0.85, -0.42, 'grey'),
+      ...shoulders(f.head),
     ],
   }],
   ['ankylosaurus', 'Ankylosaurus', 'Панцерний динозавр із булавою на хвості — вона розгойдується й б\'є.', 'creature', ['#8a6a3a', '#d8b060'], {
@@ -294,6 +308,7 @@ export const DINO = group('dino', [
       ...[-0.9, -0.5, 0.35, 0.75].map((x) => poly([[x - 0.08, -0.78 + Math.abs(x) * 0.12], [x + 0.08, -0.8 + Math.abs(x) * 0.12], [x - 0.02, -1.0 + Math.abs(x) * 0.12]], 'bone')),
       // small armoured head low at the front
       blob([[0.9, -0.55], [1.25, -0.58], [1.45, -0.38], [1.42, -0.15], [0.95, -0.12]], 'body', {}, 1),
+      ...shoulders(f.head),
       poly([[1.1, -0.58], [1.3, -0.6], [1.22, -0.72]], 'bone'),
       rect(1.22, -0.24, 1.42, -0.21, 'dark', { flat: true }),
       ...browEye(1.22, -0.4, 0.06),

@@ -1,4 +1,4 @@
-import { arc, blob, circ, ell, eyeball, path, poly, rect, rr, seg, smooth, spikesAlong, stripe } from '../draw';
+import { arc, blob, circ, ell, eyeball, path, poly, rect, rr, seg, smooth, spikesAlong, stripe, shoulders } from '../draw';
 import { rocket, tracks, monsterTruck } from '../skins';
 import type { CarPoly } from '../types';
 import { crew, dims, dragonHead, quadruped, saddle } from '../critters';
@@ -44,6 +44,7 @@ export const CNY = group('cny', [
         // a calm eye: a small dark almond under a brow
         ell(hx + 0.38, hy - 0.06, 0.06, 0.035, 'black', { flat: true }), rect(hx + 0.3, hy - 0.13, hx + 0.46, hy - 0.1, 'white', { flat: true }),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -88,7 +89,7 @@ export const CNY = group('cny', [
     o: o({ shape: 'flat', mat: 'white' }), float: 0.75, noLights: true, axles: [0.6, 0.6],
     // After Drive Ahead's New Year cloud: an auspicious cloud tapering to a point at both ends,
     // three round lobes with white spirals, a gold rim underneath, a little staff behind the player.
-    skin: () => {
+    skin: (f) => {
       const curl = (cx: number, cy: number, r: number) => [arc(cx, cy, r, Math.PI * 0.85, Math.PI * 2.3, 0.08, 'accent', { flat: true }), arc(cx + r * 0.2, cy, r * 0.45, Math.PI * 1.3, Math.PI * 2.8, 0.08, 'accent', { flat: true })];
       return [
         // the staff behind the player
@@ -98,6 +99,7 @@ export const CNY = group('cny', [
         poly([[-1.42, -0.02], [-0.95, -0.25], [0.95, -0.25], [1.47, -0.02], [0.85, 0.34], [-0.85, 0.34]], 'body'),
         ell(-0.6, -0.4, 0.42, 0.36, 'body'), ell(0.2, -0.5, 0.5, 0.42, 'body'), ell(0.85, -0.28, 0.36, 0.3, 'body'),
         ...curl(-0.6, -0.38, 0.22), ...curl(0.2, -0.46, 0.27), ...curl(0.85, -0.26, 0.18),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -135,6 +137,7 @@ export const CNY = group('cny', [
         ...[[-2.4, -0.95], [-2.45, -0.75], [-2.35, -0.55]].map(([x, y]) => poly([[-1.9, top - 0.12], [-1.9, top + 0.12], [x, y]], 'accent')),
         // the body: a thick red tube rolling in waves, a dark underside, the shine on top
         ...path(pts, T, 'body'),
+        ...shoulders(f.head),
         ...path(pts.map(([x, y]) => [x, y + T * 0.36] as [number, number]), 0.05, 'dark'),
         ...shine,
         // the feet: white claws over the wheels
@@ -156,6 +159,7 @@ export const CNY = group('cny', [
       const x0 = f.tail.x, x1 = f.nose.x, r = f.roof;
       return [
         ...monsterTruck(f, { lamps: false }),
+        ...shoulders(f.head),
         // the tail curling off the tailgate, and gold scales along the flanks
         ...path([[x0 + 0.1, -0.45], [x0 - 0.3, -0.6], [x0 - 0.55, -0.95]], 0.18, 'body'), poly([[x0 - 0.45, -0.95], [x0 - 0.75, -1.25], [x0 - 0.5, -0.85], [x0 - 0.68, -0.8]], 'accent'),
         ...[-1.25, -0.95, -0.65, -0.35, -0.05, 0.25].map((x) => arc(x, -0.34, 0.12, Math.PI * 0.05, Math.PI * 0.95, 0.06, 'accent', { flat: true })),
@@ -189,6 +193,7 @@ export const CNY = group('cny', [
       blob([[1.32, -1.0], [1.74, -0.98], [1.72, -0.8], [1.3, -0.76]], 'accent', {}, 1),
       circ(1.74, -0.98, 0.06, 'black'), ...eyeball(1.32, -1.12, 0.065),
       poly([[1.45, -0.82], [1.65, -0.82], [1.55, -0.7]], 'red'),
+      ...shoulders(f.head),
     ],
   }],
   ['rocket-ride', 'Rocket Ride', 'Святкова новорічна ракета з ліхтариком.', 'rocket', ['#e02a2a', '#ffd23f'], {
@@ -199,6 +204,7 @@ export const CNY = group('cny', [
       ...[0, 1, 2, 3].map((i) => poly([[-1.35 + i * 0.5, -0.32], [-1.15 + i * 0.5, -0.32], [-1.4 + i * 0.5, 0.32], [-1.6 + i * 0.5, 0.32]], 'accent', { flat: true })),
       ...lantern(-0.6, -0.32, 0.7),
       rr(-1.2, 0.26, 1.0, 0.38, 0.04, 'dark'),
+      ...shoulders(f.head),
     ],
   }],
   ['serpent-tank', 'Serpent Dragon Tank', 'Танк у вигляді змія з драконячою пащею.', 'tracked', ['#2a8a3a', '#ffd23f'], {
@@ -221,6 +227,7 @@ export const CNY = group('cny', [
       circ(-0.2, -0.62, 0.32, 'body'), rr(-0.52, -0.68, 0.12, -0.6, 0.03, 'accent'), circ(0.06, -0.78, 0.07, 'accent'),
       // the head reared up in front
       ...dragonHead(1.05, -0.32, 0.95, { mat: 'body', snout: 'accent', mane: ['accent', 'teal'], spikes: 'red', maneLen: 0.35 }),
+      ...shoulders(f.head),
     ],
   }],
   ['cannon-carriage', 'Cannon Carriage', 'Середньовічна гармата на великих колесах.', 'cart', ['#7a4a2a', '#3a3a3a'], {
@@ -238,6 +245,7 @@ export const CNY = group('cny', [
       circ(f.tail.x + 0.25, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.48, f.deck.y - 0.12, 0.1, 'black'), circ(f.tail.x + 0.36, f.deck.y - 0.3, 0.1, 'black'),
       stripe(-0.4, 0.4, f.deck.y + 0.15, 0.06, 'red'),
       ...[0.1, 0.45, 0.8].map((dx) => circ(dx, f.deck.y - 0.25 - dx * 0.4, 0.035, 'gold')), poly([[-0.1, f.deck.y - 0.35], [0.05, f.deck.y - 0.55], [0.15, f.deck.y - 0.3]], 'red'),
+      ...shoulders(f.head),
     ],
   }],
 ]);

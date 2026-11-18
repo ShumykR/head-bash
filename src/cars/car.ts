@@ -44,6 +44,8 @@ export class Car {
   locked = false;
   boostFuel: number;
   boosting = false;
+  /** The action button is held this step: the rocket booster burns while it is (and there is fuel). */
+  boostHeld = false;
   /** Seconds the car has been stuck upside down. */
   flipTimer = 0;
   private flipDir = 1;
@@ -356,9 +358,20 @@ export class Car {
     return this.wheelsOnGround === 0 && !this.chassisTouching && !this.linkTouching;
   }
 
-  /** 0 = just used, 1 = ready. */
+  /** Has something on the action button (a special action or a rocket booster). */
+  get hasAction(): boolean {
+    return !!this.ability || !!this.def.boost;
+  }
+
+  /** Booster fuel, 0 = empty, 1 = full (0 for cars without one). */
+  get boostCharge(): number {
+    const b = this.def.boost;
+    return b ? this.boostFuel / b.fuel : 0;
+  }
+
+  /** 0 = just used, 1 = ready. A car whose only action is the booster shows its fuel. */
   get abilityCharge(): number {
-    if (!this.ability) return 0;
+    if (!this.ability) return this.boostCharge;
     return 1 - Math.max(0, this.abilityCd) / abilityCd(this.ability);
   }
 
@@ -676,15 +689,16 @@ export class Car {
       if (this.chassisTouching || this.linkTouching) this.chassis.applyForceToCenter(new Vec2(0, -this.mass * DEFAULT_GRAVITY * 0.75 * k), true);
     }
 
-    // Rocket booster.
+    // Rocket booster: burns while the action button is held, refuels while it is not.
     this.boosting = this.nitroT > 0;
     if (d.boost) {
-      if (dir === this.facing && this.boostFuel > 0) {
+      const can = this.alive && !this.locked && this.stunT <= 0 && this.shellT <= 0 && this.stasisT <= 0;
+      if (this.boostHeld && can && this.boostFuel > 0) {
         this.boosting = true;
         this.boostFuel = Math.max(0, this.boostFuel - dt);
         const fwd = this.chassis.getWorldVector(new Vec2(this.facing, 0));
         this.chassis.applyForceToCenter(fwd.mul(d.boost.accel * this.mass), true);
-      } else if (dir !== this.facing) {
+      } else if (!this.boostHeld) {
         this.boostFuel = Math.min(d.boost.fuel, this.boostFuel + dt * d.boost.regen);
       }
     }

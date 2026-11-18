@@ -7,7 +7,7 @@ import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { CARS } from '../src/cars/defs';
 import { CAR_PPM } from '../src/physics/constants';
-import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, wheelPalette } from '../src/cars/sprite';
+import { carPalette, driverPalette, generateBackGrid, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, wheelPalette } from '../src/cars/sprite';
 import { ITEMS, cargoSlots } from '../src/game/abilities';
 import { DECOR_PAL, flailGrid, itemGrid } from '../src/maps/decor';
 import type { PixelGrid } from '../src/render/grid';
@@ -18,12 +18,15 @@ const scale = +sc;
 const ids = filter.includes(',') ? filter.split(',') : null;
 const cars = CARS.filter((c) => !filter || (ids ? ids.includes(c.id) : c.category === filter || c.id === filter));
 const COLS = +(process.env.COLS ?? 6);
-const CW = 120 * scale, CH = 76 * scale;
+// HEAD=1: small cells centred on the driver (to check the driver's body car by car)
+const HEAD = !!process.env.HEAD;
+const CW = (HEAD ? 54 : 120) * scale, CH = (HEAD ? 40 : 76) * scale;
 const W = CW * COLS, H = CH * Math.ceil(cars.length / COLS);
 const img = new Uint8Array(W * H * 3);
 for (let i = 0; i < W * H; i++) { img[i * 3] = 34; img[i * 3 + 1] = 30; img[i * 3 + 2] = 52; }
+let clip = [0, 0, W, H];
 const put = (x: number, y: number, c: RGB) => {
-  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  if (x < clip[0] || y < clip[1] || x >= clip[2] || y >= clip[3]) return;
   const i = (y * W + x) * 3;
   img[i] = c[0]; img[i + 1] = c[1]; img[i + 2] = c[2];
 };
@@ -44,13 +47,25 @@ function num(n: number, x0: number, y0: number) {
 }
 cars.forEach((def, i) => {
   const cx = (i % COLS) * CW, cy = Math.floor(i / COLS) * CH;
+  clip = [cx, cy, cx + CW, cy + CH];
   for (let x = 0; x < CW; x++) { put(cx + x, cy, [60, 54, 84]); }
   for (let y = 0; y < CH; y++) { put(cx, cy + y, [60, 54, 84]); }
   num(i, cx + 4, cy + 4);
-  const ox = Math.round(cx / scale + CW / scale / 2), oy = Math.round(cy / scale + CH / scale * 0.6);
+  const ox = Math.round(cx / scale + CW / scale / 2 - (HEAD ? def.head.x * CAR_PPM : 0)), oy = Math.round(cy / scale + CH / scale * (HEAD ? 0.4 : 0.6) - (HEAD ? def.head.y * CAR_PPM : 0));
+  // GRID=1: a dot every 0.1 m in car-local coordinates (brighter every 0.5 m, a cross at the origin), to place art by eye.
+  if (process.env.GRID) for (let gx = -40; gx <= 40; gx++) for (let gy = -30; gy <= 20; gy++) {
+    const px = Math.round((ox + gx * 0.1 * CAR_PPM) * scale), py = Math.round((oy + gy * 0.1 * CAR_PPM) * scale);
+    if (px < cx || px >= cx + CW || py < cy || py >= cy + CH) continue;
+    const big = gx % 5 === 0 && gy % 5 === 0;
+    const c: RGB = gx === 0 && gy === 0 ? [255, 60, 60] : big ? [255, 255, 255] : [120, 120, 150];
+    put(px, py, c); put(px + 1, py, c); put(px, py + 1, c); put(px + 1, py + 1, c);
+    if (big) { put(px + 1, py, c); put(px - 1, py, c); put(px, py + 1, c); put(px, py - 1, c); }
+  }
   const dpal = driverPalette('#3ec1ff');
   const torso = generateRiderGrid(def);
   const rider = () => blit(torso, riderPalette('#3ec1ff'), ox - torso.ox, oy - torso.oy);
+  const bg = generateBackGrid(def);
+  if (bg) blit(bg, carPalette(def.palette), ox - bg.ox, oy - bg.oy);
   if (!def.rider?.front) rider();
   // Cargo lies in the bed behind the body (as in the game).
   if (def.cargo) {
@@ -65,7 +80,7 @@ cars.forEach((def, i) => {
   });
   drawLinks(true);
   const body = generateCarGrid(def);
-  blit(body, carPalette(def.palette), ox - body.ox, oy - body.oy);
+  if (!process.env.NOBODY) blit(body, carPalette(def.palette), ox - body.ox, oy - body.oy);
   const fxg = generateFxGrid(def);
   if (fxg) blit(fxg, carPalette(def.palette), ox - fxg.ox, oy - fxg.oy);
   if (def.rider?.front) rider();

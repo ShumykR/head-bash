@@ -21,6 +21,10 @@ export interface CarPoly {
   deco?: boolean;
   /** Render only: cuts a see-through hole in everything drawn before it (an open cab window). */
   cut?: boolean;
+  /** Render only: drawn behind the driver's body (a seat back, the far wall of a cockpit tub). */
+  back?: boolean;
+  /** With `back`: drawn only where the bodywork was cut away (the far wall seen through a notch). */
+  under?: boolean;
   /** Physics-only piece (not drawn; a skin draws the look instead). */
   hide?: boolean;
   /** Draw a dark seam around this piece even over the same material (panels, doors). */

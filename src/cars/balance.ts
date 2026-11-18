@@ -89,7 +89,7 @@ export const TUNE: Record<string, Tune> = {
   't-rex': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 94% vs the panel' },
   'excavator': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 96% vs the panel' },
   'shredder': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 96% vs the panel' },
-  'stinger-buggy': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 96% vs the panel' },
+  'stinger-buggy': { mass: 0.85, accel: 0.93, speed: 0.95, why: 'won 96% vs the panel (with the booster on all the time; now it is on the button)' },
   'dual-snowballer': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 98% vs the panel' },
   'spiky-car': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 98% vs the panel' },
   'bulldozer': { mass: 0.85, accel: 0.88, speed: 0.95, why: 'won 100% vs the panel' },

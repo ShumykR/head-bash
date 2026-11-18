@@ -1,5 +1,5 @@
 import { tailgate } from '../art';
-import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank } from '../draw';
+import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank, shoulders } from '../draw';
 import { arc, bike, hover, monsterTruck, pickup, saucer, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
@@ -29,6 +29,7 @@ export const ALIEN = group('alien', [
     o: o({ wheels: 2 }), parts: ['cage'], cargo: ['cow', 1],
     skin: (f) => [
       ...truckCab(f),
+      ...shoulders(f.head),
       rr(f.deck.x0, f.deck.y - 0.05, f.deck.x1, f.deck.y + 0.1, 0.03, 'wood'),
       ...[0.2, 0.45, 0.7].map((dy) => rr(f.deck.x0 + 0.02, f.deck.y - dy - 0.06, f.deck.x1 - 0.05, f.deck.y - dy + 0.02, 0.02, 'wood')),
       ...[f.deck.x0 + 0.02, (f.deck.x0 + f.deck.x1) / 2, f.deck.x1 - 0.1].map((x) => rect(x, f.deck.y - 0.8, x + 0.08, f.deck.y, 'brown')),
@@ -47,6 +48,7 @@ export const ALIEN = group('alien', [
       rect(-0.5, -0.24, 0.1, -0.12, 'red', { flat: true }), rect(-0.5, -0.24, -0.3, -0.12, 'blue', { flat: true }),
       ...[-1.0, -0.5, 0.0, 0.5].map((x) => rect(x, -0.3, x + 0.03, 0.12, 'grey', { flat: true })),
       stripe(f.tail.x + 0.05, f.tail.x + 0.5, -0.75, 0.08, 'red'),
+      ...shoulders(f.head),
     ],
     fx: (f) => [{ kind: 'flame', at: [f.tail.x - 0.25, -0.1], dir: 180, size: 0.13 }, { kind: 'flame', at: [f.tail.x - 0.25, 0.15], dir: 180, size: 0.11 }],
   }],
@@ -54,7 +56,7 @@ export const ALIEN = group('alien', [
     noLights: true,
     // the tractor beam under the dish pulses (animated, no collision)
     fx: () => [{ kind: 'beam', at: [0, 0.26], to: [0, 0.75], size: 0.25, mat: 'accent' }],
-    skin: (f) => [...saucer(f, { lights: 'accent' })],
+    skin: (f) => [...saucer(f, { lights: 'accent' }), ...shoulders(f.head)],
   }],
   ['skater-cow', 'Skater Cow', 'Корова на скейті. Швидкі низькі стрибки майже без перезарядки.', 'creature', ['#f4f4f4', '#3a8ad8'], {
     o: o({ wheel: 0.6, tall: 1.15 }), noLights: true,
@@ -78,6 +80,7 @@ export const ALIEN = group('alien', [
         ell(0.78, -0.85, 0.12, 0.06, 'black'),
         blob([[1.22, -0.72], [1.55, -0.72], [1.58, -0.45], [1.25, -0.42]], 'pink', {}, 1), circ(1.45, -0.62, 0.03, 'dark'),
         ...eyeball(1.1, -0.82, 0.07),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -86,6 +89,7 @@ export const ALIEN = group('alien', [
     parts: ['cannon'], hideParts: true,
     skin: (f) => [
       ...pickup(f),
+      ...shoulders(f.head),
       circ((f.deck.x0 + f.deck.x1) / 2, f.deck.y - 0.18, 0.3, 'dark'), ...path([[(f.deck.x0 + f.deck.x1) / 2, f.deck.y - 0.25], [(f.deck.x0 + f.deck.x1) / 2 + 1.05, f.deck.y - 0.72]], 0.16, 'grey'),
       ...armyStar(0.3, 0.05, 0.12),
       poly([[(f.deck.x0 + f.deck.x1) / 2 + 0.25, f.deck.y - 0.65], [(f.deck.x0 + f.deck.x1) / 2 + 0.45, f.deck.y - 0.75], [(f.deck.x0 + f.deck.x1) / 2 + 0.45, f.deck.y - 0.2], [(f.deck.x0 + f.deck.x1) / 2 + 0.25, f.deck.y - 0.2]], 'dark'),
@@ -98,6 +102,7 @@ export const ALIEN = group('alien', [
     art: (f) => [hidden(tailgate(f.deck.x0, f.deck.y, 0.3, 'body'))],
     skin: (f) => [
       ...truckCab(f, { grille: true }),
+      ...shoulders(f.head),
       blob([[f.deck.x0 - 0.05, f.deck.y], [f.deck.x0 - 0.05, f.deck.y - 0.95], [f.deck.x0 + 0.2, f.deck.y - 1.1], [f.deck.x1 - 0.1, f.deck.y - 1.1], [f.deck.x1 + 0.05, f.deck.y - 0.95], [f.deck.x1 + 0.05, f.deck.y]], 'accent', {}, 1),
       ...[0.6, 1.2, 1.8, 2.4].map((dx) => rect(f.deck.x0 + dx, f.deck.y - 1.08, f.deck.x0 + dx + 0.05, f.deck.y, 'body', { flat: true })),
       ...[0.3, 0.9, 1.5, 2.1].map((dx) => path([[f.deck.x0 + dx, f.deck.y - 0.95], [f.deck.x0 + dx + 0.15, f.deck.y - 0.85], [f.deck.x0 + dx + 0.3, f.deck.y - 0.95]], 0.03, 'tan')).flat(),
@@ -111,6 +116,7 @@ export const ALIEN = group('alien', [
     skin: (f) => [
       ...tankHull(f),
       rr(-0.8, -0.72, 0.4, -0.35, 0.08, 'body'), rect(-0.6, -0.62, 0.2, -0.52, 'black', { flat: true }), rect(-0.55, -0.6, 0.15, -0.57, 'red', { flat: true }),
+      ...shoulders(f.head),
       ...stack(-1.2, -0.4, 0.4, 0.1, 'black'), ...[-0.7, -0.3, 0.1].map((x) => circ(x, -0.42, 0.03, 'grey')),
       ...[0, 1, 2, 3, 4, 5].map((i) => poly([[-1.6 + i * 0.5, -0.12], [-1.4 + i * 0.5, -0.12], [-1.55 + i * 0.5, 0.0], [-1.75 + i * 0.5, 0.0]], 'yellow', { flat: true })),
     ],
@@ -125,6 +131,7 @@ export const ALIEN = group('alien', [
       const px = f.tail.x + 0.32, py = f.roof.y - 0.3, mx = f.roof.x1 + 0.3, my = f.roof.y - 0.6;
       return [
         ...monsterTruck(f, { frame: 'black', bar: 'dark' }),
+        ...shoulders(f.head),
         ...armyStar(f.roof.x0 + 0.35, -0.3, 0.13),
         rect(f.tail.x + 0.1, -0.1, f.nose.x - 0.3, -0.05, 'dark', { flat: true }),
         // the pedestal mount in the bed, the breech and a long barrel with a muzzle brake
@@ -143,6 +150,7 @@ export const ALIEN = group('alien', [
     parts: ['gun'], hideParts: true,
     skin: (f) => [
       blob([[-1.35, 0.2], [-1.35, -0.25], [-0.6, -0.3], [-0.5, 0.2]], 'body', {}, 1), // sidecar
+      ...shoulders(f.head),
       ...bike(f, { style: 'road' }),
       ...armyStar(0.2, -0.15, 0.09),
       ...path([[0.5, -0.5], [1.1, -0.55]], 0.1, 'dark'), rr(0.45, -0.62, 0.68, -0.4, 0.03, 'dark'), rr(0.25, -0.45, 0.45, -0.3, 0.03, 'tan'),
@@ -165,6 +173,7 @@ export const ALIEN = group('alien', [
       poly([[f.tail.x + 0.05, -0.02], [f.nose.x - 0.5, -0.02], [f.nose.x - 0.68, 0.12], [f.tail.x + 0.2, 0.12]], 'red', { flat: true }),
       ...[-0.15, 0.25, 0.65].map((x) => circ(x, -0.75, 0.03, 'dark')), rect(-0.35, -1.0, 0.8, -0.95, 'dark'),
       circ(f.deck.x0 + 0.2, -0.6, 0.2, 'dark'), ...path([[f.deck.x0 + 0.2, -0.65], [f.deck.x0 + 0.9, -0.95]], 0.12, 'grey'),
+      ...shoulders(f.head),
     ],
   }],
   ['rocket-launcher', 'Rocket Launcher', 'Армійська вантажівка з великою ракетою на пусковій рейці над кабіною: ракета прикриває голову водія, а пуск відправляє її в ціль.', 'truck', ['#4f7f30', '#e02a2a'], {
@@ -188,6 +197,7 @@ export const ALIEN = group('alien', [
       const r = 0.2, c = 0.24;
       return [
         ...truckCab(f),
+        ...shoulders(f.head),
         // bed with a turntable at the back, the two hydraulic rams lifting the rail
         rr(d.x0 - 0.05, d.y - 0.1, d.x1, d.y + 0.08, 0.03, 'dark'),
         rr(d.x0 + 0.05, d.y - 0.32, d.x0 + 0.75, d.y - 0.08, 0.05, 'body', { ring: true }),
@@ -215,6 +225,7 @@ export const ALIEN = group('alien', [
     skin: (f) => [
       ...tankHull(f),
       blob([[-0.9, -0.32], [-0.8, -0.75], [0.35, -0.78], [0.7, -0.35]], 'body', {}, 1),
+      ...shoulders(f.head),
       ...path([[0.5, -0.58], [1.85, -0.75]], 0.13, 'grey'), rr(1.7, -0.84, 1.95, -0.66, 0.04, 'dark'),
       ...armyStar(-0.25, -0.5, 0.12),
       seg([-0.6, -0.78], [-0.75, -1.2], 0.04, 'dark'), rr(-0.65, -0.85, -0.25, -0.75, 0.04, 'dark'),
@@ -261,12 +272,13 @@ export const ALIEN = group('alien', [
       // two laser guns on the sides (as in Drive Ahead) and the drone's rotors on outriggers
       ...[[f.tail.x - 0.05, -1], [f.nose.x + 0.05, 1]].flatMap(([x, d]) => [rr(Math.min(x, x + d * 0.45), -0.42, Math.max(x, x + d * 0.45), -0.28, 0.04, 'grey'), rr(Math.min(x + d * 0.4, x + d * 0.55), -0.4, Math.max(x + d * 0.4, x + d * 0.55), -0.3, 0.03, 'red')]),
       ...[f.tail.x + 0.35, f.nose.x - 0.35].flatMap((x) => [seg([x, -0.45], [x, -0.82], 0.05, 'grey'), ell(x, -0.86, 0.38, 0.05, 'grey', { flat: true }), rect(x - 0.05, -0.92, x + 0.05, -0.82, 'dark')]),
+      ...shoulders(f.head, { depth: 0.34 }),
     ],
   }],
   ['celestial-teapot', 'Celestial Teapot', 'Космічний чайник на реактивній тязі. Хлюпає окропом.', 'blob', ['#f0f0f0', '#4a8ad8'], {
     gun: () => ({ at: [[1.38, -1.08]], aim: 45 }),
     parts: ['booster', 'lid'], noLights: true, hideParts: true,
-    skin: () => [
+    skin: (f) => [
       ...path([[0.65, -0.4], [1.0, -0.5], [1.35, -1.05]], 0.18, 'body'),
       blob([[-1.25, -0.9], [-1.4, -0.5], [-1.25, -0.15], [-0.85, -0.2], [-0.85, -0.3], [-1.15, -0.32], [-1.22, -0.5], [-1.15, -0.75], [-0.85, -0.75], [-0.85, -0.88]], 'accent', {}, 1),
       ell(0, -0.35, 0.95, 0.72, 'body', {}, 28),
@@ -275,6 +287,7 @@ export const ALIEN = group('alien', [
       rr(-0.7, 0.2, 0.7, 0.36, 0.05, 'grey'), poly([[-0.5, 0.36], [0.5, 0.36], [0.3, 0.55], [-0.3, 0.55]], 'orange'),
       ell(-0.4, -0.75, 0.25, 0.1, 'white', { flat: true }), ...[[-0.45, -0.35], [0.0, -0.35], [0.45, -0.35]].map(([x, y]) => starShape(x, y, 0.07, 'white')),
       rect(-0.9, -0.12, 0.9, -0.08, 'gold', { flat: true }),
+      ...shoulders(f.head),
     ],
   }],
   ['moon-rover', 'Moon Rover', 'Місяцехід з антеною-тарілкою. Стрибає, як у невагомості.', 'buggy', ['#e0e0e0', '#ffd23f'], {
@@ -283,6 +296,7 @@ export const ALIEN = group('alien', [
       ...f.wheels.map((w) => seg([w.x, w.y], [w.x * 0.6, -0.05], 0.08, 'grey')),
       rr(f.tail.x - 0.05, -0.3, f.nose.x - 0.05, 0.1, 0.06, 'gold'), ...[-0.8, -0.4, 0.0, 0.4].map((x) => rect(x, -0.28, x + 0.03, 0.08, 'tan', { flat: true })),
       rr(f.tail.x + 0.1, -0.12, f.nose.x - 0.2, 0.0, 0.03, 'body', { flat: true }),
+      ...shoulders(f.head),
       ...f.wheels.map((w) => arc(w.x, w.y, w.r + 0.08, Math.PI * 1.1, Math.PI * 1.9, 0.08, 'grey')), rr(f.nose.x - 0.2, -0.22, f.nose.x + 0.02, -0.1, 0.03, 'light'),
       ...seat(f.head.x + 0.05, -0.25, 0.4, 'white'),
       ...dish(f.tail.x + 0.35, -0.25),
@@ -299,6 +313,7 @@ export const ALIEN = group('alien', [
       ...path(Array.from({ length: 11 }, (_, i): [number, number] => [f.head.x - Math.cos(i * Math.PI / 10) * 0.62, -0.34 - Math.sin(i * Math.PI / 10) * 0.62]), 0.06, 'accent'),
       ...eyeball(0.0, -0.48, 0.12, 'leaf'), ...eyeball(-0.3, -0.5, 0.1, 'leaf'),
       poly([[-0.4, 0.05], [0.8, 0.05], [-0.6, 0.45]], 'body'),
+      ...shoulders(f.head),
       ...[[-1.1, -0.15], [0.6, -0.15]].map(([x, y]) => [circ(x, y, 0.07, 'dark'), circ(x, y, 0.045, 'accent')]).flat(),
     ],
   }],
@@ -307,6 +322,7 @@ export const ALIEN = group('alien', [
     skin: (f) => [
       ...f.wheels.map((w) => seg([w.x, w.y], [w.x * 0.9, -0.1], 0.08, 'grey')),
       rr(-1.6, -0.45, 1.65, -0.05, 0.08, 'body'), stripe(-1.6, 1.65, -0.2, 0.08, 'accent'),
+      ...shoulders(f.head),
       rr(-0.8, -0.85, 0.5, -0.45, 0.1, 'gold'), rect(-0.6, -0.75, 0.3, -0.6, 'black', { flat: true }),
       ...dish(0.9, -0.45),
       ...[1.3, 1.5].map((x) => circ(x, -0.3, 0.06, 'light')),
@@ -323,6 +339,7 @@ export const ALIEN = group('alien', [
       poly([[-0.8, 0.0], [0.6, 0.0], [-0.4, 0.42], [-0.9, 0.42]], 'accent'),
       ...[[-0.6, 0.38], [-0.2, 0.38]].map(([x, y]) => tank(x - 0.3, x + 0.2, y, 0.06, 'red')),
       starShape(0.8, -0.12, 0.1, 'accent'), circ(-0.2, -0.12, 0.12, 'white'), rect(-0.23, -0.2, -0.17, -0.04, 'black', { flat: true }),
+      ...shoulders(f.head),
     ],
   }],
 ]);

@@ -1,6 +1,7 @@
 import { withDrive } from './drive';
 import type { RibbonDef, RiderDef, Archetype, CarDef, CarMat, CarPoly, CategoryId, DriveKind, FlailDef, FxDef, ItemKind, LinkDef, Pt, WheelDef } from './types';
 import { estimateMass, drivenWheels } from './stats';
+import { seg } from './draw';
 
 /*
  * Parametric car builder.
@@ -1119,9 +1120,9 @@ const darken = (h: string, k: number) => {
 const scalePt = (p: Pt, s: number): Pt => [+(p[0] * s).toFixed(3), +(p[1] * s).toFixed(3)];
 
 /** Round lamp outline (render only). */
-function circ8(cx: number, cy: number, r: number, mat: CarMat): CarPoly {
+function circ8(cx: number, cy: number, r: number, mat: CarMat, ry = r): CarPoly {
   const pts: Pt[] = [];
-  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push([+(cx + Math.cos(a) * r).toFixed(3), +(cy + Math.sin(a) * r).toFixed(3)]); }
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; pts.push([+(cx + Math.cos(a) * r).toFixed(3), +(cy + Math.sin(a) * ry).toFixed(3)]); }
   return { pts, mat };
 }
 
@@ -1208,11 +1209,14 @@ export function buildCar(spec: CarSpec): CarDef {
   if (bikeLike && spec.lamp !== null) {
     const fw = f.wheels[f.wheels.length - 1];
     const [lx, ly] = spec.lamp?.(f) ?? [fw.x - 0.16, -0.42];
+    // Seen from the side, like the rest of the bike: a chrome bucket on a bracket, the glass
+    // a narrow lit oval on its front face, the beam pointing ahead rather than at the viewer.
     polys.push(
-      { ...circ8(lx - 0.02, ly, 0.22, 'black'), deco: true },
-      { ...circ8(lx, ly, 0.19, 'chrome'), deco: true, ring: true },
-      { ...circ8(lx + 0.03, ly, 0.14, 'light'), deco: true },
-      { ...circ8(lx + 0.06, ly - 0.03, 0.07, 'white'), deco: true, flat: true },
+      { ...seg([lx - 0.2, ly + 0.02], [lx - 0.06, ly + 0.04], 0.07, 'dark'), deco: true },
+      { ...circ8(lx - 0.02, ly, 0.17, 'black', 0.19), deco: true },
+      { ...circ8(lx - 0.02, ly, 0.14, 'chrome', 0.16), deco: true },
+      { ...circ8(lx + 0.1, ly, 0.06, 'light', 0.15), deco: true },
+      { ...circ8(lx + 0.12, ly - 0.06, 0.03, 'white', 0.05), deco: true, flat: true },
     );
   }
   const s = spec.s ?? 1;

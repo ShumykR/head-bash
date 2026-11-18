@@ -4,7 +4,7 @@ import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
 import type { CarDef, CarPalette, CarPoly, Gait, ProjectileKind } from '../cars/types';
-import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
+import { carPalette, driverPalette, generateAmmoGrid, generateBackGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
@@ -183,7 +183,16 @@ class CarView {
         this.poses.push({ sp, n: pg.n, i: pg.i });
       }
     };
-    this.body.addChild(this.flame, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
+    // the seat back and the far side of a cockpit go behind the driver
+    const bg = generateBackGrid(def);
+    const back: Sprite[] = [];
+    if (bg) {
+      const bs = new Sprite(cached(`back:${def.id}:${alt}`, () => gridTexture(bg, carPalette(pal))));
+      bs.anchor.set(bg.ox / bg.w, bg.oy / bg.h);
+      bs.scale.set(1 / CAR_PPM);
+      back.push(bs);
+    }
+    this.body.addChild(this.flame, ...back, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
     // swinging limbs go in just under the body sprite (they hang off it, behind its outline)
     gaitOf(def.body, def.id, this.body, s);
     const ag = generateAmmoGrid(def);
@@ -939,12 +948,17 @@ export class GameView {
       }
       // charge bar under the P1/P2 marker
       const view = this.carViews[c.player];
-      if (!view || !c.ability) continue;
+      if (!view || !c.hasAction) continue;
       const mx = view.marker.x, my = view.marker.y + 0.18;
       const k = c.abilityCharge;
       const col = toHex(hex(PLAYER_COLORS[c.player]));
       fx.rect(mx - 0.6, my, 1.2, 0.16).fill({ color: 0x0c0914, alpha: 0.7 });
       fx.rect(mx - 0.56, my + 0.04, 1.12 * k, 0.08).fill({ color: k >= 1 ? (Math.sin(this.time * 8) > 0 ? 0xffffff : col) : col, alpha: k >= 1 ? 1 : 0.6 });
+      // a car with both an action and a booster: the booster's fuel in orange under the action's bar
+      if (c.ability && c.def.boost) {
+        fx.rect(mx - 0.6, my + 0.16, 1.2, 0.1).fill({ color: 0x0c0914, alpha: 0.7 });
+        fx.rect(mx - 0.56, my + 0.18, 1.12 * c.boostCharge, 0.06).fill({ color: 0xff9a30, alpha: 0.9 });
+      }
     }
     for (const t of g.tethers) {
       const a = g.cars[t.a].position, b = g.cars[t.b].position;
@@ -1541,7 +1555,7 @@ export class GameView {
     this.touchLabels.removeChildren();
     if (!this.showTouch) return;
     for (const z of this.input.zones) {
-      if (z.btn === 'action' && this.game && !this.game.cars[z.player]?.ability) continue;
+      if (z.btn === 'action' && this.game && !this.game.cars[z.player]?.hasAction) continue;
       const pressed = this.input.touch[z.player][z.btn];
       const col = toHex(hex(PLAYER_COLORS[z.player]));
       const pad = 6;

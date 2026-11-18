@@ -1,4 +1,4 @@
-import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc, place } from '../draw';
+import { blob, bumper, circ, ell, eyeball, fangs, grille, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, windows, arc, place, shoulders } from '../draw';
 import { bike, carriage, fenders, frontLamp, hover, loco, pickup, rearLamp, skirt } from '../skins';
 import { saddle, dims, quadruped, steed } from '../critters';
 import type { CarPoly } from '../types';
@@ -35,6 +35,7 @@ export const HALLOWEEN = group('halloween', [
         ...frontLamp(x1, 0.04), rearLamp(x0, 0.04), stripe(x0 + 0.1, x1 - 0.2, -0.08, 0.04, 'accent'),
         ...grille(x1 - 0.1, 0.08, x1 + 0.02, 0.3, 2), poly([[x0 + 0.62, top + 0.62], [x0 + 0.74, top + 0.62], [x0 + 0.74, top + 0.95], [x0 + 0.62, top + 0.95]], 'gold'), rect(x0 + 0.54, top + 0.7, x0 + 0.82, top + 0.76, 'gold'),
         bumper(x1 - 0.2, x1 + 0.06, bot - 0.04, 0.12), bumper(x0 - 0.06, x0 + 0.2, bot - 0.04, 0.12),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -62,6 +63,7 @@ export const HALLOWEEN = group('halloween', [
         ...path([[f.head.x - 0.15, f.head.y + 0.42], [1.75, -2.25]], 0.09, 'white'),
         ...[0.25, 0.45, 0.65, 0.85].map((k) => circ(f.head.x - 0.15 + (1.9 - f.head.x) * k, f.head.y + 0.42 + (-2.25 - f.head.y - 0.42) * k, 0.06, 'red')),
         poly([[f.head.x + 0.2, f.head.y + 0.12], [f.head.x + 0.45, f.head.y + 0.35], [f.head.x + 0.22, f.head.y + 0.55]], 'grey'),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -98,6 +100,7 @@ export const HALLOWEEN = group('halloween', [
         ...path([[b + 0.08, t + 0.16], [b + 0.6, t + 0.08], [n - 0.55, t - 0.16], [n - 0.15, t - 0.6], [n + 0.1, t - 0.66]], 0.06, 'yellow'),
         circ(-0.05, t + 0.32, 0.11, 'gold'), poly([[-0.15, t + 0.3], [-0.5, t + 0.2], [-0.42, t + 0.34], [-0.15, t + 0.36]], 'gold'), poly([[0.05, t + 0.3], [0.4, t + 0.2], [0.32, t + 0.34], [0.05, t + 0.36]], 'gold'),
         circ(n + 0.04, t - 0.58, 0.07, 'yellow'),
+        ...shoulders(f.head),
         // the wooden floor and the step at the open back
         rr(b - 0.02, 0.08, n + 0.02, 0.2, 0.03, 'wood'), rr(b - 0.15, 0.12, b + 0.1, 0.2, 0.03, 'wood'),
         // the shaft out to the horse and a bronze spear-ram under it
@@ -129,6 +132,7 @@ export const HALLOWEEN = group('halloween', [
     },
     skin: (f) => [
       ...pickup(f),
+      ...shoulders(f.head),
       ...[[-1.2, 0.0], [-0.2, 0.1], [0.9, -0.05]].map(([x, y]) => ell(x, y, 0.16, 0.1, 'orange')),
       ...[-1.3, -0.8, -0.3, 0.2, 0.7, 1.2].map((x) => circ(x, 0.22, 0.03, 'grey')), rect(f.tail.x + 0.05, -0.12, f.nose.x - 0.1, -0.08, 'black', { flat: true }),
       ...[-1.4, -0.95, -0.5].flatMap((x) => [rect(x, f.deck.y - 0.25, x + 0.06, f.deck.y, 'grey')]),
@@ -145,6 +149,7 @@ export const HALLOWEEN = group('halloween', [
     skin: (f) => [
       rr(f.tail.x + 0.05, 0.06, f.nose.x - 0.05, 0.18, 0.04, 'gold'),
       ...jackOLantern(0, (f.roof.y + 0.2) / 2, 1.0, (0.2 - f.roof.y) / 2, false),
+      ...shoulders(f.head),
       ...path([[0.05, f.roof.y], [0.25, f.roof.y - 0.3], [0.45, f.roof.y - 0.35]], 0.07, 'leaf'), ell(0.35, f.roof.y - 0.12, 0.18, 0.08, 'leaf'),
       ...path([[-0.6, f.roof.y + 0.1], [-0.9, f.roof.y - 0.2], [-1.0, f.roof.y - 0.05]], 0.04, 'leaf'),
       ...[-1.0, 1.0].map((x) => path([[x, 0.12], [x * 1.1, 0.4]], 0.05, 'gold')).flat(),
@@ -158,6 +163,7 @@ export const HALLOWEEN = group('halloween', [
     fx: (f) => [{ kind: 'steam', at: [f.nose.x - 0.72, -1.3], dir: -115, size: 0.3 }, { kind: 'wisp', at: [f.tail.x, -0.9], dir: 180, size: 0.3, mat: 'accent', rate: 0.5 }],
     skin: (f) => [
       ...loco(f, { boiler: 'body', trim: 'accent' }),
+      ...shoulders(f.head),
       ell(f.nose.x - 0.3, -0.32, 0.26, 0.26, 'white'), circ(f.nose.x - 0.38, -0.38, 0.05, 'black'), circ(f.nose.x - 0.22, -0.38, 0.05, 'black'), ell(f.nose.x - 0.3, -0.22, 0.06, 0.08, 'black'),
     ],
   }],
@@ -181,7 +187,7 @@ export const HALLOWEEN = group('halloween', [
   }],
   ['invisible-car', 'Invisible Car', 'Прозорий парящий кузов. На мить зникає зовсім.', 'hover', ['#c0e8ff', '#ffffff'], {
     o: o({ mat: 'glass' }),
-    skin: (f) => [...hover(f, { mat: 'glass', glow: 'sky', canopy: 'white' }), stripe(f.tail.x + 0.1, f.nose.x - 0.2, -0.05, 0.05, 'white'), ...[[-1.0, -0.5], [0.3, -0.6], [0.9, -0.2]].map(([x, y]) => starShape(x, y, 0.08, 'white'))],
+    skin: (f) => [...hover(f, { mat: 'glass', glow: 'sky', canopy: 'white' }), stripe(f.tail.x + 0.1, f.nose.x - 0.2, -0.05, 0.05, 'white'), ...[[-1.0, -0.5], [0.3, -0.6], [0.9, -0.2]].map(([x, y]) => starShape(x, y, 0.08, 'white')), ...shoulders(f.head)],
   }],
   ['skeletal-ride', 'Skeletal Ride', 'Скелет звіра на колесах: рогатий череп, хребет із шипами, хвіст із кісток.', 'buggy', ['#c8d8f0', '#3a4a8a'], {
     // After Drive Ahead's Skeletal Ride: a pale-blue beast skeleton (horned skull, spiked tail) on spoked wheels.
@@ -214,6 +220,7 @@ export const HALLOWEEN = group('halloween', [
         circ(fw.x + 0.38, -0.68, 0.08, 'black'), circ(fw.x + 0.4, -0.68, 0.035, 'green'), circ(fw.x + 0.88, -0.56, 0.025, 'black'),
         blob([[fw.x + 0.28, -0.42], [fw.x + 0.86, -0.42], [fw.x + 0.7, -0.3], [fw.x + 0.3, -0.32]], 'body', {}, 1),
         ...[0, 1, 2, 3].map((i) => poly([[fw.x + 0.45 + i * 0.1, -0.48], [fw.x + 0.51 + i * 0.1, -0.48], [fw.x + 0.48 + i * 0.1, -0.41]], 'white', { flat: true })),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -227,6 +234,7 @@ export const HALLOWEEN = group('halloween', [
       return [
         // bushy tail held out behind, pale tip
         blob([[x0 + 0.35, -0.82], [x0 - 0.1, -0.98], [x0 - 0.55, -0.95], [x0 - 0.75, -0.78], [x0 - 0.45, -0.66], [x0 + 0.05, -0.62], [x0 + 0.35, -0.6]], 'body', {}, 2),
+        ...shoulders(f.head),
         blob([[x0 - 0.5, -0.94], [x0 - 0.75, -0.78], [x0 - 0.5, -0.68], [x0 - 0.38, -0.8]], 'white', {}, 1),
         // far legs in shadow, then the near hind leg and foreleg down to the wheels, pale paws on the tyres
         blob([[rw.x - 0.05, -0.6], [rw.x + 0.35, -0.6], [rw.x + 0.3, rw.y - rw.r - 0.05], [rw.x + 0.05, rw.y - rw.r - 0.05]], 'dark', {}, 1),
@@ -270,8 +278,9 @@ export const HALLOWEEN = group('halloween', [
   }],
   ['pumpkin-car', 'Pumpkin Car', 'Гарбуз-ліхтар на колесах із вирізаною усмішкою.', 'blob', ['#ff7a1a', '#2a8a3a'], {
     noLights: true,
-    skin: () => [
+    skin: (f) => [
       ...jackOLantern(0, -0.38, 0.98, 0.72),
+      ...shoulders(f.head),
       ...path([[-0.05, -1.08], [0.05, -1.4], [0.25, -1.45]], 0.1, 'leaf'), ell(0.25, -1.12, 0.2, 0.08, 'leaf'),
       ...path([[-0.3, -1.05], [-0.6, -1.2], [-0.8, -1.05], [-0.75, -0.9]], 0.04, 'leaf'),
       rr(-0.85, 0.12, 0.85, 0.28, 0.06, 'dark'), bumper(0.6, 1.0, 0.24, 0.1), bumper(-1.0, -0.6, 0.24, 0.1),
@@ -283,6 +292,7 @@ export const HALLOWEEN = group('halloween', [
     skin: (f) => [
       poly([[-0.6, f.roof.y + 0.3], [-1.6, f.roof.y - 0.4], [-1.45, f.roof.y - 0.05], [-1.75, f.roof.y + 0.05], [-1.5, f.roof.y + 0.25], [-1.7, f.roof.y + 0.4], [-0.6, f.roof.y + 0.55]], 'black'),
       ...carriage(f, { trim: 'accent' }),
+      ...shoulders(f.head),
       rr(-0.45, f.roof.y + 0.2, 0.45, f.roof.y + 0.6, 0.15, 'accent'), rr(-0.38, f.roof.y + 0.26, 0.38, f.roof.y + 0.55, 0.12, 'glass'),
       ...spikesAlong(-0.9, 0.9, f.roof.y - 0.06, 6, 0.2, 'gold'),
       ...fenders(f, 'black', 0.08),
