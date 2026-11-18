@@ -104,16 +104,24 @@ export const ROBO = group('robo', [
     head: () => [-0.05, -1.3],
     skin: (f) => {
       const claw = (sx: number, sy: number, side: 1 | -1): CarPoly[] => {
-        const X = (dx: number) => sx + dx * side;
-        // two angular blades opening upward and outward, yellow edges with black teeth
-        const blade = (bx: number, tx: number, ty: number, w: number): CarPoly[] => [
-          poly([[X(bx), sy - 0.05], [X(tx - w * 0.3), ty], [X(tx + w * 0.5), ty + 0.12], [X(bx + w), sy + 0.05]], 'body'),
-          seg([X(bx + w * 0.85), sy], [X(tx + w * 0.45), ty + 0.12], 0.07, 'accent'),
-          ...[0.3, 0.55, 0.8].map((k) => circ(X(bx + w * 0.85 + (tx - bx) * k * 0.95), sy + (ty + 0.12 - sy) * k, 0.03, 'black', { flat: true })),
-        ];
+        // two long blades opening upward and outward in a V, each a sharp kite: broad in the middle,
+        // tapering to a needle point, the inner edge yellow and toothed in black
+        const blade = (ang: number, len: number, w: number): CarPoly[] => {
+          const ux = Math.sin(ang) * side, uy = -Math.cos(ang), nx = -uy, ny = ux;
+          const at = (a: number, b: number): [number, number] => [sx + ux * a + nx * b, sy + uy * a + ny * b];
+          const tip = at(len, 0), mid0 = at(len * 0.45, -w), mid1 = at(len * 0.45, w);
+          // the edge facing the other blade of the pair
+          const inner = ang > 0.2 ? -side : side;
+          return [
+            poly([at(0.12, -w * 0.45), mid0, tip, mid1, at(0.12, w * 0.45)], 'body'),
+            poly([at(0.2, -inner * w * 0.2), at(len * 0.45, -inner * w * 0.7), tip], 'red', { flat: true }),
+            seg(at(0.25, inner * w * 0.82), tip, 0.08, 'accent'),
+            ...[0.35, 0.5, 0.65, 0.8].map((k) => circ(...at(len * k, inner * w * (k < 0.45 ? 0.75 + (k - 0.25) * 0.5 : (1 - k) * 1.75)), 0.04, 'black', { flat: true })),
+          ];
+        };
         return [
-          ...blade(0.05, 0.25, sy - 1.0, 0.3),
-          ...blade(0.15, 0.75, sy - 0.75, 0.32),
+          ...blade(0.62, 1.55, 0.42),
+          ...blade(-0.18, 1.45, 0.4),
           // the steel bolt joint
           circ(sx, sy, 0.22, 'grey'), circ(sx, sy, 0.15, 'chrome'),
           seg([sx - 0.09, sy - 0.09], [sx + 0.09, sy + 0.09], 0.05, 'dark'), seg([sx - 0.09, sy + 0.09], [sx + 0.09, sy - 0.09], 0.05, 'dark'),
@@ -123,8 +131,6 @@ export const ROBO = group('robo', [
       return [
         // thin legs down to every wheel hub
         ...f.wheels.map((w) => seg([w.x * 0.45, sy + 0.2], [w.x, w.y - 0.05], 0.09, 'body')),
-        // claws on their bolts at both sides of the shell
-        ...claw(-0.98, sy - 0.05, -1), ...claw(0.98, sy - 0.05, 1),
         // the round shell, a lighter crown, angry eyes under black brows, the yellow mouth plate
         ell(0, sy, 0.95, 0.56, 'body', {}, 28),
         ell(0, sy - 0.22, 0.6, 0.22, 'red', { flat: true }),
@@ -134,6 +140,8 @@ export const ROBO = group('robo', [
         ]),
         rr(-0.3, sy + 0.12, 0.3, sy + 0.4, 0.07, 'accent', { ring: true }),
         rect(-0.24, sy + 0.24, 0.24, sy + 0.27, 'gold', { flat: true }),
+        // the claws on their bolts at both sides of the shell, held up in front of it
+        ...claw(-1.12, sy - 0.08, -1), ...claw(1.12, sy - 0.08, 1),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },

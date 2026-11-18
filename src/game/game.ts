@@ -649,6 +649,8 @@ export class Game {
         car.kick(dirX * 8, -0.5);
         break;
       case 'punch':
+        // a hinged striker (the mantis shrimp's scythe) lashes forward and down
+        if (car.links[0]) car.links[0].setAngularVelocity(car.chassis.getAngularVelocity() + car.facing * 18);
         if (this.reach(car, foe, 1, 3.2)) {
           foe.kick(dirX * 15, -4);
           this.emitHit(car, foe);

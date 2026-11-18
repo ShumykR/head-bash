@@ -1,6 +1,6 @@
 import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe, tank } from '../draw';
 import { arc, boxy, carriage, hover, pickup, tracks, monsterTruck } from '../skins';
-import type { CarMat, CarPoly } from '../types';
+import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
 import { saddle, theropod, arm, browEye, dragonHead } from '../critters';
 import { group, o } from './util';
@@ -341,7 +341,26 @@ export const RIFT = group('rift', [
   ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол на чотирьох колесах: низький сегментований панцир і серпоподібна клешня — найсильніший удар у світі.', 'tracked', ['#b0a6d8', '#ff3a9a'], {
     // After the reference: a low lavender body of overlapping plates tapering into a pointed tail
     // behind, pink lights along its belly, and the raised scythe of a claw in front (it punches).
-    o: o({ len: 1.0, wheel: 1.3, rim: 'disc' }), parts: ['claw'], noLights: true, hideParts: true, accel: 1.2,
+    o: o({ len: 1.0, wheel: 1.3, rim: 'disc' }), arch: 'ram', noLights: true, accel: 1.2,
+    // The scythe is a piece of its own: hinged at the shoulder on a spring, it sways as the
+    // shrimp drives and lashes forward and down when it punches.
+    links: (f) => {
+      const g = f.wheels[0].y - f.wheels[0].r, sh: Pt = [0.95, g - 0.45];
+      return [{
+        at: sh, swing: [-25, 45], spring: 40, density: 0.35,
+        hit: [
+          seg(sh, [1.2, g - 1.2], 0.22),
+          poly([[1.05, g - 1.35], [1.45, g - 1.42], [1.85, g - 1.25], [1.6, g - 1.1], [1.15, g - 1.1]]),
+          poly([[1.85, g - 1.25], [2.05, g - 0.95], [2.0, g - 0.65], [1.75, g - 1.0]]),
+        ],
+        art: [
+          ...path([sh, [1.05, g - 0.95], [1.2, g - 1.2]], 0.22, 'body'),
+          blob([[1.05, g - 1.35], [1.45, g - 1.42], [1.85, g - 1.25], [2.05, g - 0.95], [2.0, g - 0.65], [1.9, g - 0.9], [1.6, g - 1.1], [1.15, g - 1.1]], 'body', {}, 1),
+          ...path([[1.12, g - 1.3], [1.5, g - 1.36], [1.85, g - 1.2]], 0.06, 'white', { flat: true }),
+          circ(1.08, g - 0.95, 0.09, 'purple'), circ(sh[0], sh[1], 0.1, 'accent'),
+        ],
+      }];
+    },
     head: () => [-0.15, -0.72],
     skin: (f) => {
       const g = f.wheels[0].y - f.wheels[0].r;
@@ -359,12 +378,8 @@ export const RIFT = group('rift', [
         // belly rail with pink lights
         rr(-1.0, g - 0.08, 1.05, g + 0.06, 0.04, 'dark'),
         ...[-0.75, -0.3, 0.15, 0.6].map((x) => circ(x, g - 0.01, 0.05, 'accent')),
-        // the head and the raised scythe: up from the front, then a long curved blade hooking down
+        // the head (the scythe on its hinge is a separate piece, see links)
         blob([[0.7, g], [0.75, g - 0.55], [1.05, g - 0.62], [1.2, g - 0.3], [1.1, g]], 'body', {}, 1),
-        ...path([[0.95, g - 0.45], [1.05, g - 0.95], [1.2, g - 1.2]], 0.22, 'body'),
-        blob([[1.05, g - 1.35], [1.45, g - 1.42], [1.85, g - 1.25], [2.05, g - 0.95], [2.0, g - 0.65], [1.9, g - 0.9], [1.6, g - 1.1], [1.15, g - 1.1]], 'body', {}, 1),
-        ...path([[1.12, g - 1.3], [1.5, g - 1.36], [1.85, g - 1.2]], 0.06, 'white', { flat: true }),
-        circ(1.08, g - 0.95, 0.09, 'purple'),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
