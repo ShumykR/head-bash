@@ -164,6 +164,14 @@ html, body {
 .gcar.on { border-color: var(--gold); }
 .gcar img, .gcar .gthumb { width: 100%; height: 62px; object-fit: contain; image-rendering: pixelated; }
 .gcar-name { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.15; }
+.gcar { position: relative; }
+.gcar-badges { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; pointer-events: none; }
+.gcar-legend { margin-left: 8px; white-space: normal; }
+.gcar-legend i { margin: 0 2px 0 6px; display: inline-block; vertical-align: middle; }
+.gcar-badges i, .gcar-legend i {
+  font-style: normal; font-size: 10px; font-weight: 900; line-height: 15px; width: 15px; height: 15px; text-align: center;
+  color: #14101e; border-radius: 4px; box-shadow: 0 0 0 1.5px #0c0914;
+}
 .garage-empty { display: none; text-align: center; color: var(--muted); padding: 30px; }
 .garage-foot { font-size: 10px; color: var(--muted); text-align: center; }
 .garage-detail { position: absolute; inset: 0; background: rgba(8, 6, 14, .82); display: flex; align-items: center; justify-content: center; padding: 10px; }

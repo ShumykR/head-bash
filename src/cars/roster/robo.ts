@@ -1,8 +1,8 @@
 import { blob, circ, ell, path, poly, rect, rr, seg, spikesAlong, stack, stripe } from '../draw';
 import { arc, bike, hover, robot, rocket, tracks } from '../skins';
-import type { CarPoly } from '../types';
-import type { Frame } from '../factory';
-import { saddle, pincer } from '../critters';
+import type { CarPoly, Pt } from '../types';
+import type { Frame, LinkSpec } from '../factory';
+import { saddle } from '../critters';
 import { group, o } from './util';
 
 const visor = (x0: number, x1: number, y: number, mat: 'red' | 'accent' | 'light' = 'red'): CarPoly[] => [rr(x0, y - 0.08, x1, y + 0.08, 0.06, mat), rect(x0 + 0.05, y - 0.04, x1 - 0.05, y - 0.01, 'white', { flat: true })];
@@ -14,6 +14,31 @@ function trackedBase(f: Frame): CarPoly[] {
     ...tracks(f), blob([[a.x - a.r - 0.15, y + 0.04], [a.x - a.r - 0.05, y - 0.35], [b.x + b.r - 0.3, y - 0.38], [b.x + b.r + 0.15, y - 0.06], [b.x + b.r, y + 0.04]], 'body', {}, 1),
     rr(a.x - a.r - 0.1, y - 0.06, b.x + b.r + 0.05, y + 0.12, 0.04, 'body', { ring: true }), ...bolts([a.x - a.r + 0.1, (a.x + b.x) / 2, b.x + b.r - 0.1], y + 0.03),
   ];
+}
+
+/**
+ * One blade of the Steel Crab's shears, hinged on the claw's bolt at (sx, sy): a narrow heel, broad
+ * in the middle, drawn out to a needle point; the cutting edge (facing the other blade) yellow with
+ * black teeth. `bolt` also draws the steel bolt over it (on the blade drawn last).
+ */
+function crabBlade(sx: number, sy: number, side: 1 | -1, ang: number, len: number, w: number, off: number, bolt: boolean): LinkSpec {
+  const ux = Math.sin(ang) * side, uy = -Math.cos(ang), nx = -uy, ny = ux;
+  const at = (a: number, b: number): Pt => [sx + ux * a + nx * (b + off), sy + uy * a + ny * (b + off)];
+  const inner = ang > 0.2 ? -side : side;
+  const tip = at(len, 0);
+  const kite = [at(0.05, -w * 0.25), at(len * 0.5, -w), tip, at(len * 0.5, w), at(0.05, w * 0.25)];
+  return {
+    at: [sx, sy], swing: [-12, 12], spring: 30, density: 0.12,
+    hit: [poly(kite)],
+    art: [
+      poly(kite, 'body'),
+      // the cutting half is bare steel, so the blade stands out against the red shell
+      poly([at(0.12, inner * w * 0.2), at(len * 0.5, inner * w * 0.95), tip, at(len * 0.5, 0)], 'chrome'),
+      seg(at(len * 0.18, inner * w * 0.55), tip, 0.08, 'accent'),
+      ...[0.32, 0.46, 0.6, 0.74].map((k) => circ(...at(len * k, inner * w * (k < 0.5 ? 0.62 + (k - 0.3) * 0.6 : (1 - k) * 1.5)), 0.04, 'black', { flat: true })),
+      ...(bolt ? [circ(sx, sy, 0.22, 'grey'), circ(sx, sy, 0.15, 'chrome'), seg([sx - 0.09, sy - 0.09], [sx + 0.09, sy + 0.09], 0.05, 'dark'), seg([sx - 0.09, sy + 0.09], [sx + 0.09, sy - 0.09], 0.05, 'dark')] : []),
+    ],
+  };
 }
 
 export const ROBO = group('robo', [
@@ -52,8 +77,9 @@ export const ROBO = group('robo', [
       ...[-0.75, 0.75].map((x) => rr(x - 0.12, -0.5, x + 0.12, -0.3, 0.04, 'red')),
     ],
   }],
-  ['rocket-fist', 'Rocket Fist', 'Ракетний кулак: летить уперед і б\'є з ривка.', 'rocket', ['#e02a2a', '#ffd23f'], {
-    parts: ['booster', 'ram'], hideParts: true,
+  ['rocket-fist', 'Rocket Fist', 'Ракетний кулак: короткий корпус-ракета з кулаком на носі, що врізається з блискавичного ривка.', 'rocket', ['#e02a2a', '#ffd23f'], {
+    // short and stubby: a booster, a cockpit and the fist, nothing more
+    o: o({ len: 0.7 }), parts: ['booster', 'ram'], hideParts: true,
     skin: (f) => [
       ...rocket(f, { nose: 'body', glass: false }),
       blob([[f.nose.x - 0.75, -0.42], [f.nose.x - 0.1, -0.45], [f.nose.x + 0.25, -0.2], [f.nose.x + 0.25, 0.25], [f.nose.x - 0.1, 0.42], [f.nose.x - 0.75, 0.38]], 'body', {}, 1),
@@ -95,24 +121,33 @@ export const ROBO = group('robo', [
       rr(-0.6, -0.84, -0.2, -0.75, 0.04, 'dark'), ...[-0.5, -0.2, 0.1, 0.4].map((x) => circ(x, -0.4, 0.03, 'accent')),
     ],
   }],
-  ['steel-crab', 'Steel Crab', 'Металевий краб із клешнею і очима на ніжках.', 'blob', ['#c0c8d0', '#e02a2a'], {
-    o: o({ shape: 'flat', mat: 'metal' }), parts: ['claw'], noLights: true, hideParts: true,
+  ['steel-crab', 'Steel Crab', 'Сталевий краб на чотирьох шипастих колесах: злі жовті очі, дві величезні розкриті клешні на болтах.', 'tracked', ['#e0301e', '#ffc81e'], {
+    // After the reference: a round red shell with angry yellow eyes and a yellow mouth plate, thin
+    // red legs down to four spiky wheels, and a huge open claw on a steel bolt at each side
+    // (the front one is the real, solid claw).
+    o: o({ len: 1.0, wheel: 1.05, rim: 'star' }), arch: 'ram', noLights: true, accel: 1.2,
+    head: () => [-0.05, -1.3],
+    // Each blade of both claws is a piece of its own, pinned on the claw's steel bolt and sprung:
+    // they stand out from the shell and sway open and shut as the crab drives and bumps.
+    links: () => [-1, 1].flatMap((side) => {
+      const sx = side * 1.2, sy = -0.63;
+      // the rear claw is for show (it would prop the crab up when it rolls over); the front one hits
+      return [crabBlade(sx, sy, side as 1 | -1, 0.78, 1.5, 0.34, side * 0.06, false), crabBlade(sx, sy, side as 1 | -1, -0.2, 1.4, 0.32, -side * 0.06, true)].map((l) => (side < 0 ? { ...l, trim: true } : l));
+    }),
     skin: (f) => {
-      const n = f.nose.x;
+      const sy = -0.55;
       return [
-        ...pincer(f, (f.nose.y0 + f.nose.y1) / 2, 'metal', 'accent'),
-        // three jointed legs a side, splayed down to the ground
-        ...[-1.15, -0.8, -0.45].flatMap((x) => path([[x + 0.3, -0.15], [x - 0.05, -0.5], [x - 0.2, 0.45]], 0.09, 'grey')),
-        ...[0.55, 0.85].flatMap((x) => path([[x - 0.25, -0.15], [x + 0.1, -0.5], [x + 0.25, 0.45]], 0.09, 'grey')),
-        // eyes on stalks
-        ...[0.45, 0.8].flatMap((x) => [...path([[x - 0.05, -0.45], [x, -0.95]], 0.06, 'chrome'), circ(x, -1.0, 0.1, 'red'), circ(x + 0.03, -1.02, 0.04, 'white')]),
-        // wide armoured carapace: red rim, riveted plates, serrated front edge
-        blob([[-1.25, 0.05], [-1.2, -0.35], [-0.7, -0.62], [0.6, -0.62], [1.15, -0.35], [n, 0.05], [0.8, 0.22], [-0.8, 0.22]], 'body', {}, 2),
-        ...[[-0.85, -0.45, -0.3, -0.05], [-0.25, -0.5, 0.3, -0.05], [0.35, -0.45, 0.85, -0.05]].map(([a, b, c, d]) => rr(a, b, c, d, 0.06, 'metal', { ring: true })),
-        ...[-0.6, 0.0, 0.6].map((x) => circ(x, -0.25, 0.04, 'dark')),
-        ...path([[-1.2, 0.05], [-0.8, 0.2], [0.8, 0.2], [n, 0.05]], 0.08, 'accent'),
-        ...spikesAlong(0.7, n, -0.45, 3, 0.12, 'accent'),
-        rr(n - 0.25, -0.05, n + 0.02, 0.08, 0.03, 'dark'),
+        // thin legs down to every wheel hub
+        ...f.wheels.map((w) => seg([w.x * 0.45, sy + 0.2], [w.x, w.y - 0.05], 0.09, 'body')),
+        // the round shell, a lighter crown, angry eyes under black brows, the yellow mouth plate
+        ell(0, sy, 0.95, 0.56, 'body', {}, 28),
+        ell(0, sy - 0.22, 0.6, 0.22, 'red', { flat: true }),
+        ...[-1, 1].flatMap((d) => [
+          poly([[d * 0.12, sy - 0.12], [d * 0.48, sy - 0.26], [d * 0.44, sy - 0.08], [d * 0.16, sy - 0.02]], 'accent'),
+          poly([[d * 0.08, sy - 0.2], [d * 0.52, sy - 0.38], [d * 0.52, sy - 0.3], [d * 0.1, sy - 0.12]], 'black', { flat: true }),
+        ]),
+        rr(-0.3, sy + 0.12, 0.3, sy + 0.4, 0.07, 'accent', { ring: true }),
+        rect(-0.24, sy + 0.24, 0.24, sy + 0.27, 'gold', { flat: true }),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },

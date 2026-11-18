@@ -1,7 +1,7 @@
 import { CAR_PPM } from '../physics/constants';
 import { gridToRGBA, PixelGrid } from '../render/grid';
 import type { RGB } from '../render/color';
-import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, tone, wheelPalette } from './sprite';
+import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from './sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from './fx';
 import type { CarDef, CarPalette } from './types';
 import { ITEMS, cargoSlots } from '../game/abilities';
@@ -24,7 +24,8 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
   animate = animate && !!def.fx?.length;
   const body = generateCarGrid(def);
   const head = generateHeadGrid(def.head.r);
-  const torso = generateTorsoGrid(def.head.r);
+  const torso = generateRiderGrid(def);
+  const riderItem = { g: torso, c: gridCanvas(torso, riderPalette(playerColor)), x: -torso.ox, y: -torso.oy };
   const wheels = def.wheels.map((w) => generateWheelGrid(w));
   const items: { g: PixelGrid; c: HTMLCanvasElement; x: number; y: number; ghost?: boolean }[] = [];
   const dpal = driverPalette(playerColor);
@@ -35,7 +36,7 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
     const ic = gridCanvas(ig, DECOR_PAL);
     for (const [x, y] of cargoSlots(def.cargo)) items.push({ g: ig, c: ic, x: x * CAR_PPM - ig.ox, y: y * CAR_PPM - ig.oy });
   }
-  if (!def.cabin) items.push({ g: torso, c: gridCanvas(torso, dpal), x: def.head.x * CAR_PPM - torso.ox - def.head.r * CAR_PPM * 0.1, y: (def.head.y + def.head.r * 0.6) * CAR_PPM });
+  if (!def.rider?.front) items.push(riderItem);
   const linkItems = (behind: boolean) => (def.links ?? []).forEach((ld, i) => {
     if (!!ld.behind !== behind) return;
     const lg = generateLinkGrid(def, i);
@@ -44,6 +45,7 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
   });
   linkItems(true);
   items.push({ g: body, c: gridCanvas(body, carPalette(palette)), x: -body.ox, y: -body.oy });
+  if (def.rider?.front) items.push(riderItem);
   const fxg = generateFxGrid(def);
   // Animated previews leave room for the effects but draw them live (see animateFx).
   if (fxg) items.push({ g: fxg, c: gridCanvas(fxg, carPalette(palette)), x: -fxg.ox, y: -fxg.oy, ghost: animate });

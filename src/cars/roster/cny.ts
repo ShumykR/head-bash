@@ -1,7 +1,8 @@
 import { arc, blob, circ, ell, eyeball, path, poly, rect, rr, seg, smooth, spikesAlong, stripe } from '../draw';
 import { rocket, tracks, monsterTruck } from '../skins';
 import type { CarPoly } from '../types';
-import { dims, dragonHead, quadruped, saddle } from '../critters';
+import { crew, dims, dragonHead, quadruped, saddle } from '../critters';
+import { figure } from '../rider';
 import { group, o } from './util';
 
 /** Paper lantern hanging from a pole. */
@@ -10,6 +11,9 @@ const lantern = (x: number, y: number, s = 1): CarPoly[] => [
   ell(x, y - 0.95 * s, 0.17 * s, 0.22 * s, 'red'), rect(x - 0.1 * s, y - 1.2 * s, x + 0.1 * s, y - 1.14 * s, 'gold'), rect(x - 0.1 * s, y - 0.76 * s, x + 0.1 * s, y - 0.7 * s, 'gold'),
   seg([x, y - 0.7 * s], [x, y - 0.55 * s], 0.04, 'yellow'),
 ];
+/** How far the emperor's helmet sits above where the carriage frame put it: room for his body on the throne. */
+const THRONE_SIT = 0.5;
+
 export const CNY = group('cny', [
   ['dancing-lion', 'Dancing Lion', 'Святковий лев із пишною гривою.', 'creature', ['#2a6ad8', '#3aa84a'], {
     o: o({ tall: 1.15, wheel: 0.8 }), parts: ['ears', 'tail'], noLights: true, hideParts: true, axles: [0.75, 0.75],
@@ -45,12 +49,16 @@ export const CNY = group('cny', [
   }],
   ['emperor-carriage', 'The Emperor\'s Carriage', 'Імператорський трон на ношах: двоє носіїв у конічних брилях несуть його на довгій жердині.', 'carriage', ['#d83a2a', '#e8b830'], {
     parts: ['lantern'], hideParts: true, hideWheels: [0, 1],
+    // The emperor sits up on the throne, his whole small body showing: helmet a body's height above
+    // the seat, legs out over the seat edge, a hand on the throne's arm.
+    head: (f) => [f.head.x, f.head.y - THRONE_SIT],
+    rider: (f) => ({ pose: 'sit', front: true, hand: [f.head.x + 0.36, f.head.y + 0.25 + THRONE_SIT - 0.4] }),
     // The porters are solid too: you bump into them, not through them.
     art: (f) => [f.tail.x - 0.12, f.nose.x + 0.12].map((x) => ({ ...rect(x - 0.17, -0.62, x + 0.17, 0.05, 'blue', { density: 0.2 }), deco: false, hide: true })),
     // After Drive Ahead's New Year carriage: a long carrying pole, a striped platform on it, an
     // open throne with a tall back and a stepped arm, and two porters in big straw hats.
     skin: (f) => {
-      const hx = f.head.x, sy = f.head.y + 0.25, x0 = f.tail.x + 0.4, x1 = f.nose.x - 0.4;
+      const hx = f.head.x, sy = f.head.y + 0.25 + THRONE_SIT, x0 = f.tail.x + 0.4, x1 = f.nose.x - 0.4;
       const stripes = (a: number, b: number, y0: number, y1: number) => Array.from({ length: Math.max(2, Math.round((b - a) / 0.12)) }, (_, i) => a + 0.06 + i * 0.12).filter((x) => x < b - 0.03).map((x) => rect(x - 0.025, y0, x + 0.025, y1, 'accent', { flat: true }));
       return [
         // the pole: one long cream beam with gold caps, resting on the porters' shoulders
@@ -64,16 +72,13 @@ export const CNY = group('cny', [
         rr(hx - 0.5, sy - 0.05, hx + 0.3, -0.5, 0.03, 'body', { ring: true }), ...stripes(hx - 0.45, hx + 0.25, sy + 0.05, -0.54),
         rr(hx - 0.5, sy - 0.12, hx + 0.3, sy - 0.03, 0.03, 'white'),
         rr(hx + 0.25, sy - 0.3, hx + 0.45, -0.5, 0.03, 'body'), rr(hx + 0.22, sy - 0.36, hx + 0.48, sy - 0.27, 0.03, 'white'),
-        // the porters under the pole ends, their faces hidden by the hats
+        // the porters under the pole ends: the player's own small body under a helmet with a
+        // straw hat, walking in step as the carriage rolls (the rear one half a stride behind)
         ...[f.tail.x - 0.12, f.nose.x + 0.12].flatMap((x, i) => {
-          const g = f.wheels[i].y + f.wheels[i].r, s = i ? 0.08 : -0.08;
+          const g = f.wheels[i].y + f.wheels[i].r, hy = -0.34, r = f.head.r;
           return [
-            ...path([[x - 0.04, -0.05], [x - 0.08 - s, g - 0.12]], 0.1, 'dark'), ...path([[x + 0.06, -0.05], [x + 0.12 + s, g - 0.12]], 0.1, 'dark'),
-            rr(x - 0.2 - s, g - 0.12, x - 0.0 - s, g, 0.03, 'green'), rr(x + 0.06 + s, g - 0.12, x + 0.26 + s, g, 0.03, 'green'),
-            rr(x - 0.18, -0.45, x + 0.18, 0.02, 0.06, 'body'), rect(x - 0.18, -0.12, x + 0.18, -0.06, 'accent', { flat: true }),
-            seg([x - 0.15, -0.42], [x + 0.15, -0.1], 0.05, 'accent'),
-            circ(x + 0.03, -0.48, 0.12, 'tan'),
-            poly([[x - 0.38, -0.44], [x + 0.03, -0.82], [x + 0.44, -0.44]], 'gold'), rect(x - 0.38, -0.46, x + 0.44, -0.42, 'brown', { flat: true }),
+            ...figure(x - 0.04, hy, r, { pose: 'stand', ground: g, walk: { amp: 24, phase: i ? 0 : 0.5 }, hand: [x + 0.2, -0.17], suit: 'blue', sleeve: 'blue', legs: 'black', stripe: 'accent' }),
+            ...crew(x - 0.04, hy, r * 1.2, { helm: 'body', stripe: 'white', style: 'conical', body: false }),
           ];
         }),
       ];

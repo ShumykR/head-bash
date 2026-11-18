@@ -77,6 +77,8 @@ export interface Item {
 /** A lightning strike on its way down. */
 export interface Strike { x: number; y: number; t: number; owner: number; id: number }
 
+/** Tow cable: how fast it reels in (m/s) and how close it brings the rival (m from the tow bar to its middle). */
+const TOW_REEL = 5, TOW_MIN = 2.2;
 /** A rope between two cars (tow hook). */
 export interface Tether { joint: Joint; a: number; b: number; t: number }
 
@@ -481,6 +483,11 @@ export class Game {
           this.stun(q, 0.5, 'web');
           other.kick(-dirX * 8, -11);
           break;
+        case 'fist':
+          // the punch lands: the rival flies back, the fist stops dead
+          other.kick(dirX * 17, -6);
+          me.kick(-dirX * 9, -0.5);
+          break;
       }
       this.emit({ type: 'blast', x: (me.position.x + pos.x) / 2, y: (me.position.y + pos.y) / 2, r: 1.4, kind: 'punch' });
     }
@@ -622,6 +629,12 @@ export class Game {
         car.kick(dirX * 2, 0);
         break;
       case 'dash': car.kick(dirX * 12, -1.5); break;
+      case 'rocketfist':
+        // a short, very fast burst: over in a blink, it only counts if the fist meets the rival
+        strike('fist', 21);
+        car.strikeT = 0.4;
+        this.emit({ type: 'effect', player: p, effect: 'push', x: car.position.x, y: car.position.y });
+        break;
       case 'sting': case 'gore': case 'flip': case 'bump': case 'bite':
         strike(kind);
         break;
@@ -636,6 +649,8 @@ export class Game {
         car.kick(dirX * 8, -0.5);
         break;
       case 'punch':
+        // a hinged striker (the mantis shrimp's scythe) lashes forward and down
+        if (car.links[0]) car.links[0].setAngularVelocity(car.chassis.getAngularVelocity() + car.facing * 18);
         if (this.reach(car, foe, 1, 3.2)) {
           foe.kick(dirX * 15, -4);
           this.emitHit(car, foe);
@@ -928,8 +943,12 @@ export class Game {
       case 'tether': {
         const o = this.cars[s.owner];
         if (!o.alive || this.tethers.some((t) => t.a === s.owner)) break;
-        const len = Math.max(2.5, Vec2.distance(o.position, pos) * 0.55);
-        const joint = this.world.createJoint(new RopeJoint({ bodyA: o.chassis, bodyB: car.chassis, maxLength: len, localAnchorA: new Vec2(0, 0), localAnchorB: new Vec2(0, 0) }));
+        // The cable runs from the tow bar low on the truck's front, not its middle: reeled in, it
+        // drags the rival along the ground up to the bumper instead of lifting it onto the cab.
+        const front = Math.max(...o.def.body.filter((q) => !q.deco).flatMap((q) => q.pts.map((v) => v[0])));
+        const tow = new Vec2(front * o.facing, 0.15);
+        const len = Vec2.distance(o.chassis.getWorldPoint(tow), car.chassis.getPosition());
+        const joint = this.world.createJoint(new RopeJoint({ bodyA: o.chassis, bodyB: car.chassis, maxLength: len, localAnchorA: tow, localAnchorB: new Vec2(0, 0) }));
         if (joint) this.tethers.push({ joint, a: s.owner, b: p, t: 3 });
         this.emit({ type: 'effect', player: p, effect: 'tether', x: pos.x, y: pos.y });
         break;
@@ -1415,6 +1434,9 @@ export class Game {
     for (let i = this.tethers.length - 1; i >= 0; i--) {
       const t = this.tethers[i];
       t.t -= dt;
+      // reel the cable in steadily, down to a car length off the bumper (no sudden yank)
+      const rj = t.joint as RopeJoint;
+      rj.setMaxLength(Math.max(TOW_MIN, rj.getMaxLength() - TOW_REEL * dt));
       if (t.t <= 0 || !this.cars[t.a].alive || !this.cars[t.b].alive) {
         this.world.destroyJoint(t.joint);
         this.tethers.splice(i, 1);

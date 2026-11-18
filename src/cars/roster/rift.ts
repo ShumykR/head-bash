@@ -1,8 +1,8 @@
 import { beacon, blob, circ, ell, eyeball, fangs, path, poly, rect, rr, seg, spikesAlong, stack, starShape, stripe, tank } from '../draw';
 import { arc, boxy, carriage, hover, pickup, tracks, monsterTruck } from '../skins';
-import type { CarMat, CarPoly } from '../types';
+import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
-import { dims, saddle, theropod, arm, pincer, browEye, dragonHead } from '../critters';
+import { saddle, theropod, arm, browEye, dragonHead } from '../critters';
 import { group, o } from './util';
 
 function base(f: Frame, mat: CarMat = 'body', h = 0.38): CarPoly[] {
@@ -338,24 +338,48 @@ export const RIFT = group('rift', [
       { kind: 'bolt', at: [0.15, -0.1], to: [-0.75, 0.0], size: 0.16, mat: 'accent' },
     ],
   }],
-  ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол: найсильніший удар клешнею у світі.', 'creature', ['#e04a3a', '#5ad0f0'], {
-    o: o({ neck: 'raptor' }), parts: ['claw'], noLights: true, hideParts: true,
+  ['mantis-shrimp', 'Mantis Shrimp', 'Рак-богомол на чотирьох колесах: низький сегментований панцир і серпоподібна клешня — найсильніший удар у світі.', 'tracked', ['#b0a6d8', '#ff3a9a'], {
+    // After the reference: a low lavender body of overlapping plates tapering into a pointed tail
+    // behind, pink lights along its belly, and the raised scythe of a claw in front (it punches).
+    o: o({ len: 1.0, wheel: 1.12, rim: 'disc' }), arch: 'ram', noLights: true, accel: 1.2,
+    // The scythe is a piece of its own: hinged at the shoulder on a spring, it sways as the
+    // shrimp drives and lashes forward and down when it punches.
+    links: (f) => {
+      const g = f.wheels[0].y - f.wheels[0].r, sh: Pt = [0.95, g - 0.45];
+      return [{
+        at: sh, swing: [-25, 45], spring: 40, density: 0.35,
+        hit: [
+          seg(sh, [1.2, g - 1.2], 0.22),
+          poly([[1.05, g - 1.35], [1.45, g - 1.42], [1.85, g - 1.25], [1.6, g - 1.1], [1.15, g - 1.1]]),
+          poly([[1.85, g - 1.25], [2.05, g - 0.95], [2.0, g - 0.65], [1.75, g - 1.0]]),
+        ],
+        art: [
+          ...path([sh, [1.05, g - 0.95], [1.2, g - 1.2]], 0.22, 'body'),
+          blob([[1.05, g - 1.35], [1.45, g - 1.42], [1.85, g - 1.25], [2.05, g - 0.95], [2.0, g - 0.65], [1.9, g - 0.9], [1.6, g - 1.1], [1.15, g - 1.1]], 'body', {}, 1),
+          ...path([[1.12, g - 1.3], [1.5, g - 1.36], [1.85, g - 1.2]], 0.06, 'white', { flat: true }),
+          circ(1.08, g - 0.95, 0.09, 'purple'), circ(sh[0], sh[1], 0.1, 'accent'),
+        ],
+      }];
+    },
+    head: () => [-0.15, -0.72],
     skin: (f) => {
-      const { rear, front } = dims(f);
+      const g = f.wheels[0].y - f.wheels[0].r;
+      const plate = (x: number, i: number): CarPoly[] => {
+        const h = 0.34 + i * 0.05;
+        // each plate leans back over the next one, a pale top edge on it
+        return [poly([[x - 0.12, g - 0.02], [x - 0.3, g - h], [x + 0.08, g - h - 0.08], [x + 0.3, g - 0.02]], 'body', { ring: true }), seg([x - 0.28, g - h + 0.02], [x + 0.06, g - h - 0.06], 0.05, 'white', { flat: true })];
+      };
       return [
-        ...pincer(f, (f.nose.y0 + f.nose.y1) / 2, 'body', 'accent'),
-        // fan tail
-        ...[-0.35, 0, 0.35].map((a) => poly([[f.tail.x + 0.15, -0.3], [f.tail.x - 0.5, -0.3 + a * 1.2 - 0.12], [f.tail.x - 0.5, -0.3 + a * 1.2 + 0.12]], 'accent')),
-        // walking legs onto the wheels
-        ...[rear, front].flatMap((x) => [-0.12, 0.12].flatMap((d) => path([[x + d, -0.2], [x + d + 0.1, 0.05], [x + d, 0.25]], 0.06, 'orange'))),
-        // segmented armoured body in rainbow bands
-        blob([[f.tail.x + 0.1, -0.05], [f.tail.x + 0.15, -0.5], [-0.5, -0.72], [0.6, -0.72], [1.1, -0.5], [1.15, -0.1], [0.5, 0.05], [-0.6, 0.05]], 'body', {}, 2),
-        ...[-0.85, -0.5, -0.15, 0.2, 0.55].map((x, i) => rect(x, -0.68, x + 0.1, 0.0, (['accent', 'green', 'yellow', 'accent', 'green'] as const)[i], { flat: true })),
-        ...spikesAlong(-0.9, 0.9, -0.66, 6, 0.1, 'orange'),
-        // head with stalked eyes and long feelers
-        blob([[0.95, -0.75], [1.45, -0.72], [1.7, -0.45], [1.45, -0.25], [1.0, -0.25]], 'body', {}, 1),
-        ...[[1.25, -1.2], [1.5, -1.12]].flatMap(([x, y]) => [...path([[x - 0.05, -0.7], [x, y]], 0.06, 'accent'), circ(x, y, 0.1, 'green'), circ(x + 0.03, y, 0.045, 'black')]),
-        ...path([[1.6, -0.7], [1.9, -1.15], [2.15, -1.25]], 0.04, 'accent'), ...path([[1.65, -0.55], [2.05, -0.85]], 0.04, 'accent'),
+        // the pointed tail sweeping back and up
+        poly([[-0.95, g - 0.04], [-1.75, g - 0.5], [-1.85, g - 0.55], [-1.0, g - 0.36]], 'body'),
+        seg([-1.0, g - 0.33], [-1.78, g - 0.53], 0.04, 'white', { flat: true }),
+        // overlapping plates, back to front
+        ...[-0.85, -0.55, -0.25, 0.05, 0.35, 0.65].flatMap((x, i) => plate(x, i)),
+        // belly rail with pink lights
+        rr(-1.0, g - 0.08, 1.05, g + 0.06, 0.04, 'dark'),
+        ...[-0.75, -0.3, 0.15, 0.6].map((x) => circ(x, g - 0.01, 0.05, 'accent')),
+        // the head (the scythe on its hinge is a separate piece, see links)
+        blob([[0.7, g], [0.75, g - 0.55], [1.05, g - 0.62], [1.2, g - 0.3], [1.1, g]], 'body', {}, 1),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
@@ -375,9 +399,10 @@ export const RIFT = group('rift', [
     ],
   }],
   ['rift-spider', 'Rift Spider', 'Кіберпавук розлому: стріляє павутиною, що зупиняє суперника.', 'tracked', ['#5a3a8a', '#ff3a6a'], {
-    s: 0.9,
+    s: 0.9, stride: 0.9,
     skin: () => [
-      ...[-1.4, -0.9, -0.4, 0.4, 0.9, 1.4].map((x) => path([[x * 0.4, -0.35], [x * 0.95, -1.0], [x * 1.25, 0.25]], 0.12, 'black')).flat(),
+      // the legs step as it rolls, every other one together (pieces with a gait swing on their own)
+      ...[-1.4, -0.9, -0.4, 0.4, 0.9, 1.4].map((x, i) => path([[x * 0.4, -0.35], [x * 0.95, -1.0], [x * 1.25, 0.25]], 0.12, 'black', { gait: { at: [x * 0.4, -0.35], amp: 14, phase: (i % 2) * 0.5 } })).flat(),
       ell(-0.6, -0.4, 0.75, 0.42, 'body'), ell(0.55, -0.35, 0.5, 0.32, 'body'),
       poly([[-0.6, -0.65], [-0.45, -0.45], [-0.6, -0.25], [-0.75, -0.45]], 'accent'), poly([[-0.6, -0.4], [-0.4, -0.2], [-0.8, -0.2]], 'accent'),
       ...glowEyes(0.7, -0.4, 3, 'red'),

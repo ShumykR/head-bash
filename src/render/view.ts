@@ -3,8 +3,8 @@ import { Vec2 } from 'planck';
 import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
-import type { CarDef, CarPalette, ProjectileKind } from '../cars/types';
-import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateTorsoGrid, generateLinkGrid, generateWheelGrid, tone, wheelPalette } from '../cars/sprite';
+import type { CarDef, CarPalette, CarPoly, Gait, ProjectileKind } from '../cars/types';
+import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
@@ -128,6 +128,14 @@ class CarView {
   readonly chain = new Graphics();
   /** Moving pieces, then their wheels (same order as Car.links / Car.linkWheels). */
   readonly links: Container[] = [];
+  /** Limbs that swing as the car rolls, with their pivot and swing. */
+  private readonly gaits: { sp: Sprite; g: Gait }[] = [];
+  /** Frame-by-frame poses (a gallop): only the current one shows. */
+  private readonly poses: { sp: Sprite; n: number; i: number }[] = [];
+  /** A light cycle's wall of light: where its foot has been (world), newest last. */
+  private readonly trail: { x: number; y: number; ux: number; uy: number; t: number }[] = [];
+  readonly ribbon = new Graphics();
+  private ribbonCol: [number, number] = [0x5ef0ff, 0xe8ffff];
 
   constructor(readonly car: Car, alt: boolean) {
     const def = car.def;
@@ -143,12 +151,13 @@ class CarView {
     this.head.anchor.set(0.5);
     this.head.scale.set(1 / CAR_PPM);
     this.head.position.set(def.head.x, def.head.y);
-    const tg = generateTorsoGrid(def.head.r);
-    this.torso = new Sprite(cached(`torso:${def.head.r}:${car.player}`, () => gridTexture(tg, dpal)));
-    this.torso.anchor.set(tg.ox / tg.w, 0);
+    // The driver's small body: behind the bodywork in a seat, over the bike when astride one.
+    const tg = generateRiderGrid(def);
+    this.torso = new Sprite(cached(`rider:${def.id}:${car.player}`, () => gridTexture(tg, riderPalette(PLAYER_COLORS[car.player]))));
+    this.torso.anchor.set(tg.ox / tg.w, tg.oy / tg.h);
     this.torso.scale.set(1 / CAR_PPM);
-    this.torso.position.set(def.head.x - def.head.r * 0.1, def.head.y + def.head.r * 0.6);
-    this.torso.visible = !def.cabin;
+    this.torso.visible = true;
+    const riderFront = !!def.rider?.front;
 
     this.flame = new Sprite(whiteTexture());
     this.flame.anchor.set(1, 0.5);
@@ -156,7 +165,27 @@ class CarView {
     this.flame.visible = false;
 
     if (def.drive === 'hover') this.body.addChild(this.gear);
-    this.body.addChild(this.flame, this.torso, s);
+    const gaitOf = (polys: CarPoly[], key: string, into: Container, under: Container) => {
+      for (const gp of generateGaitGrids(def, polys)) {
+        const sp = new Sprite(cached(`gait:${key}:${gp.key}:${alt}`, () => gridTexture(gp.grid, carPalette(pal))));
+        sp.anchor.set((gp.grid.ox + gp.gait.at[0] * CAR_PPM) / gp.grid.w, (gp.grid.oy + gp.gait.at[1] * CAR_PPM) / gp.grid.h);
+        sp.scale.set(1 / CAR_PPM);
+        sp.position.set(gp.gait.at[0], gp.gait.at[1]);
+        into.addChildAt(sp, Math.max(0, into.getChildIndex(under)));
+        this.gaits.push({ sp, g: gp.gait });
+      }
+      for (const pg of generatePoseGrids(def, polys)) {
+        const sp = new Sprite(cached(`pose:${key}:${pg.n}:${pg.i}:${alt}`, () => gridTexture(pg.grid, carPalette(pal))));
+        sp.anchor.set(pg.grid.ox / pg.grid.w, pg.grid.oy / pg.grid.h);
+        sp.scale.set(1 / CAR_PPM);
+        sp.visible = pg.i === 0;
+        into.addChildAt(sp, Math.max(0, into.getChildIndex(under)));
+        this.poses.push({ sp, n: pg.n, i: pg.i });
+      }
+    };
+    this.body.addChild(this.flame, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
+    // swinging limbs go in just under the body sprite (they hang off it, behind its outline)
+    gaitOf(def.body, def.id, this.body, s);
     const ag = generateAmmoGrid(def);
     if (ag) {
       this.ammo = new Sprite(cached(`ammo:${def.id}:${alt}`, () => gridTexture(ag, carPalette(pal))));
@@ -182,12 +211,13 @@ class CarView {
     this.marker.scale.set(1 / ART_PPM);
     const behind: Container[] = [], front: Container[] = [];
     (def.links ?? []).forEach((ld, i) => {
-      const lg = generateLinkGrid(def, i);
+      const lg = generateLinkGrid(def, i, CAR_PPM, true);
       const ls = new Sprite(cached(`link:${def.id}:${i}:${alt}`, () => gridTexture(lg, carPalette(pal))));
       ls.anchor.set(lg.ox / lg.w, lg.oy / lg.h);
       ls.scale.set(1 / CAR_PPM);
       const box = new Container();
       box.addChild(ls);
+      gaitOf(ld.polys, `${def.id}:${i}`, box, ls);
       box.scale.x = car.facing;
       if (def.headOn === i) { box.addChildAt(this.torso, 0); box.addChild(this.head); }
       this.links.push(box);
@@ -205,6 +235,11 @@ class CarView {
     if (def.belt) {
       const cp = carPalette(pal), m = def.belt.mat;
       this.beltCol = [0x14121c, toHex(cp[tone(m, 1)]!), toHex(cp[tone(m, 3)]!), 0x16141c];
+    }
+    if (def.ribbon) {
+      const cp = carPalette(pal);
+      this.ribbonCol = [toHex(cp[tone(def.ribbon.mat, 2)]!), toHex(cp[tone(def.ribbon.mat, 4)]!)];
+      this.root.addChild(this.ribbon);
     }
     this.root.addChild(this.chain, ...behind, this.body, ...(def.belt ? [this.gear] : []), ...this.wheels, ...front, this.marker);
     if (def.flail) {
@@ -251,6 +286,18 @@ class CarView {
       }
     }
     if (this.ammo) this.ammo.visible = c.abilityCd <= 0;
+    if (this.poses.length) {
+      const w0 = c.wheels[0], travel = w0 ? w0.getAngle() * c.def.wheels[0].r * c.facing : 0;
+      const cyc = travel / (c.def.stride ?? 1.2);
+      for (const p of this.poses) p.sp.visible = (((Math.floor(cyc * p.n) % p.n) + p.n) % p.n) === p.i;
+    }
+    if (c.def.ribbon) this.drawRibbon(time);
+    if (this.gaits.length) {
+      // legs step with the distance rolled: still when the car stands, quicker the faster it goes
+      const w0 = c.wheels[0], travel = w0 ? w0.getAngle() * c.def.wheels[0].r * c.facing : 0;
+      const cyc = travel / (c.def.stride ?? 1.2);
+      for (const { sp, g } of this.gaits) sp.rotation = g.spin ? travel / g.spin : ((g.amp * Math.PI) / 180) * Math.sin(2 * Math.PI * (cyc + (g.phase ?? 0)));
+    }
     // Ghost mode flickers, invisibility nearly hides; frozen / zapped cars get a tint.
     this.root.alpha = c.invisT > 0 ? (c.invisT < 0.4 ? 0.5 : 0.06 + 0.04 * Math.sin(time * 9)) : c.phaseT > 0 ? 0.35 + 0.15 * Math.sin(time * 30) : 1;
     const tint = c.stunT > 0 ? (c.stunLook === 'zap' ? (Math.sin(time * 40) > 0 ? 0xfff6a0 : 0xffffff) : c.stunLook === 'web' ? 0xdadada : 0xa8e4ff)
@@ -265,7 +312,7 @@ class CarView {
     this.body.scale.set(c.facing * puff, puff);
     const alive = c.alive;
     this.head.visible = alive;
-    this.torso.visible = alive && !this.car.def.cabin;
+    this.torso.visible = alive;
     this.marker.visible = alive && c.invisT <= 0;
     this.marker.position.set(this.body.x, this.body.y - 2.1 + Math.sin(time * 4) * 0.08);
     const def = c.def;
@@ -284,6 +331,35 @@ class CarView {
   }
 
   /**
+   * A light cycle's wall of light: the foot of the ribbon is traced behind the bike as it goes and
+   * drawn as a glowing band up the car's own "up" at each point, its bright top edge fading out.
+   */
+  private drawRibbon(time: number) {
+    const rb = this.car.def.ribbon!, c = this.car, g = this.ribbon.clear();
+    const a = this.body.rotation, fc = c.facing;
+    const ux = Math.sin(a), uy = -Math.cos(a);
+    const x = this.body.x + Math.cos(a) * rb.at[0] * fc - Math.sin(a) * rb.at[1], y = this.body.y + Math.sin(a) * rb.at[0] * fc + Math.cos(a) * rb.at[1];
+    const tr = this.trail, last = tr[tr.length - 1];
+    if (c.alive && c.invisT <= 0 && (!last || Math.hypot(x - last.x, y - last.y) > 0.08)) {
+      // a big jump (a respawn, a portal) starts a new wall instead of drawing one across the arena
+      if (last && Math.hypot(x - last.x, y - last.y) > 3) tr.length = 0;
+      tr.push({ x, y, ux, uy, t: time });
+    }
+    while (tr.length && time - tr[0].t > rb.life) tr.shift();
+    if (tr.length < 2) return;
+    const [col, hi] = this.ribbonCol;
+    for (let i = 1; i < tr.length; i++) {
+      const p = tr[i - 1], q = tr[i];
+      const k = 1 - (time - q.t) / rb.life;
+      if (k <= 0) continue;
+      const pts = [p.x, p.y, q.x, q.y, q.x + q.ux * rb.h, q.y + q.uy * rb.h, p.x + p.ux * rb.h, p.y + p.uy * rb.h];
+      g.poly(pts).fill({ color: col, alpha: 0.45 * k });
+      g.moveTo(p.x + p.ux * rb.h, p.y + p.uy * rb.h).lineTo(q.x + q.ux * rb.h, q.y + q.uy * rb.h).stroke({ width: 0.07, color: hi, alpha: k });
+      g.moveTo(p.x, p.y).lineTo(q.x, q.y).stroke({ width: 0.04, color: hi, alpha: 0.7 * k });
+    }
+  }
+
+  /**
    * The track belt hugs the road wheels where the suspension has them, its lugs running round as
    * the wheels turn; a hover car's air cushion glows and breathes under the hull.
    */
@@ -292,7 +368,13 @@ class CarView {
     if (def.belt) {
       const g = this.gear.clear();
       if (!this.car.alive && this.root.alpha === 0) return;
-      const ws = def.wheels.map((w, i) => ({ x: this.wheels[i].x, y: this.wheels[i].y, r: w.r }));
+      const id = def.belt.idlers;
+      // car-local → world, following the hull
+      const bx = this.body.x, by = this.body.y, ca = Math.cos(this.body.rotation), sa = Math.sin(this.body.rotation), fc = this.car.facing;
+      const W = (x: number, y: number): [number, number] => [bx + ca * x * fc - sa * y, by + sa * x * fc + ca * y];
+      const ws = id
+        ? [id.x0, id.x1].map((x) => { const [wx, wy] = W(x, id.y); return { x: wx, y: wy, r: id.r - def.belt!.grow }; })
+        : def.wheels.map((w, i) => ({ x: this.wheels[i].x, y: this.wheels[i].y, r: w.r }));
       const ring = (d: number) => hullOf(ws.flatMap((w) => Array.from({ length: 18 }, (_, k) => [w.x + Math.cos((k / 18) * Math.PI * 2) * (w.r + d), w.y + Math.sin((k / 18) * Math.PI * 2) * (w.r + d)] as [number, number])));
       const gw = def.belt.grow;
       const [ol, base, light, inner] = this.beltCol;
@@ -302,6 +384,18 @@ class CarView {
       // the lugs run round the belt with the wheels
       const outer = ring(gw), w0 = this.car.wheels[0];
       const travel = w0 ? w0.getAngle() * def.wheels[0].r * this.car.facing : 0;
+      // bogie wheels turning inside the belt (its own idlers, or road wheels the skin hides)
+      const bogies: [number, number, number][] = id
+        ? Array.from({ length: id.bogies }, (_, k) => [...W(id.x0 + ((id.x1 - id.x0) * k) / Math.max(1, id.bogies - 1), id.y), Math.max(0.08, id.r - gw - 0.1)] as [number, number, number])
+        : def.wheels.flatMap((w, i) => (w.hidden ? [[this.wheels[i].x, this.wheels[i].y, Math.max(0.08, w.r * 0.72)] as [number, number, number]] : []));
+      {
+        for (const [cx, cy, br] of bogies) {
+          const spin = travel / br;
+          g.circle(cx, cy, br).fill({ color: 0x6e7280 }).stroke({ width: 0.04, color: ol });
+          for (const a of [spin, spin + Math.PI / 2]) g.moveTo(cx - Math.cos(a) * br * 0.8, cy - Math.sin(a) * br * 0.8).lineTo(cx + Math.cos(a) * br * 0.8, cy + Math.sin(a) * br * 0.8).stroke({ width: 0.05, color: 0x4a4e5a });
+          g.circle(cx, cy, br * 0.35).fill({ color: 0xc4ccd8 });
+        }
+      }
       const step = 0.24;
       let acc = ((travel % step) + step) % step;
       for (let i = 0; i < outer.length; i++) {

@@ -1043,11 +1043,15 @@ export function itemGrid(kind: ItemKind, w: number, h: number, ppm: number): Pix
       p.rect(W - 6, H - 3, 1, 3, C.W);
       break;
     case 'penguin':
-      p.ell(R, H * 0.55, R, H * 0.45, C.K);
-      p.ell(R + 1, H * 0.6, R * 0.6, H * 0.32, C.W);
-      p.ell(R, H * 0.22, R * 0.8, H * 0.2, C.K);
-      p.px(R + 1, H * 0.2, C.W);
-      p.rect(W - 2, H * 0.24, 2, 1, C.OR);
+      // a plump penguin: black back and head, white belly and face patch, orange beak and feet
+      p.ell(R, H * 0.56, R, H * 0.42, C.BD, (dx, dy) => (dx + dy < -0.7 ? C.B : C.BD));
+      p.ell(R + 1, H * 0.62, R * 0.62, H * 0.3, C.W);
+      p.ell(R, H * 0.24, R * 0.82, H * 0.22, C.BD, (dx, dy) => (dx + dy < -0.7 ? C.B : C.BD));
+      p.ell(R + R * 0.35, H * 0.24, R * 0.32, H * 0.12, C.W);
+      p.rect(R + R * 0.4, H * 0.22, 1, 2, C.K);
+      p.poly([[W - 2, H * 0.24], [W + 2, H * 0.3], [W - 2, H * 0.36]], C.OR);
+      p.rect(R - 3, H - 2, 3, 2, C.OR); p.rect(R + 1, H - 2, 3, 2, C.OR);
+      p.line(1, H * 0.45, 2, H * 0.72, C.K, 2);
       break;
     case 'icewall':
       p.rect(0, 0, W, H, C.CY);
@@ -1105,6 +1109,17 @@ export function itemGrid(kind: ItemKind, w: number, h: number, ppm: number): Pix
       p.rect(0, 0, W, H, col);
       p.rect(1, 1, W - 3, 1, C.W);
       p.ell(R, H / 2, W * 0.22, H * 0.22, C.W);
+      break;
+    }
+    case 'toycar': {
+      // a little hatchback: body, cabin with a window, two black wheels, a headlamp
+      const y0 = H - 4;
+      p.poly([[0, y0], [0, H * 0.35], [W * 0.25, H * 0.3], [W * 0.38, 0], [W * 0.72, 0], [W * 0.85, H * 0.3], [W, H * 0.38], [W, y0]], C.R);
+      p.poly([[W * 0.42, H * 0.32], [W * 0.45, 2], [W * 0.68, 2], [W * 0.78, H * 0.32]], C.CY);
+      p.rect(1, H * 0.45, W - 2, 1, C.W);
+      p.rect(W - 2, H * 0.4, 2, 2, C.Y);
+      p.rect(0, H * 0.4, 1, 2, C.RD);
+      for (const x of [W * 0.22, W * 0.78]) p.ell(x, H - 3, 3, 3, C.K, (dx, dy) => (dx * dx + dy * dy < 0.2 ? C.LG : C.K));
       break;
     }
     case 'peel':

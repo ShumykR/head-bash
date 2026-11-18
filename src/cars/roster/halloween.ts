@@ -66,7 +66,7 @@ export const HALLOWEEN = group('halloween', [
     },
   }],
   ['chariot', 'Chariot', 'Антична бойова колісниця з шипами на осях. Атакує ривком.', 'cart', ['#c8a040', '#e02a2a'], {
-    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'], hideParts: true, accel: 1.2,
+    o: o({ len: 1.2, wheel: 1.6, rim: 'spokes' }), parts: ['spikes'], hideParts: true, accel: 1.2, stride: 1.7,
     // As in Drive Ahead, a horse pulls the chariot. It is a real piece: hitched to the shaft on a
     // sprung hinge, it has a body to hit and runs on a hidden wheel under its hooves. That wheel is
     // the driven one: the engine's pull acts on the horse while its hooves are down, and the

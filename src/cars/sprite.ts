@@ -1,7 +1,8 @@
 import { CAR_PPM } from '../physics/constants';
 import { RGB, hex, shade, mix } from '../render/color';
 import { PixelGrid, makeGrid, gget, gset, fillPoly } from '../render/grid';
-import type { CarDef, CarMat, CarPalette, WheelDef } from './types';
+import type { CarDef, CarMat, CarPalette, CarPoly, Gait, WheelDef } from './types';
+import { riderColors, riderPolys } from './rider';
 import { fxSnapshot } from './fx';
 
 /*
@@ -105,7 +106,9 @@ export function generateAmmoGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
  * gear (a track belt), which the game draws itself.
  */
 export function generateCarGrid(def: CarDef, ppm = CAR_PPM, live = false): PixelGrid {
-  if (live && def.body.some((p) => p.ammo || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !(p.gear && def.belt)) };
+  if (live && def.body.some((p) => p.ammo || p.gait || p.pose || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !p.gait && !p.pose && !(p.gear && def.belt)) };
+  // still pictures show a frame-by-frame cycle at its first pose
+  else if (def.body.some((p) => p.pose && p.pose.i !== 0)) def = { ...def, body: def.body.filter((p) => !p.pose || p.pose.i === 0) };
   const b = carBounds(def);
   const pad = 3;
   const ox = Math.ceil(-b.x0 * ppm) + pad;
@@ -253,9 +256,59 @@ export function generateCarGrid(def: CarDef, ppm = CAR_PPM, live = false): Pixel
 export const WP = { NONE: 0, OUTLINE: 1, TIRE: 2, TIRE_L: 3, RIM_D: 4, RIM: 5, RIM_L: 6, HUB: 7 } as const;
 
 /** Sprite of one moving piece (see LinkDef); same origin as the car sprite at rest. */
-export function generateLinkGrid(def: CarDef, i: number, ppm = CAR_PPM): PixelGrid {
-  return generateCarGrid({ ...def, body: def.links![i].polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm);
+export function generateLinkGrid(def: CarDef, i: number, ppm = CAR_PPM, live = false): PixelGrid {
+  return generateCarGrid({ ...def, body: def.links![i].polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm, live);
 }
+
+/** One swinging limb: its pivot and swing, and the sprite of its pieces (same origin as the body grid). */
+export interface GaitPart { gait: Gait; grid: PixelGrid; key: string }
+
+/**
+ * The limbs that swing as the car rolls (pieces with `gait`), grouped by pivot and phase, each as a
+ * sprite of its own. The live body sprite leaves them out; the garage and sheets draw them at rest.
+ */
+export function generateGaitGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM): GaitPart[] {
+  const groups = new Map<string, { gait: Gait; polys: CarPoly[] }>();
+  for (const p of polys) {
+    if (!p.gait || p.hide) continue;
+    const key = `${p.gait.at[0]},${p.gait.at[1]},${p.gait.amp},${p.gait.phase ?? 0},${p.gait.spin ?? 0}`;
+    const g = groups.get(key) ?? { gait: p.gait, polys: [] };
+    g.polys.push({ ...p, gait: undefined });
+    groups.set(key, g);
+  }
+  return [...groups.entries()].map(([key, g]) => ({ key, gait: g.gait, grid: generateCarGrid({ ...def, body: g.polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm) }));
+}
+
+/** Poses of a frame-by-frame cycle (pieces with `pose`), one sprite per pose; same origin as the body grid. */
+export function generatePoseGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM): { n: number; i: number; grid: PixelGrid }[] {
+  const groups = new Map<string, { n: number; i: number; polys: CarPoly[] }>();
+  for (const p of polys) {
+    if (!p.pose || p.hide) continue;
+    const key = `${p.pose.n}:${p.pose.i}`;
+    const g = groups.get(key) ?? { n: p.pose.n, i: p.pose.i, polys: [] };
+    g.polys.push({ ...p, pose: undefined });
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({ n: g.n, i: g.i, grid: generateCarGrid({ ...def, body: g.polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm) }));
+}
+
+/** The driver's small body under the helmet (render only); same origin as the body grid. Draw it with riderPalette. */
+export function generateRiderGrid(def: CarDef, ppm = CAR_PPM): PixelGrid {
+  const g = generateCarGrid({ ...def, body: riderPolys(def), windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm);
+  if (def.rider?.front || def.headOn !== undefined) return g;
+  // A seated driver sits behind the bodywork: keep only what has bodywork somewhere below it in
+  // the same column (seen over the side or through a window), so no legs poke out under the floor.
+  const car = generateCarGrid(def, ppm, true);
+  const bottom = new Int32Array(car.w).fill(-1);
+  for (let x = 0; x < car.w; x++) for (let y = car.h - 1; y >= 0; y--) if (gget(car, x, y)) { bottom[x] = y; break; }
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+    if (!gget(g, x, y)) continue;
+    const cx = x - g.ox + car.ox, cy = y - g.oy + car.oy;
+    if (cx < 0 || cx >= car.w || bottom[cx] < cy) gset(g, x, y, 0);
+  }
+  return g;
+}
+export const riderPalette = (playerColor: string) => carPalette(riderColors(playerColor));
 
 export function wheelPalette(p: CarPalette): (RGB | null)[] {
   // Black tyre with a soft grey sheen, a pale rim ring and a small hub in the car's own colour

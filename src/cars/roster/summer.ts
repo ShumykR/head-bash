@@ -192,10 +192,25 @@ export const SUMMER = group('summer', [
       ...[0.7, 0.9, 1.1].map((x) => rect(x, -0.42, x + 0.06, -0.1, 'dark', { flat: true })),
       rr(f.roof.x0 - 0.45, f.roof.y, f.roof.x1 + 0.4, -0.45, 0.06, 'body'), rect(f.roof.x0 - 0.36, f.roof.y + 0.12, f.roof.x0 - 0.06, -0.6, 'glass'), rr(f.roof.x0 - 0.5, f.roof.y - 0.1, f.roof.x1 + 0.05, f.roof.y + 0.02, 0.04, 'dark'),
       ...stack(0.4, -0.45, 0.45, 0.09, 'black'),
-      ...path([[0.9, -0.15], [f.nose.x + 0.2, -0.05]], 0.12, 'dark'),
-      blob([[f.nose.x + 0.25, -1.2], [f.nose.x + 0.62, -1.05], [f.nose.x + 0.68, 0.42], [f.nose.x + 0.25, 0.42], [f.nose.x + 0.4, -0.35]], 'body', {}, 1),
-      ...path([[f.nose.x + 0.3, 0.42], [f.nose.x + 0.6, 0.42]], 0.06, 'chrome'),
-      ...[0, 1, 2, 3].map((i) => poly([[f.nose.x + 0.3, -0.9 + i * 0.32], [f.nose.x + 0.6, -0.8 + i * 0.32], [f.nose.x + 0.6, -0.7 + i * 0.32], [f.nose.x + 0.3, -0.8 + i * 0.32]], 'black', { flat: true })),
+      // The blade as a real dozer's: a curved moldboard (its face hollow towards the front) with a
+      // steel cutting edge, pushed by an arm from the track frame and tilted by a hydraulic ram.
+      ...(() => {
+        const n = f.nose.x, cx = n + 1.15, cy = -0.45, r = 0.8, back: [number, number] = [cx - r, cy];
+        return [
+          // push arm along the track to the bottom of the blade, pinned at both ends
+          ...path([[-0.1, 0.06], [back[0] + 0.08, 0.1]], 0.15, 'body'), circ(-0.1, 0.06, 0.07, 'dark'), circ(back[0] + 0.06, 0.1, 0.07, 'dark'),
+          // hydraulic ram from the hull to the top of the blade: dark barrel, chrome rod
+          seg([0.95, -0.5], [1.6, -0.66], 0.14, 'dark'), seg([1.6, -0.66], [back[0] + 0.12, -0.8], 0.07, 'chrome'),
+          // ribs on the back of the moldboard
+          ...[-0.85, -0.45, -0.05].map((y) => seg([back[0] + 0.02, y], [back[0] + 0.18, y], 0.07, 'dark')),
+          // the moldboard: a thick curved plate, its hollow face catching the light
+          arc(cx, cy, r, Math.PI - 0.88, Math.PI + 0.88, 0.27, 'body'),
+          arc(cx, cy, r - 0.08, Math.PI - 0.7, Math.PI + 0.7, 0.05, 'yellow', { flat: true }),
+          // top lip and the cutting edge at the bottom
+          seg([cx - r * Math.cos(0.88) - 0.04, cy - r * Math.sin(0.88) + 0.02], [cx - r * Math.cos(0.88) + 0.12, cy - r * Math.sin(0.88) + 0.06], 0.09, 'body'),
+          seg([cx - r * Math.cos(0.88) - 0.06, cy + r * Math.sin(0.88) - 0.02], [cx - r * Math.cos(0.88) + 0.14, cy + r * Math.sin(0.88) + 0.05], 0.1, 'chrome'),
+        ];
+      })(),
       ...beacon(f.roof.x0 - 0.1, f.roof.y - 0.1, 'orange', 0.14), stripe(-1.55, 0.6, -0.2, 0.06, 'black'),
     ],
   }],

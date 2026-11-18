@@ -7,7 +7,7 @@ import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { CARS } from '../src/cars/defs';
 import { CAR_PPM } from '../src/physics/constants';
-import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateTorsoGrid, generateWheelGrid, wheelPalette } from '../src/cars/sprite';
+import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, wheelPalette } from '../src/cars/sprite';
 import { ITEMS, cargoSlots } from '../src/game/abilities';
 import { DECOR_PAL, flailGrid, itemGrid } from '../src/maps/decor';
 import type { PixelGrid } from '../src/render/grid';
@@ -49,8 +49,9 @@ cars.forEach((def, i) => {
   num(i, cx + 4, cy + 4);
   const ox = Math.round(cx / scale + CW / scale / 2), oy = Math.round(cy / scale + CH / scale * 0.6);
   const dpal = driverPalette('#3ec1ff');
-  const torso = generateTorsoGrid(def.head.r);
-  if (!def.cabin) blit(torso, dpal, Math.round(ox + def.head.x * CAR_PPM - torso.ox - def.head.r * CAR_PPM * 0.1), Math.round(oy + (def.head.y + def.head.r * 0.6) * CAR_PPM));
+  const torso = generateRiderGrid(def);
+  const rider = () => blit(torso, riderPalette('#3ec1ff'), ox - torso.ox, oy - torso.oy);
+  if (!def.rider?.front) rider();
   // Cargo lies in the bed behind the body (as in the game).
   if (def.cargo) {
     const info = ITEMS[def.cargo.kind];
@@ -67,6 +68,7 @@ cars.forEach((def, i) => {
   blit(body, carPalette(def.palette), ox - body.ox, oy - body.oy);
   const fxg = generateFxGrid(def);
   if (fxg) blit(fxg, carPalette(def.palette), ox - fxg.ox, oy - fxg.oy);
+  if (def.rider?.front) rider();
   const head = generateHeadGrid(def.head.r);
   blit(head, dpal, Math.round(ox + def.head.x * CAR_PPM - head.ox), Math.round(oy + def.head.y * CAR_PPM - head.oy));
   for (const w of def.wheels) {

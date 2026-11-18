@@ -223,10 +223,13 @@ export const ALIEN = group('alien', [
   }],
   ['space-bike', 'Space Bike', 'Світловий мотоцикл: суцільний обтічний корпус, колеса-кільця з неоновим ободом і світний слід позаду.', 'bike', ['#1a1a2a', '#5ef0ff'], {
     axles: [1.15, 1.15],
-    o: o({ rim: 'disc' }), speed: 1.15, hideWheels: [0, 1], air: 1.4,
+    o: o({ rim: 'disc' }), speed: 1.15, hideWheels: [0, 1], air: 1.4, lamp: null,
     // A light cycle: big hubless ring wheels with neon rims, one sleek shell wrapping over both of
-    // them and dipping low where the rider lies along it, neon seams, and a ribbon of light behind.
-    fx: (f) => [{ kind: 'trail', at: [f.wheels[0].x - f.wheels[0].r * 0.6, f.wheels[0].y + f.wheels[0].r * 0.4], dir: 180, size: 0.24, mat: 'accent' }],
+    // them, the rider lying forward along it with hands on the low grips in the front cowl, neon
+    // seams, and the wall of light it leaves behind.
+    head: () => [0.22, -0.8],
+    rider: (f) => ({ pose: 'ride', front: true, lean: 0.55, hand: [f.wheels[1].x - 0.22, -0.52], foot: [f.wheels[0].x + 0.3, -0.3] }),
+    ribbon: (f) => ({ at: [f.wheels[0].x - f.wheels[0].r * 0.5, f.wheels[0].y + f.wheels[0].r], h: 0.85, mat: 'accent', life: 1.4 }),
     skin: (f) => {
       const [rw, fw] = f.wheels;
       const ring = (w: typeof rw) => [circ(w.x, w.y, w.r, 'black'), circ(w.x, w.y, w.r - 0.06, 'accent', { flat: true }), circ(w.x, w.y, w.r - 0.17, 'black', { flat: true }), circ(w.x, w.y, 0.07, 'accent', { flat: true })];
