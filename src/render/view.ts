@@ -4,7 +4,7 @@ import { ART_PPM, CAR_PPM } from '../physics/constants';
 import type { Game, GameEvent } from '../game/game';
 import type { Car } from '../cars/car';
 import type { CarDef, CarPalette, CarPoly, Gait, ProjectileKind } from '../cars/types';
-import { carPalette, driverPalette, generateAmmoGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
+import { carPalette, driverPalette, generateAmmoGrid, generateBackGrid, generateCarGrid, generateHeadGrid, generateGaitGrids, generatePoseGrids, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from '../cars/sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from '../cars/fx';
 import { generateClouds, generateLayer, generateSky, generateTerrain, THEMES } from '../maps/art';
 import { Ambience, haloGrid } from './ambience';
@@ -183,7 +183,16 @@ class CarView {
         this.poses.push({ sp, n: pg.n, i: pg.i });
       }
     };
-    this.body.addChild(this.flame, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
+    // the seat back and the far side of a cockpit go behind the driver
+    const bg = generateBackGrid(def);
+    const back: Sprite[] = [];
+    if (bg) {
+      const bs = new Sprite(cached(`back:${def.id}:${alt}`, () => gridTexture(bg, carPalette(pal))));
+      bs.anchor.set(bg.ox / bg.w, bg.oy / bg.h);
+      bs.scale.set(1 / CAR_PPM);
+      back.push(bs);
+    }
+    this.body.addChild(this.flame, ...back, ...(riderFront ? [] : [this.torso]), s, ...(riderFront ? [this.torso] : []));
     // swinging limbs go in just under the body sprite (they hang off it, behind its outline)
     gaitOf(def.body, def.id, this.body, s);
     const ag = generateAmmoGrid(def);

@@ -1,7 +1,7 @@
 import { CAR_PPM } from '../physics/constants';
 import { gridToRGBA, PixelGrid } from '../render/grid';
 import type { RGB } from '../render/color';
-import { carPalette, driverPalette, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from './sprite';
+import { carPalette, driverPalette, generateBackGrid, generateCarGrid, generateFxGrid, generateHeadGrid, generateLinkGrid, generateRiderGrid, generateWheelGrid, riderPalette, tone, wheelPalette } from './sprite';
 import { FX_MAT, FX_PARAMS, boltPts, fxDir } from './fx';
 import type { CarDef, CarPalette } from './types';
 import { ITEMS, cargoSlots } from '../game/abilities';
@@ -36,6 +36,8 @@ export function carPreviewCanvas(def: CarDef, palette: CarPalette, playerColor: 
     const ic = gridCanvas(ig, DECOR_PAL);
     for (const [x, y] of cargoSlots(def.cargo)) items.push({ g: ig, c: ic, x: x * CAR_PPM - ig.ox, y: y * CAR_PPM - ig.oy });
   }
+  const bg = generateBackGrid(def);
+  if (bg) items.push({ g: bg, c: gridCanvas(bg, carPalette(palette)), x: -bg.ox, y: -bg.oy });
   if (!def.rider?.front) items.push(riderItem);
   const linkItems = (behind: boolean) => (def.links ?? []).forEach((ld, i) => {
     if (!!ld.behind !== behind) return;

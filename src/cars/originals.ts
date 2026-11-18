@@ -1,7 +1,7 @@
 import { withDrive } from './drive';
 import type { Frame } from './factory';
 import type { CarDef, CarPoly } from './types';
-import { blob, bumper, circ, ell, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spare, spikesAlong, stack, starShape, stripe, tank } from './draw';
+import { blob, bumper, circ, shoulders, ell, eyeball, flameDecal, grille, ladder, lightbar, path, poly, rect, rr, seat, seg, spare, spikesAlong, stack, starShape, stripe, tank } from './draw';
 import { fenders, frontLamp, mirror, monsterChassis, pickup, rearLamp, sedan, tracks, tractor } from './skins';
 
 /*
@@ -37,6 +37,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...frontLamp(1.5, -0.1), rearLamp(-1.6, -0.12),
       circ(0.62, 0.0, 0.13, 'white'), rect(0.59, -0.08, 0.66, 0.08, 'black', { flat: true }),
       rr(-1.2, 0.3, 1.2, 0.4, 0.04, 'dark'),
+      ...shoulders(d.head),
     ];
   },
   bulldog: (d) => {
@@ -51,6 +52,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       rr(-1.62, -0.55, -1.42, -0.28, 0.03, 'dark'), stripe(-1.6, 1.5, 0.06, 0.08, 'accent'),
       ...[-1.1, 1.1].map((x) => rect(x - 0.62, 0.3, x - 0.56, 0.62, 'black')),
       ...path([[-1.55, 0.36], [-1.75, 0.3]], 0.08, 'chrome'),
+      ...shoulders(d.head),
     ];
   },
   zipper: (d) => {
@@ -61,6 +63,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...[-0.06, 0.06].map((y) => stripe(-1.6, 1.65, y, 0.06, 'accent')),
       rr(0.6, -0.36, 1.05, -0.26, 0.04, 'black'), rect(0.66, -0.33, 0.99, -0.29, 'dark', { flat: true }),
       circ(-0.95, -0.06, 0.15, 'white'), rect(-0.98, -0.15, -0.91, 0.03, 'black', { flat: true }),
+      ...shoulders(d.head),
     ];
   },
   mammoth: (d) => {
@@ -76,6 +79,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       // The cab is open in front of the driver.
       { ...poly([[-0.15, -1.19], [0.35, -1.19], [0.35, -0.57], [-0.15, -0.57]]), cut: true },
       { ...poly([[0.35, -1.3], [1.15, -1.3], [1.15, -0.57], [0.35, -0.57]]), cut: true },
+      ...shoulders(d.head),
     ];
   },
   pebble: (d) => {
@@ -90,6 +94,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...heart(0.0, 0.0, 0.12),
       bumper(0.7, 1.02, 0.24, 0.1), bumper(-1.02, -0.7, 0.24, 0.1),
       rearLamp(-0.94, -0.06, 0.12), ...fenders(f, 'body', 0.08),
+      ...shoulders(d.head, { depth: 0.34 }),
     ];
   },
   longhorn: (d) => {
@@ -107,6 +112,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...[1.12, 2.46].map((x) => circ(x, -0.75, 0.03, 'dark')),
       blob([[1.6, -0.42], [1.9, -0.42], [1.86, -0.28], [1.79, -0.18], [1.71, -0.18], [1.64, -0.28]], 'bone', {}, 1),
       circ(1.69, -0.34, 0.03, 'black'), circ(1.81, -0.34, 0.03, 'black'),
+      ...shoulders(d.head),
     ];
   },
   digger: (d) => {
@@ -124,9 +130,10 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...[-1.2, -0.7, -0.2, 0.3, 0.8].map((x) => circ(x, -0.28, 0.03, 'dark')),
       stripe(-1.4, 1.0, 0.04, 0.08, 'accent'),
       ...fenders(f, 'dark', 0.12), ...beaconLeft(-0.6, -1.18), ...frontLamp(1.05, -0.2),
+      ...shoulders(d.head),
     ];
   },
-  rammer: () => [
+  rammer: (d) => [
     rr(-1.55, -0.34, 0.95, 0.42, 0.08, 'body'),
     blob([[-1.48, -0.32], [-1.42, -0.72], [-0.78, -0.74], [-0.68, -0.32]], 'body', {}, 1), rect(-1.32, -0.64, -0.84, -0.38, 'glass'), rect(-1.1, -0.64, -1.06, -0.38, 'dark', { flat: true }),
     ...stack(-0.45, -0.34, 0.42, 0.1), ...stack(-0.25, -0.34, 0.36, 0.1),
@@ -137,8 +144,9 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     stripe(-1.5, 0.9, 0.04, 0.1, 'accent'), ...spikesAlong(-0.6, 0.85, -0.32, 4, 0.14, 'spike'),
     ...frontLamp(0.95, -0.15), rearLamp(-1.55, -0.15),
     rr(-1.3, 0.34, 0.8, 0.44, 0.04, 'black'),
+      ...shoulders(d.head),
   ],
-  porcupine: () => [
+  porcupine: (d) => [
     rr(-1.45, -0.32, 1.45, 0.4, 0.1, 'body'),
     poly([[0.32, -0.3], [0.82, -0.3], [0.52, -0.8], [0.32, -0.8]], 'glass'),
     ...spikesAlong(-1.4, 0.25, -0.3, 6, 0.32, 'spike'),
@@ -147,6 +155,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     poly([[-0.02, -1.22], [0.24, -1.22], [0.11, -1.55]], 'spike'), poly([[0.28, -1.22], [0.56, -1.22], [0.42, -1.52]], 'spike'),
     poly([[1.4, -0.2], [1.4, 0.18], [1.95, -0.01]], 'spike'),
     stripe(-1.42, 1.42, 0.08, 0.1, 'accent'), ...grille(1.3, -0.06, 1.46, 0.24, 2), ...frontLamp(1.45, -0.18), rearLamp(-1.47, -0.15),
+      ...shoulders(d.head),
   ],
   comet: (d) => {
     const f = fr(d, { x0: -1.3, x1: 1.6, y0: -0.24, y1: 0.3, roof: [-0.4, 0.2, -0.66] });
@@ -157,9 +166,10 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...sedan(f, { roof: 'coupe', top: -0.66, rx0: -0.5, rx1: 0.2, bumper: 'chrome', pin: null }),
       poly([[1.5, -0.02], [-1.25, -0.12], [-1.25, 0.08], [1.5, 0.08]], 'accent', { flat: true }),
       circ(0.95, -0.05, 0.14, 'white'), rect(0.92, -0.13, 0.98, 0.03, 'black', { flat: true }),
+      ...shoulders(d.head),
     ];
   },
-  stilts: () => [
+  stilts: (d) => [
     ...[-0.92, 0.92].map((x) => [rr(x - 0.13, 0.05, x + 0.13, 0.55, 0.04, 'dark'), rr(x - 0.08, 0.5, x + 0.08, 1.0, 0.03, 'chrome'), rr(x - 0.15, 0.48, x + 0.15, 0.56, 0.03, 'accent'), ...path([[x + 0.12, 0.1], [x + 0.22, 0.3], [x + 0.1, 0.5]], 0.05, 'black')]).flat(),
     rr(-1.15, 0.0, 1.15, 0.16, 0.04, 'black'),
     blob([[-1.22, 0.1], [-1.24, -0.35], [-1.15, -0.7], [-0.65, -0.72], [-0.55, -0.36], [0.35, -0.38], [0.85, -0.36], [1.24, -0.2], [1.24, 0.1]], 'body', {}, 1),
@@ -167,8 +177,9 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     rect(-1.1, -0.64, -0.7, -0.42, 'glass'),
     poly([[-1.2, -0.12], [1.2, -0.16], [1.2, -0.02], [-1.2, 0.02]], 'accent', { flat: true }),
     ...frontLamp(1.24, -0.24), rearLamp(-1.26, -0.2),
+      ...shoulders(d.head),
   ],
-  jelly: () => [
+  jelly: (d) => [
     // A wobbly jelly cube: a tall rounded block the rider sinks into, a glossy highlight,
     // a bubbly inside, a cheeky face on the front and drips running onto the wheels.
     blob([[-1.2, 0.28], [-1.28, -0.2], [-1.18, -0.92], [-0.6, -1.02], [0.1, -0.96], [0.75, -1.04], [1.2, -0.9], [1.3, -0.25], [1.22, 0.28]], 'body', {}, 2),
@@ -180,6 +191,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     blob([[0.68, -0.18], [1.1, -0.2], [0.92, -0.06]], 'dark', { flat: true }, 1),
     ...[-1.1, -0.5, 0.2, 0.8, 1.15].map((x, i) => path([[x, 0.2], [x + (i % 2 ? 0.05 : -0.05), 0.4], [x, 0.52]], 0.11, 'body')).flat(),
     ...[[-0.2, -1.25, 0.07], [0.2, -1.4, 0.05], [-0.5, -1.35, 0.04]].map(([x, y, r]) => circ(x, y, r, 'sky')),
+    ...shoulders(d.head),
   ],
   tankette: (d) => {
     const f = fr(d, { x0: -1.5, x1: 1.5, y0: -0.3, y1: 0.22 });
@@ -193,6 +205,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       rect(0.95, -0.76, 1.18, -0.32, 'grey'),
       circ(-0.45, -0.52, 0.13, 'white'), starShape(-0.45, -0.52, 0.1, 'accent'),
       ...frontLamp(1.72, -0.06),
+      ...shoulders(d.head),
     ];
   },
   hornet: (d) => {
@@ -205,9 +218,10 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ell(1.2, -0.18, 0.13, 0.1, 'red'), ell(1.24, -0.2, 0.05, 0.04, 'white'),
       ...path([[1.05, -0.28], [1.25, -0.6], [1.45, -0.7]], 0.05, 'black'),
       seg([-1.35, -0.22], [-1.45, -0.45], 0.07, 'accent'), rr(-1.62, -0.58, -1.25, -0.46, 0.03, 'accent'),
+      ...shoulders(d.head),
     ];
   },
-  forklift: () => [
+  forklift: (d) => [
     rr(-1.15, -0.36, 0.82, 0.36, 0.08, 'body'),
     rr(-1.42, -0.46, -1.05, 0.34, 0.05, 'dark'), ...[0, 1, 2, 3].map((i) => poly([[-1.4, -0.36 + i * 0.18], [-1.07, -0.44 + i * 0.18], [-1.07, -0.36 + i * 0.18], [-1.4, -0.28 + i * 0.18]], 'yellow', { flat: true })),
     ...path([[-0.91, -0.34], [-0.91, -1.14], [0.36, -1.14], [0.42, -0.36]], 0.12, 'dark'), rr(-1.0, -1.22, 0.45, -1.1, 0.03, 'dark'),
@@ -217,6 +231,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     rr(0.95, -0.42, 1.1, 0.16, 0.03, 'grey'),
     poly([[1.0, -0.06], [1.95, 0.0], [1.95, 0.16], [1.0, 0.16]], 'chrome'),
     ...beaconLeft(-0.6, -1.22), stripe(-1.1, 0.8, 0.12, 0.08, 'accent'), ...frontLamp(0.82, -0.2),
+      ...shoulders(d.head),
   ],
   hotrod: (d) => [
     blob([[-1.5, 0.3], [-1.56, -0.3], [-1.2, -0.36], [-0.3, -0.34], [0.5, -0.2], [1.6, -0.1], [1.64, 0.28]], 'body', {}, 1),
@@ -227,15 +242,17 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     ...path([[0.0, 0.14], [-0.6, 0.18], [-1.6, 0.1]], 0.1, 'chrome'),
     ...flameDecal(1.45, 0.1, 0.0, 0.26), ...grille(1.48, -0.1, 1.64, 0.22, 3),
     ...frontLamp(1.62, -0.16), rearLamp(-1.56, -0.12),
+      ...shoulders(d.head),
   ],
   tractor: (d) => {
     const f = fr(d, { x0: -1.0, x1: 1.5, y0: -0.4, y1: 0.2 });
     return [
       ...tractor(f, { cab: false }),
       rr(-1.06, -1.32, 0.18, -1.16, 0.04, 'accent'), rect(-0.04, -1.18, 0.08, -0.4, 'dark'), rect(-0.95, -1.18, -0.83, -0.35, 'dark'),
+      ...shoulders(d.head),
     ];
   },
-  bumper: () => [
+  bumper: (d) => [
     rr(-1.32, -0.28, 1.32, 0.6, 0.28, 'rubber'),
     rr(-1.22, -0.18, 1.22, -0.08, 0.04, 'grey', { flat: true }), rr(-1.2, 0.3, 1.2, 0.36, 0.03, 'grey', { flat: true }),
     blob([[-1.05, -0.14], [-1.0, -0.66], [-0.4, -0.72], [0.3, -0.44], [1.0, -0.46], [1.08, -0.14]], 'body', {}, 2),
@@ -243,6 +260,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     ...seat(-0.1, -0.34, 0.3, 'accent'),
     ...path([[-0.83, -0.44], [-0.83, -1.15]], 0.08, 'chrome'), circ(-0.83, -1.2, 0.09, 'yellow'), ...spikesAlong(-0.98, -0.68, -1.24, 2, 0.12, 'yellow'),
     starShape(0.6, -0.2, 0.13, 'gold'), ...frontLamp(1.08, -0.36, 0.1),
+    ...shoulders(d.head),
   ],
   limo: (d) => {
     const f = fr(d, { x0: -2.4, x1: 2.45, y0: -0.25, y1: 0.3, roof: [-2.3, 0.6, -0.7] });
@@ -251,6 +269,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...[-1.75, -1.2, -0.65, -0.1].map((x) => rect(x, -0.68, x + 0.07, -0.26, 'gold')),
       stripe(-2.4, 2.4, 0.08, 0.05, 'chrome'), ...grille(2.32, -0.14, 2.47, 0.16, 3), circ(2.2, -0.32, 0.05, 'gold'),
       seg([1.95, -0.3], [1.98, -0.6], 0.04, 'chrome'), poly([[1.98, -0.6], [2.25, -0.54], [1.98, -0.46]], 'accent'),
+      ...shoulders(d.head),
     ];
   },
   jet: (d) => {
@@ -263,6 +282,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...sedan(f, { roof: 'coupe', top: -0.6, rx0: -0.55, rx1: 0.1, bumper: 'chrome', pin: null }),
       poly([[1.55, -0.08], [-1.35, -0.16], [-1.35, 0.04], [1.55, 0.04]], 'accent', { flat: true }),
       circ(0.75, -0.02, 0.13, 'white'), rect(0.72, -0.1, 0.78, 0.06, 'black', { flat: true }),
+      ...shoulders(d.head),
     ];
   },
   ladder: (d) => {
@@ -278,9 +298,10 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
       ...lightbar(0.9, 1.45, -0.9, 'red', 'red'), stripe(-1.74, 1.62, 0.12, 0.1, 'white'),
       ...grille(1.5, -0.04, 1.64, 0.26, 3), ...frontLamp(1.64, -0.14), bumper(1.4, 1.75, 0.34, 0.12),
       circ(-0.5, -0.74, 0.12, 'gold'), ...fenders(f, 'dark', 0.1),
+      ...shoulders(d.head),
     ];
   },
-  wedge: () => [
+  wedge: (d) => [
     // Doorstop ram: a steep wedge that wraps the wheel tops, a red diagonal livery,
     // a race number, a tall rear wing and a chrome splitter on the nose.
     blob([[-1.52, 0.42], [-1.56, -0.55], [-0.9, -0.58], [1.92, 0.1], [1.95, 0.3], [1.8, 0.42]], 'body', {}, 1),
@@ -292,6 +313,7 @@ export const ORIGINAL_SKINS: Record<string, (d: CarDef) => CarPoly[]> = {
     poly([[-0.75, -0.52], [-0.4, -0.44], [-0.62, -0.78]], 'glass'),
     rr(1.72, 0.06, 1.92, 0.16, 0.03, 'light'), rr(-1.6, -0.3, -1.48, -0.12, 0.03, 'red'),
     rr(-1.3, 0.3, 1.5, 0.42, 0.04, 'dark'),
+      ...shoulders(d.head),
   ],
 };
 

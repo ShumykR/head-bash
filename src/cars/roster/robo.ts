@@ -1,4 +1,4 @@
-import { blob, circ, ell, path, poly, rect, rr, seg, spikesAlong, stack, stripe } from '../draw';
+import { blob, circ, ell, path, poly, rect, rr, seg, spikesAlong, stack, stripe, shoulders } from '../draw';
 import { arc, bike, hover, robot, rocket, tracks } from '../skins';
 import type { CarPoly, Pt } from '../types';
 import type { Frame, LinkSpec } from '../factory';
@@ -51,6 +51,7 @@ export const ROBO = group('robo', [
       circ(0.05, f.roof.y + 0.36, 0.14, 'accent'), circ(0.08, f.roof.y + 0.36, 0.06, 'white'),
       ...path([[f.roof.x1, f.roof.y + 0.5], [f.roof.x1 + 0.4, f.roof.y + 0.65], [f.roof.x1 + 0.55, f.roof.y + 0.45]], 0.12, 'accent'),
       stripe(-0.5, 0.5, -0.3, 0.06, 'accent'), ...[[-1.0, -0.75], [-1.1, -0.45]].map(([x, y]) => circ(x, y, 0.05, 'white')),
+      ...shoulders(f.head),
     ],
   }],
   ['hexabot', 'Hexabot', 'Шестиногий шагохід на гусеницях-лапах.', 'tracked', ['#a0a8b8', '#e02a2a'], {
@@ -63,6 +64,7 @@ export const ROBO = group('robo', [
       blob([[1.1, -0.45], [1.55, -0.45], [1.7, -0.15], [1.2, -0.05]], 'dark', {}, 1), ...visor(1.25, 1.6, -0.28),
       ...path([[-1.2, -0.55], [-1.3, -1.0]], 0.04, 'grey'), circ(-1.3, -1.05, 0.06, 'red'),
       stripe(-1.5, 1.2, -0.38, 0.06, 'accent'), rr(-0.9, -0.62, -0.3, -0.52, 0.03, 'dark'), rr(-0.1, -0.64, 0.5, -0.54, 0.03, 'dark'),
+      ...shoulders(f.head),
     ],
   }],
   ['doom-bot', 'Doom Bot', 'Важкий бойовий андроїд із лазерними очима.', 'robot', ['#3a3a4a', '#e02a2a'], {
@@ -70,6 +72,7 @@ export const ROBO = group('robo', [
     o: o({ tall: 1.1 }), parts: ['antenna'], hideParts: true,
     skin: (f) => [
       ...robot(f, { face: 'dark' }),
+      ...shoulders(f.head),
       poly([[-0.4, f.roof.y + 0.25], [-0.05, f.roof.y + 0.33], [-0.05, f.roof.y + 0.43], [-0.4, f.roof.y + 0.38]], 'red'),
       poly([[0.4, f.roof.y + 0.25], [0.05, f.roof.y + 0.33], [0.05, f.roof.y + 0.43], [0.4, f.roof.y + 0.38]], 'red'),
       ...[-0.3, -0.1, 0.1, 0.3].map((x) => poly([[x - 0.06, -0.55], [x + 0.06, -0.55], [x + 0.1, -0.2], [x - 0.02, -0.2]], 'yellow', { flat: true })),
@@ -88,11 +91,12 @@ export const ROBO = group('robo', [
       rr(f.nose.x - 0.95, -0.36, f.nose.x - 0.75, 0.36, 0.04, 'accent'),
       ...[-1.0, -0.6, -0.2].map((x) => circ(x, -0.15, 0.04, 'chrome')), stripe(f.tail.x + 0.2, f.nose.x - 1.0, 0.1, 0.06, 'accent'),
       rr(f.tail.x + 0.3, 0.26, f.nose.x - 1.0, 0.38, 0.04, 'dark'),
+      ...shoulders(f.head),
     ],
   }],
   ['hovercar', 'Hovercar', 'Антигравітаційний седан без коліс-видимих: просто ширяє.', 'hover', ['#3a8ad8', '#ffffff'], {
     glide: 0.34,
-    skin: (f) => [...hover(f, { glow: 'sky' }), rr(f.tail.x + 0.5, 0.26, f.nose.x - 0.6, 0.34, 0.04, 'light'), stripe(f.tail.x, f.nose.x - 0.1, -0.12, 0.06, 'accent'), rect(-0.3, -0.3, -0.26, 0.1, 'dark', { flat: true }), rect(-0.2, -0.12, -0.08, -0.08, 'chrome', { flat: true })],
+    skin: (f) => [...hover(f, { glow: 'sky' }), rr(f.tail.x + 0.5, 0.26, f.nose.x - 0.6, 0.34, 0.04, 'light'), stripe(f.tail.x, f.nose.x - 0.1, -0.12, 0.06, 'accent'), rect(-0.3, -0.3, -0.26, 0.1, 'dark', { flat: true }), rect(-0.2, -0.12, -0.08, -0.08, 'chrome', { flat: true }), ...shoulders(f.head)],
   }],
   ['brass-bike', 'Brass Bike', 'Стімпанк-байк із латуні: шестерні, клепки й труба.', 'bike', ['#c8902a', '#5a3a1a'], {
     axles: [0.8, 0.8],
@@ -115,6 +119,7 @@ export const ROBO = group('robo', [
     skin: (f) => [
       ...trackedBase(f),
       blob([[-0.8, -0.32], [-0.6, -0.75], [0.5, -0.75], [0.75, -0.32]], 'body', {}, 1),
+      ...shoulders(f.head),
       ...path([[0.5, -0.55], [1.7, -0.9]], 0.16, 'grey'), ...[0.8, 1.1, 1.4].map((x) => ell(x, -0.64 - (x - 0.5) * 0.29, 0.06, 0.12, 'accent')),
       circ(1.75, -0.92, 0.09, 'accent'),
       stripe(-1.6, 1.6, -0.15, 0.06, 'accent'), rr(-0.4, -0.65, 0.2, -0.55, 0.04, 'accent'),
@@ -149,6 +154,7 @@ export const ROBO = group('robo', [
         rr(-0.3, sy + 0.12, 0.3, sy + 0.4, 0.07, 'accent', { ring: true }),
         rect(-0.24, sy + 0.24, 0.24, sy + 0.27, 'gold', { flat: true }),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -156,6 +162,7 @@ export const ROBO = group('robo', [
     parts: ['saw'],
     skin: (f) => [
       ...robot(f),
+      ...shoulders(f.head),
       ...visor(-0.35, 0.4, f.roof.y + 0.36, 'red'),
       ...[-0.4, -0.15, 0.1, 0.35].map((x) => poly([[x - 0.06, -0.55], [x + 0.06, -0.55], [x + 0.12, -0.2], [x, -0.2]], 'black', { flat: true })),
       rr(-0.45, -0.6, 0.45, -0.18, 0.04, 'accent', { ring: true }),
@@ -167,6 +174,7 @@ export const ROBO = group('robo', [
     skin: (f) => [
       ...path([[-0.3, -0.2], [-0.75, 0.0], [-0.95, 0.4]], 0.1, 'dark'), ...path([[0.3, -0.2], [0.75, 0.0], [0.95, 0.4]], 0.1, 'dark'), ...path([[0, -0.2], [0, 0.42]], 0.1, 'dark'),
       ell(0, f.roof.y + 0.55, 0.85, 0.5, 'body', {}, 24),
+      ...shoulders(f.head),
       ell(0, f.roof.y + 0.25, 0.55, 0.3, 'glass', {}, 20),
       circ(0.55, f.roof.y + 0.65, 0.14, 'accent'), circ(0.6, f.roof.y + 0.65, 0.06, 'white'),
       stripe(-0.8, 0.8, f.roof.y + 0.8, 0.06, 'accent'),

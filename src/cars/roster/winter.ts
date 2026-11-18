@@ -1,5 +1,5 @@
 import { tailgate } from '../art';
-import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows } from '../draw';
+import { beacon, blob, lightbar, circ, ell, eyeball, headlight, path, poly, rect, rr, seg, starShape, stripe, tank, windows, shoulders } from '../draw';
 import { bike, boxy, fenders, rocket, sedan, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
@@ -72,6 +72,7 @@ export const WINTER = group('winter', [
       ...Array.from({ length: 6 }, (_, i) => rect(f.tail.x + 0.05 + i * 0.17, a.y + a.r - 0.04, f.tail.x + 0.11 + i * 0.17, a.y + a.r + 0.03, 'rubber')),
       ...[f.tail.x + 0.2, -0.65, -0.3].map((x) => circ(x, a.y + a.r - 0.25, 0.06, 'grey')),
       blob([[0.25, -0.3], [0.45, -0.78], [0.7, -0.76], [0.62, -0.28]], 'glass', {}, 1),
+        ...shoulders(f.head),
       ];
     },
   }],
@@ -79,6 +80,7 @@ export const WINTER = group('winter', [
     o: o({ wheels: 2 }), parts: ['tree'], hideParts: true,
     skin: (f) => [
       ...truckCab(f),
+      ...shoulders(f.head),
       snowCap(f.roof.x0, f.nose.x - 0.3, f.roof.y),
       rr(f.deck.x0, f.deck.y - 0.25, f.deck.x1, f.deck.y + 0.1, 0.04, 'wood'),
       ...fir((f.deck.x0 + f.deck.x1) / 2, f.deck.y - 0.2),
@@ -92,6 +94,7 @@ export const WINTER = group('winter', [
     o: o({ cab: true }), parts: ['plow'], hideParts: true,
     skin: (f) => [
       ...trackedBody(f, 'body', 0.3),
+      ...shoulders(f.head),
       rr(f.roof.x0 - 0.5, f.roof.y, f.roof.x1 + 0.5, -0.3, 0.08, 'body'),
       ...windows(f.roof.x0 - 0.42, f.roof.x0 - 0.06, f.roof.y + 0.1, -0.5, 1, 0.1),
       rr(f.roof.x0 - 0.45, f.roof.y - 0.13, f.roof.x1, f.roof.y, 0.04, 'dark'), ...[0.0, 0.3, 0.6, 0.9].map((x) => circ(f.roof.x0 - 0.3 + x, f.roof.y - 0.15, 0.06, 'light')),
@@ -109,6 +112,7 @@ export const WINTER = group('winter', [
       const x0 = f.tail.x, x1 = f.nose.x;
       return [
         ...path([[x0 - 0.05, 0.12], [x0 + 0.05, 0.2], [x1 - 0.2, 0.2], [x1 - 0.02, 0.1], [x1, -0.08], [x1 - 0.12, -0.14]], 0.08, 'chrome'),
+        ...shoulders(f.head),
         ...[x0 + 0.25, x1 - 0.4].map((x) => seg([x, 0.2], [x, -0.12], 0.08, 'wood')),
         // seat and backrest with a red cushion
         rr(x0 + 0.05, -0.2, x1 - 0.28, -0.04, 0.05, 'wood'), rr(x0 + 0.15, -0.3, x1 - 0.38, -0.18, 0.05, 'accent'),
@@ -122,8 +126,9 @@ export const WINTER = group('winter', [
   ['snowman', 'Snowman', 'Сніговик на колесах: морквяний ніс, циліндр і сніжки напоготові.', 'blob', ['#f4f8ff', '#ff8a1a'], {
     gun: () => ({ at: [[0.98, -0.87]], aim: 25 }),
     o: o({ shape: 'snowman', mat: 'white' }), ballast: 0.15, noLights: true,
-    skin: () => [
+    skin: (f) => [
       circ(0, -0.2, 0.75, 'white'), circ(0.05, -1.05, 0.48, 'white'),
+      ...shoulders(f.head),
       ...path([[-0.5, -0.72], [-0.95, -1.05], [-1.1, -0.95]], 0.06, 'brown'), ...path([[0.55, -0.6], [0.95, -0.85]], 0.06, 'brown'),
       ...eyeball(0.2, -1.15, 0.07), ...eyeball(0.42, -1.12, 0.06),
       poly([[0.45, -1.02], [0.45, -0.92], [0.9, -0.97]], 'orange'),
@@ -144,11 +149,12 @@ export const WINTER = group('winter', [
       stripe(-1.6, 1.5, -0.2, 0.07, 'accent'),
       rr(-0.35, -0.82, 0.05, -0.72, 0.04, 'dark'), circ(-0.15, -0.5, 0.11, 'white'), starShape(-0.15, -0.5, 0.08, 'accent'),
       rr(1.42, -1.14, 1.66, -0.96, 0.04, 'black'),
+      ...shoulders(f.head, { depth: 0.34 }),
     ],
   }],
   ['snowball-bike', 'Snowball Bike', 'Трицикл зі сніговою кулею за спиною.', 'trike', ['#3ab0e0', '#ffffff'], {
     parts: [['ball', 0.5]], hideParts: true,
-    skin: (f) => [...bike(f, { style: 'scooter' }), circ(f.deck.x0 - 0.05, f.deck.y - 0.3, 0.4, 'white'), circ(f.deck.x0 + 0.05, f.deck.y - 0.42, 0.1, 'sky')],
+    skin: (f) => [...bike(f, { style: 'scooter' }), circ(f.deck.x0 - 0.05, f.deck.y - 0.3, 0.4, 'white'), circ(f.deck.x0 + 0.05, f.deck.y - 0.42, 0.1, 'sky'), ...shoulders(f.head)],
   }],
   ['santa-sleigh', 'Santa\'s Sleigh', 'Літаючі сани Санти. Подарунки в кузові вилітають на віражах.', 'sled', ['#d02a2a', '#ffd23f'], {
     float: 0.8, cargo: ['gift', 3], stride: 1.5,
@@ -168,7 +174,7 @@ export const WINTER = group('winter', [
         ],
       }];
     },
-    skin: () => [
+    skin: (f) => [
       ...path([[-1.6, 0.12], [-1.55, 0.2], [1.15, 0.2], [1.45, 0.1], [1.6, -0.15], [1.52, -0.38], [1.32, -0.42], [1.24, -0.28]], 0.1, 'gold'),
       ...[-1.1, -0.2, 0.7].map((x) => seg([x, 0.2], [x + 0.05, 0.02], 0.08, 'gold')),
       blob([[-1.62, 0.06], [-1.66, -0.72], [-1.5, -0.98], [-1.25, -0.92], [-1.15, -0.55], [-0.95, -0.38], [0.05, -0.38], [0.55, -0.45], [0.95, -0.72], [1.2, -0.7], [1.22, -0.45], [0.95, 0.06]], 'body', {}, 2),
@@ -178,6 +184,7 @@ export const WINTER = group('winter', [
       circ(1.2, -0.72, 0.11, 'gold'),
       ...[[-1.55, -0.55], [1.05, -0.55]].map(([x, y]) => path([[x, y], [x + 0.1, y + 0.15], [x, y + 0.3], [x - 0.08, y + 0.2]], 0.05, 'gold')).flat(),
       ell(-1.2, -1.02, 0.3, 0.22, 'brown'), rect(-1.25, -1.26, -1.15, -1.2, 'gold'),
+      ...shoulders(f.head),
     ],
   }],
   ['gift-box', 'Gift Box', 'Подарункова коробка на колесах. Сюрприз: вона підскакує!', 'blob', ['#e02a4a', '#ffd23f'], {
@@ -191,6 +198,7 @@ export const WINTER = group('winter', [
       rect(-0.12, -1.3, -0.05, 0.2, 'yellow', { flat: true }),
       rr(0.3, -0.3, 0.7, -0.05, 0.03, 'white'), seg([0.3, -0.18], [0.12, -0.4], 0.03, 'accent'),
       rr(-0.9, 0.12, 0.9, 0.3, 0.05, 'dark'),
+      ...shoulders(f.head),
     ],
   }],
   ['firework-truck', 'Firework Truck', 'Вантажівка з батареєю феєрверків. Стріляє петардами.', 'truck', ['#3a3ad8', '#ffd23f'], {
@@ -200,6 +208,7 @@ export const WINTER = group('winter', [
       const d = f.deck;
       return [
         ...truckCab(f),
+        ...shoulders(f.head),
         rr(d.x0, d.y - 0.35, d.x1, d.y + 0.08, 0.04, 'dark'),
         poly([[d.x0 + 0.2, d.y - 0.3], [d.x1 - 0.2, d.y - 0.3], [d.x1 - 0.4, d.y - 0.95], [d.x0 + 0.5, d.y - 1.1]], 'grey'),
         ...[0, 1, 2, 3, 4].map((i) => rr(d.x0 + 0.55 + i * 0.4, d.y - 1.4 + i * 0.07, d.x0 + 0.8 + i * 0.4, d.y - 0.85 + i * 0.07, 0.05, (['red', 'yellow', 'green', 'pink', 'orange'] as CarMat[])[i])),
@@ -219,6 +228,7 @@ export const WINTER = group('winter', [
       ...[0, 1, 2, 3, 4].map((i) => poly([[-1.3 + i * 0.45, -0.32], [-1.1 + i * 0.45, -0.32], [-1.35 + i * 0.45, 0.32], [-1.55 + i * 0.45, 0.32]], 'accent', { flat: true })),
       ...path([[f.tail.x - 0.05, 0.0], [f.tail.x - 0.3, -0.12], [f.tail.x - 0.45, 0.05]], 0.05, 'tan'),
       rr(-1.2, 0.26, 1.0, 0.38, 0.04, 'dark'),
+      ...shoulders(f.head),
     ],
   }],
   ['christmas-tree', 'Christmas Tree', 'Ялинка з іграшками на шестиколісній гусениці.', 'tracked', ['#2a8a3a', '#ffd23f'], {
@@ -229,6 +239,7 @@ export const WINTER = group('winter', [
       ...fir(0.6, -0.4, 1.3), ...ornaments(0.6, -0.5), ...ornaments(0.7, -0.8),
       ...path([[-0.1, -0.65], [0.6, -0.9], [1.3, -0.65]], 0.05, 'yellow'), ...path([[0.25, -1.2], [0.6, -1.32], [0.95, -1.2]], 0.05, 'yellow'),
       rr(-1.05, -0.72, -0.6, -0.45, 0.03, 'blue'), rect(-0.86, -0.72, -0.8, -0.45, 'gold', { flat: true }), rr(-0.55, -0.62, -0.25, -0.45, 0.03, 'pink'), rect(-0.43, -0.62, -0.37, -0.45, 'white', { flat: true }),
+      ...shoulders(f.head),
     ],
   }],
   ['snow-racer', 'Snow Racer', 'Одномісні спортивні сани з номером.', 'sled', ['#3a8ad8', '#ffd23f'], {
@@ -241,12 +252,14 @@ export const WINTER = group('winter', [
       rr(f.nose.x - 0.2, -0.1, f.nose.x - 0.04, 0.0, 0.03, 'light'),
       circ(0.2, -0.06, 0.13, 'white'), rect(0.17, -0.13, 0.23, 0.01, 'black', { flat: true }),
       rr(f.tail.x + 0.05, -0.55, f.tail.x + 0.2, -0.25, 0.04, 'accent'),
+      ...shoulders(f.head),
     ],
   }],
   ['street-sweeper', 'Street Sweeper', 'Снігоприбиральна машина з відвалом і щіткою.', 'box', ['#f0a020', '#ffffff'], {
     parts: ['plow'], hideParts: true,
     skin: (f) => [
       ...boxy(f, { x0: f.tail.x, slope: 0.25, slopeH: 0.45, win: 1, winX: [f.nose.x - 0.85, f.nose.x - 0.4], bumper: null }),
+      ...shoulders(f.head),
       stripe(f.tail.x, f.nose.x, f.roof.y + 0.55, 0.06, 'black'),
       rr(f.tail.x + 0.1, f.roof.y + 0.1, 0.4, f.nose.y1 - 0.2, 0.04, 'accent'),
       ...[0, 1, 2, 3, 4].map((i) => poly([[f.tail.x + 0.2 + i * 0.5, 0.15], [f.tail.x + 0.4 + i * 0.5, 0.15], [f.tail.x + 0.55 + i * 0.5, -0.05], [f.tail.x + 0.35 + i * 0.5, -0.05]], 'black', { flat: true })),
@@ -285,6 +298,7 @@ export const WINTER = group('winter', [
       ...path([[0.0, -0.18], [0.0, -2.0]], 0.08, 'wood'),
       poly([[0.06, -1.95], [0.06, -0.3], [1.1, -0.32]], 'white'), poly([[-0.06, -1.7], [-0.06, -0.35], [-0.8, -0.38]], 'sky'),
       stripe(0.06, 0.8, -0.9, 0.06, 'accent'),
+      ...shoulders(f.head),
     ],
   }],
   ['snow-coach', 'Snow Coach', 'Гусеничний снігобус: довгий обтічний кузов із рядом вікон, гусениця ззаду, лижа спереду.', 'carriage', ['#2a3a5a', '#e0c040'], {
@@ -307,6 +321,7 @@ export const WINTER = group('winter', [
         ...path([[b.x - 0.4, g - 0.04], [b.x + 0.35, g - 0.04], [b.x + 0.55, g - 0.16], [b.x + 0.55, g - 0.3]], 0.09, 'chrome'),
         // the long rounded body: low nose with a grille, domed roof with a row of round-topped windows
         blob([[f.tail.x + 0.05, ty0 + 0.05], [f.tail.x, f.roof.y + 0.3], [f.tail.x + 0.35, f.roof.y], [b.x - 0.6, f.roof.y], [b.x - 0.2, f.roof.y + 0.35], [f.nose.x + 0.1, f.roof.y + 0.6], [f.nose.x + 0.15, ty0 - 0.05], [f.nose.x - 0.05, ty0 + 0.08]], 'body', {}, 2),
+        ...shoulders(f.head),
         stripe(f.tail.x + 0.05, f.nose.x + 0.1, ty0 - 0.12, 0.08, 'accent'),
         ...Array.from({ length: 5 }, (_, i) => { const x = f.tail.x + 0.4 + i * 0.42; return rr(x, f.roof.y + 0.14, x + 0.3, f.roof.y + 0.46, 0.1, 'glass'); }),
         rr(f.nose.x - 0.25, f.roof.y + 0.62, f.nose.x + 0.08, ty0 - 0.2, 0.04, 'dark'),
@@ -323,6 +338,7 @@ export const WINTER = group('winter', [
     skin: (f) => [
       ...trackedBody(f),
       rr(-0.3, -0.75, 0.7, -0.3, 0.1, 'body'),
+      ...shoulders(f.head),
       ...path([[0.6, -0.5], [1.55, -0.9]], 0.18, 'grey'), ...path([[0.5, -0.66], [1.4, -1.2]], 0.18, 'grey'),
       circ(-1.0, -0.65, 0.14, 'white'), circ(-0.72, -0.63, 0.12, 'white'),
       rr(1.45, -1.0, 1.66, -0.82, 0.04, 'black'), rr(1.3, -1.3, 1.5, -1.12, 0.04, 'black'), rr(-0.1, -0.85, 0.3, -0.75, 0.04, 'dark'),
@@ -334,6 +350,7 @@ export const WINTER = group('winter', [
     fx: (f) => [{ kind: 'frost', at: [f.nose.x + 0.15, -0.1], dir: 0, size: 0.2, mat: 'white' }, { kind: 'spark', at: [f.nose.x + 0.4, -0.15], dir: -20, size: 0.14, mat: 'sky', rate: 0.5 }],
     skin: (f) => [
       ...sedan(f, { mat: 'sky', glass: 'white', bumper: 'white' }),
+      ...shoulders(f.head),
       snowCap(f.roof.x0 - 0.05, f.roof.x1 + 0.05, f.roof.y, 0.1),
       ...icicles(f.tail.x + 0.2, f.nose.x - 0.2, 0.28, 10),
       ...[[-1.0, 0.0], [0.6, 0.05], [-0.2, -0.05]].map(([x, y]) => starShape(x, y, 0.09, 'white')),
@@ -351,6 +368,7 @@ export const WINTER = group('winter', [
       stripe(f.tail.x + 0.05, f.nose.x - 0.4, -0.05, 0.08, 'accent'),
       rr(f.tail.x + 0.15, -0.45, -0.15, -0.26, 0.06, 'red'), rect(f.tail.x + 0.2, -0.38, -0.2, -0.35, 'gold', { flat: true }),
       ...[f.tail.x + 0.15, f.nose.x - 0.5].map((x) => path([[x, -0.25], [x + 0.12, -0.35], [x + 0.2, -0.25], [x + 0.12, -0.18]], 0.04, 'gold')).flat(),
+      ...shoulders(f.head),
     ],
   }],
   ['rocket-sleigh', 'Rocket Sleigh', 'Сани з реактивним двигуном. Тримай «вперед» — летиш по льоду.', 'sled', ['#e02a2a', '#c0c0c0'], {
@@ -363,12 +381,13 @@ export const WINTER = group('winter', [
       poly([[-0.9, -0.66], [-1.2, -0.95], [-1.0, -0.95], [-0.7, -0.66]], 'accent'),
       blob([[0.35, -0.3], [0.65, -0.55], [0.85, -0.22]], 'glass', {}, 1),
       stripe(f.tail.x + 0.1, 0.9, -0.1, 0.06, 'accent'),
+      ...shoulders(f.head),
     ],
   }],
   ['caterdog', 'Caterdog', 'Робопес-гусениця на широких траках.', 'creature', ['#c0c8d0', '#3a8ad8'], {
     drive: 'tracks',
     o: o({ len: 1.3, mat: 'metal' }), parts: ['tail', 'ears'], noLights: true, hideParts: true, glide: 0.82,
-    skin: () => [
+    skin: (f) => [
       // track loop under a robot dog
       // (running gear: the game draws the belt live round the road wheels, its lugs running)
       rr(-1.05, 0.18, 1.05, 0.82, 0.3, 'rubber', { gear: true }), rr(-0.92, 0.28, 0.92, 0.72, 0.2, 'dark', { gear: true }),
@@ -386,6 +405,7 @@ export const WINTER = group('winter', [
       blob([[1.1, -1.08], [1.35, -1.12], [1.32, -0.7], [1.15, -0.65]], 'accent', {}, 1),
       rr(1.45, -1.05, 1.68, -0.9, 0.03, 'black'), rect(1.52, -1.0, 1.62, -0.95, 'sky', { flat: true }),
       circ(2.0, -0.95, 0.07, 'black'), rect(1.62, -0.82, 1.95, -0.78, 'dark', { flat: true }),
+      ...shoulders(f.head, { depth: 0.34 }),
     ],
   }],
   ['sled-dog', 'Sled Dog', 'Хаскі в упряжі тягне за собою сани.', 'creature', ['#7a8090', '#f0f0f0'], {
@@ -412,6 +432,7 @@ export const WINTER = group('winter', [
       rr(0.05, -0.6, 0.3, 0.0, 0.04, 'red'), seg([-0.9, -0.15], [0.1, -0.35], 0.06, 'red'),
       // husky head: pointed ears, white mask, blue eyes, black nose
       ...path([[0.7, -0.4], [1.08, -0.72]], 0.3, 'body'),
+      ...shoulders(f.head),
       blob([[0.95, -0.92], [1.25, -1.05], [1.55, -0.95], [1.92, -0.78], [1.88, -0.62], [1.3, -0.58], [1.0, -0.65]], 'body', {}, 1),
       poly([[1.05, -0.95], [1.1, -1.32], [1.28, -1.0]], 'body'), poly([[1.28, -1.0], [1.38, -1.3], [1.48, -0.98]], 'body'),
       poly([[1.12, -0.98], [1.14, -1.18], [1.22, -1.0]], 'pink'),
@@ -442,6 +463,7 @@ export const WINTER = group('winter', [
       ...icicles(f.deck.x0 + 0.05, f.deck.x1 - 0.05, f.deck.y + 0.1, 8),
       ...lightbar(f.roof.x0 + 0.1, f.roof.x1 - 0.1, f.roof.y - 0.1, 'orange', 'orange'),
       ...fenders(f, 'dark', 0.12),
+      ...shoulders(f.head),
     ],
   }],
   ['penguin-prisoner', 'Penguin Prisoner', 'Візок із пінгвіном у клітці. Пінгвін може вистрибнути!', 'cart', ['#3a3a4a', '#ffa020'], {
@@ -461,6 +483,7 @@ export const WINTER = group('winter', [
       rr(f.tail.x - 0.05, f.deck.y - 0.04, f.nose.x + 0.05, f.deck.y + 0.06, 0.03, 'dark'), rr(f.tail.x - 0.05, 0.14, f.nose.x + 0.05, 0.24, 0.03, 'dark'),
       ...[f.tail.x + 0.15, f.nose.x - 0.2].map((x) => circ(x, f.deck.y + 0.2, 0.04, 'grey')),
       rr(f.nose.x - 0.12, f.deck.y + 0.08, f.nose.x + 0.04, f.deck.y + 0.2, 0.03, 'light'),
+      ...shoulders(f.head),
     ],
   }],
   ['penguin-slider', 'Penguin Slider', 'Пінгвін, що мчить на череві: кілька секунд ковзає без тертя.', 'creature', ['#1a1a2a', '#ffa020'], {
@@ -475,6 +498,7 @@ export const WINTER = group('winter', [
         ...[[t - 0.35, 0.45], [t - 0.3, 0.62]].map(([x, y]) => poly([[t + 0.15, y - 0.12], [x, y - 0.06], [x - 0.05, y + 0.06], [t + 0.15, y + 0.04]], 'accent')),
         // torpedo body lying on its white belly, belly down to the snow
         blob([[t, 0.55], [t - 0.05, 0.1], [-0.5, -0.38], [0.4, -0.45], [n - 0.15, -0.2], [n + 0.05, 0.3], [n - 0.2, 0.72], [-0.5, 0.82], [t + 0.2, 0.75]], 'body', {}, 2),
+        ...shoulders(f.head),
         blob([[t + 0.15, 0.62], [-0.3, 0.38], [0.5, 0.3], [n - 0.05, 0.38], [n - 0.25, 0.7], [-0.4, 0.8]], 'white', {}, 2),
         poly([[-0.15, 0.05], [0.3, 0.12], [-0.6, 0.45], [-0.75, 0.35]], 'dark'),
         // head at the front: white cheek, eye, orange beak, a red scarf
@@ -500,6 +524,7 @@ export const WINTER = group('winter', [
         ...peng(x0 + 0.28, top - 0.28, 1.15), ...peng(x1 - 0.55, top - 0.3, 1.15), ...peng(x1 - 0.2, top - 0.22, 1.05),
         // wooden wagon tub with planks and a pull handle
         blob([[x0, top + 0.05], [x1, top + 0.05], [x1 - 0.15, 0.2], [x0 + 0.15, 0.2]], 'body', {}, 1),
+        ...shoulders(f.head),
         ...[x0 + 0.35, 0, x1 - 0.35].map((x) => rect(x - 0.02, top + 0.08, x + 0.02, 0.15, 'dark', { flat: true })),
         rr(x0 - 0.05, top - 0.02, x1 + 0.05, top + 0.08, 0.03, 'accent'),
         ...path([[x1 - 0.05, top + 0.3], [x1 + 0.35, top + 0.1], [x1 + 0.42, top + 0.18]], 0.06, 'dark'),
@@ -513,6 +538,7 @@ export const WINTER = group('winter', [
     skin: (f) => [
       ...trackedBody(f),
       blob([[-0.7, -0.3], [-0.6, -0.72], [0.4, -0.72], [0.65, -0.3]], 'body', {}, 1),
+      ...shoulders(f.head),
       ...path([[0.5, -0.55], [1.35, -0.88]], 0.14, 'grey'),
       starShape(-0.15, -0.5, 0.14, 'accent'), stripe(-1.6, 1.5, -0.2, 0.07, 'accent'),
       rr(1.25, -0.96, 1.42, -0.8, 0.03, 'dark'), rr(-0.45, -0.82, -0.05, -0.72, 0.04, 'grey'),
@@ -543,6 +569,7 @@ export const WINTER = group('winter', [
           const q = wire[i + 1], x = p[0] + (q[0] - p[0]) * k, y = p[1] + (q[1] - p[1]) * k;
           return ell(x, y + 0.04, 0.045, 0.06, bulbs[(i * 2 + j) % bulbs.length]);
         })),
+        ...shoulders(f.head),
       ];
     },
   }],

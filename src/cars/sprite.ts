@@ -106,6 +106,7 @@ export function generateAmmoGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
  * gear (a track belt), which the game draws itself.
  */
 export function generateCarGrid(def: CarDef, ppm = CAR_PPM, live = false): PixelGrid {
+  if (def.body.some((p) => p.back)) def = { ...def, body: def.body.filter((p) => !p.back) };
   if (live && def.body.some((p) => p.ammo || p.gait || p.pose || (p.gear && def.belt))) def = { ...def, body: def.body.filter((p) => !p.ammo && !p.gait && !p.pose && !(p.gear && def.belt)) };
   // still pictures show a frame-by-frame cycle at its first pose
   else if (def.body.some((p) => p.pose && p.pose.i !== 0)) def = { ...def, body: def.body.filter((p) => !p.pose || p.pose.i === 0) };
@@ -290,6 +291,31 @@ export function generatePoseGrids(def: CarDef, polys: CarPoly[], ppm = CAR_PPM):
     groups.set(key, g);
   }
   return [...groups.values()].map((g) => ({ n: g.n, i: g.i, grid: generateCarGrid({ ...def, body: g.polys, windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm) }));
+}
+
+/** What sits behind the driver (pieces with `back`): drawn under the driver's body; same origin as the body grid. Null if none. */
+export function generateBackGrid(def: CarDef, ppm = CAR_PPM): PixelGrid | null {
+  const backs = def.body.filter((p) => p.back && !p.hide);
+  if (!backs.length) return null;
+  const only = (body: CarPoly[]) => generateCarGrid({ ...def, body: body.map((p) => ({ ...p, back: false, under: false })), windows: [], wheels: [], stripe: undefined, lights: false, links: undefined }, ppm);
+  const free = backs.filter((p) => !p.under), under = backs.filter((p) => p.under);
+  // the far wall shows only through the notch: inside the bodywork's outline before the cut
+  const solid = under.length ? generateCarGrid({ ...def, body: def.body.filter((p) => !p.cut && !p.back), windows: [], stripe: undefined, lights: false }, ppm) : null;
+  const parts = [under.length ? only(under) : null, free.length ? only(free) : null];
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const g of parts) if (g) { x0 = Math.min(x0, -g.ox); y0 = Math.min(y0, -g.oy); x1 = Math.max(x1, g.w - g.ox); y1 = Math.max(y1, g.h - g.oy); }
+  const out = makeGrid(x1 - x0, y1 - y0, -x0, -y0);
+  parts.forEach((g, k) => {
+    if (!g) return;
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+      const v = gget(g, x, y);
+      if (!v) continue;
+      const cx = x - g.ox, cy = y - g.oy;
+      if (k === 0 && solid && gget(solid, cx + solid.ox, cy + solid.oy) <= 1) continue;
+      gset(out, cx + out.ox, cy + out.oy, v);
+    }
+  });
+  return out;
 }
 
 /** The driver's small body under the helmet (render only); same origin as the body grid. Draw it with riderPalette. */

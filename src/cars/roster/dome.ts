@@ -1,4 +1,4 @@
-import { blob, circ, ell, fender, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows } from '../draw';
+import { blob, circ, ell, fender, flameDecal, path, poly, rect, rr, seg, spikesAlong, starShape, stripe, truss, windows, shoulders } from '../draw';
 import { arc, bike, boxy, frontLamp, rearLamp, truckCab } from '../skins';
 import { crew, fishCar } from '../critters';
 import { group, o } from './util';
@@ -8,6 +8,7 @@ export const DOME = group('dome', [
     parts: ['umbrella'], hideParts: true,
     skin: (f) => [
       ...bike(f, { style: 'scooter' }),
+      ...shoulders(f.head),
       blob([[-1.45, 0.15], [-1.5, -0.45], [-1.2, -0.55], [-0.6, -0.45], [-0.55, 0.15]], 'accent', {}, 1),
       rr(-1.4, -0.4, -0.7, -0.25, 0.05, 'red'),
       ...path([[-1.45, -0.45], [-1.4, -1.0]], 0.05, 'chrome'), ...path([[-0.6, -0.45], [-0.65, -1.0]], 0.05, 'chrome'),
@@ -36,15 +37,21 @@ export const DOME = group('dome', [
       rr(f.tail.x - 0.05, -0.42, -0.6, -0.36, 0.02, 'black'), ...[f.tail.x + 0.05, -0.7].map((x) => rect(x, -0.42, x + 0.05, -0.25, 'black')),
       rr(f.tail.x + 0.0, -0.78, -0.65, -0.42, 0.05, 'tan'), rect(f.tail.x + 0.0, -0.64, -0.65, -0.58, 'brown', { flat: true }),
       rr(0.55, -0.42, f.nose.x + 0.05, -0.36, 0.02, 'black'), rr(0.6, -0.62, f.nose.x - 0.05, -0.42, 0.06, 'green'),
+      ...shoulders(f.head, { depth: 0.34 }),
     ],
   }],
   ['compensator-bike', 'Compensator Bike', 'Надмірно довгий чопер: вилка до неба.', 'bike', ['#c0c0c8', '#e02a2a'], {
     // Our description: a chopper with a fork up to the sky. Drive Ahead: half bike, half monster truck,
     // a monster wheel up front, a normal one behind and two big exhaust stacks over the rear wheel.
     o: o({ len: 1.4 }), axles: [0.9, 1.5],
+    // the rider sits a little forward, gloves on bars clamped halfway up the sky-high fork
+    head: (f) => [f.head.x + 0.2, f.head.y - 0.36],
+    rider: (f) => ({ pose: 'ride', front: true, hand: [f.head.x + 0.42, f.head.y + 0.4], foot: [f.head.x + 0.1, 0.06] }),
     skin: (f) => {
-      const rw = f.wheels[0], fw = f.wheels[1], hx = f.head.x;
-      const top: [number, number] = [fw.x - 0.75, -1.45];
+      const rw = f.wheels[0], fw = f.wheels[1], hx = f.head.x - 0.2;
+      const top: [number, number] = [fw.x - 0.75, -1.45], grip: [number, number] = [f.head.x + 0.42, f.head.y + 0.4];
+      // where the bars clamp on the fork: a little above the grips
+      const ct = (grip[1] - 0.22 - fw.y) / (top[1] - fw.y), clamp: [number, number] = [fw.x + (top[0] - fw.x) * ct, grip[1] - 0.22];
       return [
         // two tall exhaust stacks rising over the rear wheel
         ...[0, 0.16].flatMap((d) => [...path([[hx + 0.15, 0.2], [rw.x + 0.25 - d, 0.05], [rw.x + 0.05 - d, -0.95 - d]], 0.1, 'chrome'), rr(rw.x - 0.05 - d, -1.08 - d, rw.x + 0.15 - d, -0.95 - d, 0.03, 'dark')]),
@@ -58,7 +65,9 @@ export const DOME = group('dome', [
         // the monster fork: twin chrome legs from the huge front hub right up into the sky
         seg([fw.x, fw.y], top, 0.12, 'chrome'), seg([fw.x + 0.1, fw.y], [top[0] + 0.1, top[1]], 0.07, 'grey'),
         fender(fw.x, fw.y, fw.r, 0.12, 'accent'),
-        ...path([[top[0], top[1]], [top[0] - 0.08, top[1] - 0.18], [top[0] - 0.4, top[1] - 0.2]], 0.07, 'chrome'), rect(top[0] - 0.48, top[1] - 0.25, top[0] - 0.32, top[1] - 0.16, 'black'),
+        ...path([clamp, [clamp[0] - 0.12, clamp[1] - 0.12], [grip[0] + 0.12, grip[1] - 0.08], grip], 0.07, 'chrome'),
+        seg([grip[0] + 0.08, grip[1] - 0.02], [grip[0] - 0.04, grip[1] + 0.02], 0.08, 'black'),
+        rr(top[0] - 0.1, top[1] - 0.06, top[0] + 0.14, top[1] + 0.04, 0.03, 'chrome'),
         circ(top[0] + 0.05, top[1] + 0.3, 0.1, 'chrome'), circ(top[0] + 0.07, top[1] + 0.3, 0.06, 'light'),
         rearLamp(rw.x - 0.36, -0.1, 0.1),
       ];
@@ -72,6 +81,7 @@ export const DOME = group('dome', [
       ...[[0, -0.08], [0.08, 0], [0, 0.08], [-0.08, 0]].map(([dx, dy]) => circ(0.35 + dx, -0.28 + dy, 0.07, 'green')), seg([0.35, -0.28], [0.3, -0.12], 0.04, 'green'),
       arc(f.head.x - 0.5, -0.82, 0.1, Math.PI * 1.0, Math.PI * 2.0, 0.05, 'gold'),
       stripe(f.tail.x + 0.3, f.nose.x - 0.9, -0.1, 0.05, 'accent'),
+      ...shoulders(f.head),
     ],
   }],
   ['prison-van', 'Prison Van', 'Броньований автозак із ґратами на вікнах і тараном.', 'van', ['#e0e0e0', '#3a3a6a'], {
@@ -104,6 +114,7 @@ export const DOME = group('dome', [
       ...[f.roof.x1 - 0.5, f.roof.x1 - 0.3].map((x, i) => rr(x, f.roof.y - 0.14, x + 0.18, f.roof.y, 0.04, i ? 'blue' : 'red')),
       rect(f.tail.x + 0.06, f.roof.y + 0.08, f.tail.x + 0.1, f.nose.y1 - 0.1, 'grey', { flat: true }), circ(-0.3, -0.2, 0.12, 'gold'), starShape(-0.3, -0.2, 0.08, 'accent'),
       ...[-1.2, -0.8, -0.4, 0.0, 0.4].map((x) => circ(x, f.roof.y + 0.05, 0.025, 'grey')),
+      ...shoulders(f.head),
     ],
   }],
   ['hovercraft', 'Hovercraft', 'Судно на повітряній подушці з великим гвинтом. Ширяє над землею.', 'boat', ['#e0c020', '#2a2a2a'], {
@@ -114,6 +125,7 @@ export const DOME = group('dome', [
       blob([[f.tail.x - 0.05, 0.02], [f.nose.x + 0.15, -0.02], [f.nose.x + 0.1, f.wheels[0].y + f.wheels[0].r - 0.15], [f.nose.x - 0.25, f.wheels[0].y + f.wheels[0].r], [f.tail.x + 0.2, f.wheels[0].y + f.wheels[0].r], [f.tail.x - 0.05, f.wheels[0].y + f.wheels[0].r - 0.15]], 'black', {}, 2),
       ...[0, 1, 2, 3, 4, 5, 6].map((i) => rect(f.tail.x + 0.15 + i * ((f.nose.x - f.tail.x - 0.2) / 7), f.wheels[0].y + f.wheels[0].r - 0.12, f.tail.x + 0.19 + i * ((f.nose.x - f.tail.x - 0.2) / 7), f.wheels[0].y + f.wheels[0].r - 0.02, 'dark', { flat: true })),
       blob([[f.tail.x + 0.1, 0.05], [f.tail.x + 0.1, -0.42], [f.nose.x - 0.3, -0.5], [f.nose.x + 0.05, -0.2], [f.nose.x, 0.05]], 'body', {}, 1),
+      ...shoulders(f.head),
       rr(-0.2, -0.88, 0.75, -0.42, 0.08, 'white'), ...windows(-0.1, 0.65, -0.8, -0.55, 2, 0.08),
       stripe(f.tail.x + 0.1, f.nose.x, -0.2, 0.07, 'accent'),
       ...[0, 1, 2, 3, 4, 5].map((i) => rect(f.tail.x + 0.2 + i * ((f.nose.x - f.tail.x - 0.4) / 6), 0.08, f.tail.x + 0.23 + i * ((f.nose.x - f.tail.x - 0.4) / 6), 0.3, 'dark', { flat: true })),
@@ -137,6 +149,7 @@ export const DOME = group('dome', [
       rr(f.tail.x + 0.1, 0.12, f.nose.x - 0.1, 0.2, 0.03, 'chrome'),
       rr(f.nose.x - 0.2, f.deck.y - 0.08, f.nose.x + 0.06, f.deck.y + 0.25, 0.04, 'accent'), rr(f.tail.x - 0.06, f.deck.y - 0.08, f.tail.x + 0.18, f.deck.y + 0.12, 0.04, 'accent'),
       rr(-0.3, 0.14, 0.3, 0.34, 0.04, 'dark'), rect(-0.2, 0.2, 0.2, 0.24, 'grey', { flat: true }),
+      ...shoulders(f.head),
     ],
   }],
   ['two-sider', 'Two Sider', 'Двостороння машина: шипи спереду, кабіна по центру.', 'box', ['#7a3ae0', '#ffd23f'], {
@@ -148,6 +161,7 @@ export const DOME = group('dome', [
       ...frontLamp(f.nose.x, -0.15), rearLamp(f.tail.x, -0.15), rect(-0.05, -0.15, 0.05, 0.25, 'body', { ring: true }),
       stripe(f.tail.x, f.nose.x, 0.0, 0.08, 'accent'),
       ...[f.tail.x, f.nose.x - 0.15].map((x) => rr(x, 0.2, x + 0.15, 0.32, 0.03, 'chrome')),
+      ...shoulders(f.head),
     ],
   }],
   ['monster-bus', 'Monster Bus', 'Шкільний автобус на колесах монстр-трака.', 'bus', ['#ffd020', '#1a1a1a'], {
@@ -160,12 +174,14 @@ export const DOME = group('dome', [
       ...[f.tail.x + 0.2, f.nose.x - 0.6].map((x) => [circ(x, f.roof.y - 0.06, 0.06, 'red'), circ(x + 0.18, f.roof.y - 0.06, 0.06, 'orange')]).flat(),
       seg([f.nose.x - 1.0, -0.2], [f.nose.x - 1.2, -0.2], 0.03, 'grey'), poly([[f.nose.x - 1.42, -0.32], [f.nose.x - 1.28, -0.32], [f.nose.x - 1.2, -0.24], [f.nose.x - 1.2, -0.12], [f.nose.x - 1.28, -0.04], [f.nose.x - 1.42, -0.04], [f.nose.x - 1.5, -0.12], [f.nose.x - 1.5, -0.24]], 'red'),
       rect(f.nose.x - 0.95, f.roof.y + 0.1, f.nose.x - 0.55, 0.22, 'body', { ring: true }),
+      ...shoulders(f.head),
     ],
   }],
   ['rock-wheel', 'Rock Wheel', 'Кам\'яна таратайка на важких кам\'яних колесах.', 'kart', ['#8a8070', '#c0b090'], {
     s: 1.1, o: o({ wheel: 1.5 }), mass: 1.2, noLights: true,
     skin: (f) => [
       blob([[f.tail.x - 0.2, -0.1], [f.tail.x - 0.1, -0.62], [-0.45, -0.7], [-0.4, -0.38], [0.15, -0.36], [0.3, -0.72], [f.nose.x + 0.05, -0.6], [f.nose.x + 0.25, -0.1], [0.0, 0.0]], 'tan', {}, 2),
+      ...shoulders(f.head),
       ell(-0.75, -0.35, 0.2, 0.08, 'brown'), ell(0.6, -0.3, 0.16, 0.06, 'brown'), ...path([[0.45, -0.68], [0.55, -0.45], [0.48, -0.25]], 0.04, 'brown'),
       ...[[-0.75, -0.65, 0.18], [0.6, -0.68, 0.14]].map(([x, y, r]) => ell(x, y, r, r * 0.4, 'leaf')),
       rr(f.head.x - 0.35, -0.55, f.head.x - 0.1, -0.15, 0.06, 'grey'),
@@ -186,6 +202,7 @@ export const DOME = group('dome', [
       const d = f.deck;
       return [
         ...truckCab(f),
+        ...shoulders(f.head),
         ...[f.roof.x0 + 0.15, f.roof.x0 + 0.4].map((x, i) => rr(x, f.roof.y - 0.14, x + 0.22, f.roof.y, 0.04, i ? 'orange' : 'red')),
         rr(d.x0, d.y - 0.24, d.x1, d.y + 0.1, 0.04, 'body'), ...[0, 1, 2, 3].map((i) => poly([[d.x0 + 0.05 + i * 0.32, d.y + 0.06], [d.x0 + 0.2 + i * 0.32, d.y + 0.06], [d.x0 + 0.3 + i * 0.32, d.y - 0.2], [d.x0 + 0.15 + i * 0.32, d.y - 0.2]], 'black', { flat: true })),
         ...truss([d.x1 - 0.1, d.y - 0.1], [d.x0 - 0.1, d.y - 1.1], 0.24, 'yellow'),
