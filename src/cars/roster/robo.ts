@@ -1,7 +1,7 @@
 import { blob, circ, ell, path, poly, rect, rr, seg, spikesAlong, stack, stripe } from '../draw';
 import { arc, bike, hover, robot, rocket, tracks } from '../skins';
-import type { CarPoly } from '../types';
-import type { Frame } from '../factory';
+import type { CarPoly, Pt } from '../types';
+import type { Frame, LinkSpec } from '../factory';
 import { saddle } from '../critters';
 import { group, o } from './util';
 
@@ -14,6 +14,31 @@ function trackedBase(f: Frame): CarPoly[] {
     ...tracks(f), blob([[a.x - a.r - 0.15, y + 0.04], [a.x - a.r - 0.05, y - 0.35], [b.x + b.r - 0.3, y - 0.38], [b.x + b.r + 0.15, y - 0.06], [b.x + b.r, y + 0.04]], 'body', {}, 1),
     rr(a.x - a.r - 0.1, y - 0.06, b.x + b.r + 0.05, y + 0.12, 0.04, 'body', { ring: true }), ...bolts([a.x - a.r + 0.1, (a.x + b.x) / 2, b.x + b.r - 0.1], y + 0.03),
   ];
+}
+
+/**
+ * One blade of the Steel Crab's shears, hinged on the claw's bolt at (sx, sy): a narrow heel, broad
+ * in the middle, drawn out to a needle point; the cutting edge (facing the other blade) yellow with
+ * black teeth. `bolt` also draws the steel bolt over it (on the blade drawn last).
+ */
+function crabBlade(sx: number, sy: number, side: 1 | -1, ang: number, len: number, w: number, off: number, bolt: boolean): LinkSpec {
+  const ux = Math.sin(ang) * side, uy = -Math.cos(ang), nx = -uy, ny = ux;
+  const at = (a: number, b: number): Pt => [sx + ux * a + nx * (b + off), sy + uy * a + ny * (b + off)];
+  const inner = ang > 0.2 ? -side : side;
+  const tip = at(len, 0);
+  const kite = [at(0.05, -w * 0.25), at(len * 0.5, -w), tip, at(len * 0.5, w), at(0.05, w * 0.25)];
+  return {
+    at: [sx, sy], swing: [-12, 12], spring: 30, density: 0.12,
+    hit: [poly(kite)],
+    art: [
+      poly(kite, 'body'),
+      // the cutting half is bare steel, so the blade stands out against the red shell
+      poly([at(0.12, inner * w * 0.2), at(len * 0.5, inner * w * 0.95), tip, at(len * 0.5, 0)], 'chrome'),
+      seg(at(len * 0.18, inner * w * 0.55), tip, 0.08, 'accent'),
+      ...[0.32, 0.46, 0.6, 0.74].map((k) => circ(...at(len * k, inner * w * (k < 0.5 ? 0.62 + (k - 0.3) * 0.6 : (1 - k) * 1.5)), 0.04, 'black', { flat: true })),
+      ...(bolt ? [circ(sx, sy, 0.22, 'grey'), circ(sx, sy, 0.15, 'chrome'), seg([sx - 0.09, sy - 0.09], [sx + 0.09, sy + 0.09], 0.05, 'dark'), seg([sx - 0.09, sy + 0.09], [sx + 0.09, sy - 0.09], 0.05, 'dark')] : []),
+    ],
+  };
 }
 
 export const ROBO = group('robo', [
@@ -100,33 +125,16 @@ export const ROBO = group('robo', [
     // After the reference: a round red shell with angry yellow eyes and a yellow mouth plate, thin
     // red legs down to four spiky wheels, and a huge open claw on a steel bolt at each side
     // (the front one is the real, solid claw).
-    o: o({ len: 1.0, wheel: 1.05, rim: 'star' }), parts: ['claw'], noLights: true, hideParts: true, accel: 1.2,
+    o: o({ len: 1.0, wheel: 1.05, rim: 'star' }), arch: 'ram', noLights: true, accel: 1.2,
     head: () => [-0.05, -1.3],
+    // Each blade of both claws is a piece of its own, pinned on the claw's steel bolt and sprung:
+    // they stand out from the shell and sway open and shut as the crab drives and bumps.
+    links: () => [-1, 1].flatMap((side) => {
+      const sx = side * 1.2, sy = -0.63;
+      // the rear claw is for show (it would prop the crab up when it rolls over); the front one hits
+      return [crabBlade(sx, sy, side as 1 | -1, 0.78, 1.5, 0.34, side * 0.06, false), crabBlade(sx, sy, side as 1 | -1, -0.2, 1.4, 0.32, -side * 0.06, true)].map((l) => (side < 0 ? { ...l, trim: true } : l));
+    }),
     skin: (f) => {
-      const claw = (sx: number, sy: number, side: 1 | -1): CarPoly[] => {
-        // two separate blades like an open pair of shears: each pinned on the bolt with its own
-        // narrow heel, a gap between them, broad in the middle and drawn out to a needle point,
-        // the cutting edge (the one facing the other blade) yellow with black teeth
-        const blade = (ang: number, len: number, w: number, off: number): CarPoly[] => {
-          const ux = Math.sin(ang) * side, uy = -Math.cos(ang), nx = -uy, ny = ux;
-          const at = (a: number, b: number): [number, number] => [sx + ux * a + nx * (b + off), sy + uy * a + ny * (b + off)];
-          const inner = ang > 0.2 ? -side : side;
-          const tip = at(len, 0);
-          return [
-            poly([at(0.05, -w * 0.25), at(len * 0.5, -w), tip, at(len * 0.5, w), at(0.05, w * 0.25)], 'body'),
-            poly([at(0.15, -inner * w * 0.1), at(len * 0.5, -inner * w * 0.75), tip], 'red', { flat: true }),
-            seg(at(len * 0.18, inner * w * 0.55), tip, 0.08, 'accent'),
-            ...[0.32, 0.46, 0.6, 0.74].map((k) => circ(...at(len * k, inner * w * (k < 0.5 ? 0.62 + (k - 0.3) * 0.6 : (1 - k) * 1.5)), 0.04, 'black', { flat: true })),
-          ];
-        };
-        return [
-          ...blade(0.78, 1.5, 0.34, side * 0.06),
-          ...blade(-0.32, 1.4, 0.32, -side * 0.06),
-          // the steel bolt joint
-          circ(sx, sy, 0.22, 'grey'), circ(sx, sy, 0.15, 'chrome'),
-          seg([sx - 0.09, sy - 0.09], [sx + 0.09, sy + 0.09], 0.05, 'dark'), seg([sx - 0.09, sy + 0.09], [sx + 0.09, sy - 0.09], 0.05, 'dark'),
-        ];
-      };
       const sy = -0.55;
       return [
         // thin legs down to every wheel hub
@@ -140,8 +148,6 @@ export const ROBO = group('robo', [
         ]),
         rr(-0.3, sy + 0.12, 0.3, sy + 0.4, 0.07, 'accent', { ring: true }),
         rect(-0.24, sy + 0.24, 0.24, sy + 0.27, 'gold', { flat: true }),
-        // the claws on their bolts at both sides of the shell, held up in front of it
-        ...claw(-1.12, sy - 0.08, -1), ...claw(1.12, sy - 0.08, 1),
         ...saddle(f.head.x, f.head.y + 0.22, 'accent'),
       ];
     },
