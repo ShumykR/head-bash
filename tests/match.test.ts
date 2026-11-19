@@ -86,7 +86,7 @@ describe('random cars each round', () => {
       while (!started) g.step();
     }
     expect(seen.size).toBeGreaterThan(4);
-  });
+  }, 30000); // builds sixteen random cars: ~3 s here, over the 5 s default on a slow CI runner
   it('keeps the chosen cars when off', () => {
     const g = new Game({ cars: [CARS[2], CARS[3]], maps: [MAPS[0]], randomMaps: false, target: 99, roundTime: 60, seed: 3 });
     g.kill(1, 'fall');
