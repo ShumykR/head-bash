@@ -8,8 +8,16 @@ import type { Car } from '../cars/car';
  */
 
 const HISTORY_S = 12;
-const SAMPLE_EVERY = 0.1;
+/** One coarse sample per this many physics steps (60 Hz): every 0.1 s. */
+const SAMPLE_STEPS = 6;
+const SAMPLE_EVERY = SAMPLE_STEPS / 60;
 const MAX_EVENTS = 80;
+/** The dense buffer: every physics step of the last few seconds, copied out whenever a moment is marked. */
+const DENSE_STEPS = 180;
+const MAX_INCIDENTS = 3;
+/** Items and shots closer than this to a driver's head are recorded around it. */
+const NEAR_R = 3;
+const NEAR_MAX = 6;
 
 type Num = number;
 const r = (v: Num, d = 3) => (Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : v);
@@ -19,18 +27,21 @@ function bodyState(b: Body) {
   return { x: r(p.x), y: r(p.y), a: r(b.getAngle()), vx: r(v.x, 2), vy: r(v.y, 2), w: r(b.getAngularVelocity(), 2), awake: b.isAwake() };
 }
 
-/** Every plain number / boolean / string field of an object (timers, flags, counters), rounded. */
-function primitives(o: object, skip: string[] = []): Record<string, number | boolean | string> {
-  const out: Record<string, number | boolean | string> = {};
+/** Fields that sit at a non-zero value all the time, so they carry no information. */
+const IDLE: Record<string, number> = { spillT: 1.5 };
+
+/** The interesting plain fields of an object: numbers that are not zero and flags that are set (timers, counters, states). */
+function primitives(o: object, skip: string[] = []): Record<string, number | boolean> {
+  const out: Record<string, number | boolean> = {};
   for (const [k, v] of Object.entries(o)) {
     if (skip.includes(k)) continue;
-    if (typeof v === 'number') out[k] = r(v);
-    else if (typeof v === 'boolean' || typeof v === 'string') out[k] = v;
+    if (typeof v === 'number') { if (v !== 0 && IDLE[k] !== v) out[k] = r(v); }
+    else if (v === true) out[k] = true;
   }
   return out;
 }
 
-function carState(c: Car) {
+function carState(c: Car, full: boolean) {
   const head = c.alive ? c.headWorld() : null;
   return {
     id: c.def.id,
@@ -45,57 +56,145 @@ function carState(c: Car) {
     inAir: c.inAir,
     head: head ? { x: r(head.x), y: r(head.y) } : null,
     chassis: bodyState(c.chassis),
-    wheels: c.wheels.map(bodyState),
-    linkWheels: c.linkWheels.map((w) => bodyState(w.body)),
-    links: c.links.map(bodyState),
+    // Wheels and links are only needed for suspension / trailer bugs: `window.__reportFull = true` adds them.
+    ...(full ? { wheels: c.wheels.map(bodyState), linkWheels: c.linkWheels.map((w) => bodyState(w.body)), links: c.links.map(bodyState) } : {}),
     mass: r(c.mass, 2),
-    fields: primitives(c, ['player']),
+    fields: primitives(c, ['player', 'alive', 'histTick', 'flipDir']),
   };
 }
 
+type Pt = { x: number; y: number };
+
+/** Items and shots within NEAR_R of any driver's head (nearest first), as [name, x, y, vx, vy]. */
+function nearThings(g: Game): [string, number, number, number, number][] {
+  const heads: Pt[] = g.cars.map((c) => (c.alive ? c.headWorld() : c.chassis.getPosition()));
+  const out: { d: number; row: [string, number, number, number, number] }[] = [];
+  const add = (name: string, b: Body) => {
+    const p = b.getPosition();
+    let d = Infinity;
+    for (const h of heads) d = Math.min(d, Math.hypot(p.x - h.x, p.y - h.y));
+    if (d > NEAR_R) return;
+    const v = b.getLinearVelocity();
+    out.push({ d, row: [name, r(p.x, 2), r(p.y, 2), r(v.x, 1), r(v.y, 1)] });
+  };
+  for (const i of g.items) if (!i.dead && !i.stowed) add(`${i.kind}#${i.id}o${i.owner}`, i.body);
+  for (const s of g.shots) if (!s.dead) add(`${s.proj}#${s.id}o${s.owner}`, s.body);
+  return out.sort((a, b) => a.d - b.d).slice(0, NEAR_MAX).map((x) => x.row);
+}
+
+/** Status timers that change how a hit counts; only the running ones are listed. */
+function statuses(c: Car) {
+  const st: Record<string, number> = {};
+  if (c.shieldT > 0) st.shield = r(c.shieldT, 2);
+  if (c.stunT > 0) st.stun = r(c.stunT, 2);
+  if (c.phaseT > 0) st.phase = r(c.phaseT, 2);
+  if (c.reflectT > 0) st.reflect = r(c.reflectT, 2);
+  if (c.invisT > 0) st.invis = r(c.invisT, 2);
+  return Object.keys(st).length ? st : undefined;
+}
+
+interface Sample {
+  t: number;
+  /** Physics step number: the same clock as `game.stepCount` and the head log. */
+  n: number;
+  round: number;
+  phase: string;
+  inputs: number[];
+  cars: { x: number; y: number; a: number; vx: number; vy: number; alive: boolean; wheels: number; head: Pt | null; st?: Record<string, number> }[];
+  near: [string, number, number, number, number][];
+}
+
+/** One dense frame, positional to stay small: cars [x, y, a, vx, vy, headX, headY], things [name, x, y, vx, vy]. */
+interface Dense { n: number; t: number; c: number[][]; i: [string, number, number, number, number][] }
+
+/** A marked moment (the 📍 button, or the bug button itself) with the dense steps leading up to it. */
+interface Incident { kind: 'mark' | 'report'; t: number; n: number; round: number; format: string; dense: Dense[] }
+
 export class FlightRecorder {
-  private samples: { t: number; round: number; phase: string; inputs: number[]; cars: { x: number; y: number; a: number; vx: number; vy: number; alive: boolean; wheels: number }[] }[] = [];
+  private samples: Sample[] = [];
   private events: { t: number; type: string; data: unknown }[] = [];
-  private acc = 0;
+  private dense: Dense[] = [];
+  private incidents: Incident[] = [];
+  private roundStart: Record<string, unknown> | null = null;
 
   constructor(private game: Game) {
     game.on((e) => this.onEvent(e));
+    game.onStep = () => this.onStep();
+    this.noteRoundStart(); // the first round has already started by now
+  }
+
+  /** What it takes to replay this round: the generator state and the step it began at. */
+  private noteRoundStart() {
+    const g = this.game;
+    this.roundStart = { round: g.match.round, n: g.stepCount, t: r(g.time, 2), rngState: (g as unknown as Record<string, unknown>).rngState, map: g.map.id, cars: g.roundCars.map((c) => c.id) };
   }
 
   private onEvent(e: GameEvent) {
     const { type, ...data } = e as GameEvent & Record<string, unknown>;
     // Maps are large; the id is enough.
-    if (type === 'roundStart') (data as Record<string, unknown>).map = (e as { map: { id: string } }).map.id;
+    if (type === 'roundStart') {
+      (data as Record<string, unknown>).map = (e as { map: { id: string } }).map.id;
+      this.noteRoundStart();
+    }
     this.events.push({ t: r(this.game.time, 2), type, data });
     if (this.events.length > MAX_EVENTS) this.events.shift();
   }
 
-  /** Call once per rendered frame with the real elapsed seconds. */
-  tick(dt: number) {
-    this.acc += dt;
-    if (this.acc < SAMPLE_EVERY) return;
-    this.acc = 0;
+  /** Called after every physics step: a dense frame always, a coarse sample every 0.1 s. */
+  private onStep() {
     const g = this.game;
+    const heads = g.cars.map((c) => (c.alive ? c.headWorld() : null));
+    const things = nearThings(g);
+    this.dense.push({
+      n: g.stepCount,
+      t: r(g.time, 3),
+      c: g.cars.map((c, i) => {
+        const p = c.chassis.getPosition(), v = c.chassis.getLinearVelocity(), h = heads[i];
+        return [r(p.x, 2), r(p.y, 2), r(c.angle, 2), r(v.x, 1), r(v.y, 1), h ? r(h.x, 2) : 0, h ? r(h.y, 2) : 0];
+      }),
+      i: things,
+    });
+    if (this.dense.length > DENSE_STEPS) this.dense.shift();
+    if (g.stepCount % SAMPLE_STEPS !== 0) return;
     this.samples.push({
       t: r(g.time, 2),
+      n: g.stepCount,
       round: g.match.round,
       phase: g.phase,
       inputs: [...g.inputs],
-      cars: g.cars.map((c) => {
-        const p = c.chassis.getPosition(), v = c.chassis.getLinearVelocity();
-        return { x: r(p.x, 2), y: r(p.y, 2), a: r(c.angle, 2), vx: r(v.x, 1), vy: r(v.y, 1), alive: c.alive, wheels: c.wheelsOnGround };
+      cars: g.cars.map((c, i) => {
+        const p = c.chassis.getPosition(), v = c.chassis.getLinearVelocity(), h = heads[i];
+        return { x: r(p.x, 2), y: r(p.y, 2), a: r(c.angle, 2), vx: r(v.x, 1), vy: r(v.y, 1), alive: c.alive, wheels: c.wheelsOnGround, head: h ? { x: r(h.x, 2), y: r(h.y) } : null, st: statuses(c) };
       }),
+      near: things,
     });
     if (this.samples.length > HISTORY_S / SAMPLE_EVERY) this.samples.shift();
   }
 
+  /** Marks "this is the moment": copies the dense buffer so it survives until the report is saved. */
+  mark(kind: Incident['kind']) {
+    const g = this.game;
+    this.incidents.push({ kind, t: r(g.time, 2), n: g.stepCount, round: g.match.round, format: 'dense frame: c = per car [x, y, angle, vx, vy, headX, headY], i = near things [name#id o<owner>, x, y, vx, vy]', dense: [...this.dense] });
+    while (this.incidents.length > MAX_INCIDENTS) this.incidents.shift();
+  }
+
+  /** How many 📍 marks are held. */
+  marks() {
+    return this.incidents.filter((i) => i.kind === 'mark').length;
+  }
+
   dump() {
-    return { sampleEvery: SAMPLE_EVERY, samples: this.samples, events: this.events };
+    return { sampleEvery: SAMPLE_EVERY, samples: this.samples, events: this.events, roundStart: this.roundStart, incidents: this.incidents };
   }
 }
 
 export interface ReportContext {
+  /** What went wrong, in the player's words (required by the UI). */
   note?: string;
+  /** Quick category picked next to the note. */
+  category?: string;
+  /** Also list wheels and links with their velocities. */
+  full?: boolean;
   /** Rendered-frame stats from the ticker. */
   fps?: number;
   uiState?: string;
@@ -107,18 +206,13 @@ export function buildReport(game: Game, rec: FlightRecorder | null, ctx: ReportC
   const body = (b: Body) => bodyState(b);
   return {
     kind: 'head-bash-arena-bug-report',
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     note: ctx.note ?? '',
+    category: ctx.category ?? '',
     env: {
-      userAgent: navigator.userAgent,
-      language: navigator.language,
       viewport: [window.innerWidth, window.innerHeight],
-      dpr: window.devicePixelRatio,
-      screen: [screen.width, screen.height],
-      touch: navigator.maxTouchPoints,
       standalone: matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches,
-      url: location.href,
       fps: ctx.fps !== undefined ? r(ctx.fps, 1) : undefined,
     },
     ui: { state: ctx.uiState, mode: ctx.mode },
@@ -148,11 +242,12 @@ export function buildReport(game: Game, rec: FlightRecorder | null, ctx: ReportC
       gravity: game.map.gravity ?? null,
     },
     map: { id: game.map.id, name: game.map.name, killY: game.map.killY, bounds: game.map.bounds, spawns: game.map.spawns },
-    cars: game.cars.map(carState),
+    cars: game.cars.map((c) => carState(c, !!ctx.full)),
+    headLog: game.headLog.slice(),
     shots: game.shots.map((s) => ({ id: s.id, owner: s.owner, proj: s.proj, age: r(game.time - s.born, 2), dead: s.dead, ...body(s.body) })),
     items: game.items.map((i) => ({
       id: i.id, kind: i.kind, owner: i.owner, fx: i.fx ?? null, age: r(game.time - i.born, 2), ttl: i.ttl === Infinity ? 'inf' : r(i.ttl, 1),
-      stowed: !!i.stowed, dead: !!i.dead, ...body(i.body),
+      ...(i.stowed ? { stowed: true } : {}), ...(i.dead ? { dead: true } : {}), ...body(i.body),
     })),
     tethers: game.tethers.length,
     strikes: game.strikes.length,
@@ -163,6 +258,17 @@ export function buildReport(game: Game, rec: FlightRecorder | null, ctx: ReportC
 }
 
 export type BugReport = ReturnType<typeof buildReport>;
+
+/** Valid JSON, readable: anything short sits on one line, long objects and lists are broken up. */
+export function compactJson(v: unknown, indent = ''): string {
+  const flat = JSON.stringify(v);
+  if (flat === undefined) return 'null';
+  if (flat.length <= 150 || v === null || typeof v !== 'object') return flat;
+  const next = indent + ' ';
+  if (Array.isArray(v)) return '[\n' + v.map((x) => next + compactJson(x, next)).join(',\n') + '\n' + indent + ']';
+  const ent = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined);
+  return '{\n' + ent.map(([k, x]) => `${next}${JSON.stringify(k)}: ${compactJson(x, next)}`).join(',\n') + '\n' + indent + '}';
+}
 
 const STORE_KEY = 'hba-bug-reports-v1';
 
@@ -186,7 +292,7 @@ export function reportFileName(rep: BugReport) {
  * browser can share files, otherwise a plain file download.
  */
 export async function saveReport(rep: BugReport): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const json = JSON.stringify(rep, null, 1);
+  const json = compactJson(rep);
   stash(json);
   const name = reportFileName(rep);
   const file = new File([json], name, { type: 'application/json' });

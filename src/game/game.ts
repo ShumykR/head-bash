@@ -81,6 +81,22 @@ export interface Item {
 /** A lightning strike on its way down. */
 export interface Strike { x: number; y: number; t: number; owner: number; id: number }
 
+/** One decision about a driver's head touching something (for bug reports): what it was and whether it counted. */
+export interface HeadLogEntry {
+  t: number;
+  step: number;
+  round: number;
+  /** Whose head. */
+  player: number;
+  /** What touched it: car, head, shot, item, hazard, terrain, platform, block. */
+  with: string;
+  /** Result: KILL, shield-blocked, countdown-reset, below-threshold, own-item, no-effect, ... */
+  result: string;
+  [extra: string]: unknown;
+}
+const HEAD_LOG_MAX = 60;
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
 /** Tow cable: how fast it reels in (m/s) and how close it brings the rival (m from the tow bar to its middle). */
 const TOW_REEL = 5, TOW_MIN = 2.2;
 /** A rope between two cars (tow hook). */
@@ -154,6 +170,10 @@ export class Game {
   time = 0;
   private listeners: ((e: GameEvent) => void)[] = [];
   private contactQueue: [Fixture, Fixture, Contact][] = [];
+  /** The last head contacts and what was decided about each (for bug reports). */
+  headLog: HeadLogEntry[] = [];
+  /** Called at the end of every physics step (the flight recorder hooks in here). */
+  onStep: (() => void) | null = null;
   private impactCooldown = 0;
   private padCooldown = new Map<number, number>();
   private rngState: number;
@@ -327,6 +347,7 @@ export class Game {
         } else this.startRound();
       }
     }
+    this.onStep?.();
   }
 
   private endRound(res: RoundResult) {
@@ -365,27 +386,64 @@ export class Game {
     }
   }
 
+  private logHead(player: number, withKind: string, car: Car, shield0: boolean, ignored: string | undefined, info: Record<string, unknown>) {
+    const result = !car.alive ? 'KILL' : this.phase === 'countdown' ? 'countdown-reset' : ignored ?? (shield0 ? 'shield-blocked' : 'no-effect');
+    this.headLog.push({ t: round2(this.time), step: this.stepCount, round: this.match.round, player, with: withKind, result, ...info });
+    if (this.headLog.length > HEAD_LOG_MAX) this.headLog.shift();
+  }
+
   private handlePair(a: FixtureTag, b: FixtureTag, _fa: Fixture, fb: Fixture) {
     if (a.kind === 'head') {
       const car = this.cars[a.player];
       if (!car.alive || !car.headFixture) return;
-      if ((b.kind === 'car' || b.kind === 'head') && b.player !== a.player) this.kill(a.player, 'hit', b.player);
-      else if (b.kind === 'shot' && b.owner !== a.player) {
+      const shield0 = car.shieldT > 0;
+      const info: Record<string, unknown> = {};
+      let ignored: string | undefined;
+      if ((b.kind === 'car' || b.kind === 'head') && b.player !== a.player) {
+        info.by = b.player;
+        if (b.kind === 'car') info.part = b.part;
+        this.kill(a.player, 'hit', b.player);
+      } else if (b.kind === 'shot' && b.owner !== a.player) {
         const pr = PROJECTILES[b.proj];
-        if (car.reflectT > 0) this.reflectShot(b.id, a.player);
+        info.proj = b.proj;
+        info.owner = b.owner;
+        if (car.reflectT > 0) { this.reflectShot(b.id, a.player); ignored = 'reflected'; }
         else if (!pr.harmless) this.kill(a.player, 'hit', b.owner);
-        else this.shotEffect(b.id, a.player);
+        else { this.shotEffect(b.id, a.player); ignored = 'harmless-effect'; }
       } else if (b.kind === 'item' && b.owner !== a.player) {
         const it = this.items.find((x) => x.id === b.id);
-        if (it?.fx === 'explode') this.explode(it);
-        else if (it && Math.max(it.body.getLinearVelocity().length(), it.headHitSpeed ?? 0) > 4.5) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
-      }
-      else if (b.kind === 'hazard') {
+        const speed = it ? it.body.getLinearVelocity().length() : 0;
+        info.item = b.item;
+        info.id = b.id;
+        info.owner = b.owner;
+        info.fx = it?.fx ?? null;
+        info.speed = round2(speed);
+        if (it) {
+          const hv = car.headBody.getLinearVelocityFromWorldPoint(car.headWorld());
+          info.rel = round2(Vec2.sub(it.body.getLinearVelocity(), hv).length());
+        }
+        info.need = 4.5;
+        if (it?.fx === 'explode') { this.explode(it); ignored = 'exploded'; }
+        else if (it && Math.max(speed, it.headHitSpeed ?? 0) > 4.5) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
+        else ignored = 'below-threshold';
+      } else if (b.kind === 'item') {
+        info.item = b.item;
+        info.id = b.id;
+        ignored = 'own-item';
+      } else if (b.kind === 'hazard') {
+        info.type = b.type;
         if (!(b.type === 'water' && car.canSwim)) this.kill(a.player, 'hazard');
+        else ignored = 'swimmer';
       }
       // Head touching the ground (usually after a flip) loses the round.
       else if (b.kind === 'terrain' || b.kind === 'platform') this.kill(a.player, 'ground');
-      else if (b.kind === 'block' && b.body.getLinearVelocity().length() > 4) this.kill(a.player, 'hazard');
+      else if (b.kind === 'block') {
+        info.speed = round2(b.body.getLinearVelocity().length());
+        if (b.body.getLinearVelocity().length() > 4) this.kill(a.player, 'hazard');
+        else ignored = 'below-threshold';
+      }
+      else return; // pads, fields and the like: not a head event
+      this.logHead(a.player, b.kind, car, shield0, ignored, info);
     } else if (a.kind === 'shot') {
       if (b.kind === 'pad' || (b.kind === 'shot' && b.owner === a.owner)) return;
       if (b.kind === 'hazard' && b.type === 'water' && a.proj !== 'torpedo') return;
