@@ -77,7 +77,7 @@ export interface WheelDef {
   drive?: boolean;
   density?: number;
   /** Rim style for the sprite generator. */
-  rim?: 'spokes' | 'disc' | 'star' | 'monster';
+  rim?: 'spokes' | 'disc' | 'star' | 'monster' | 'neon';
   /** Physics-only wheel (sled runners, bumper-car skirt): not drawn. */
   hidden?: boolean;
 }

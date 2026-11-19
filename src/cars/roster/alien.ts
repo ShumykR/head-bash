@@ -1,5 +1,5 @@
 import { tailgate } from '../art';
-import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank, shoulders } from '../draw';
+import { blob, circ, ell, eyeball, path, poly, rect, rr, seat, seg, stack, starShape, stripe, tank, shoulders, smooth } from '../draw';
 import { arc, bike, hover, monsterTruck, pickup, saucer, tracks, truckCab } from '../skins';
 import type { CarMat, CarPoly, Pt } from '../types';
 import type { Frame } from '../factory';
@@ -232,32 +232,44 @@ export const ALIEN = group('alien', [
       rr(0.45, -0.66, 0.75, -0.5, 0.04, 'dark'), rr(-1.1, -0.5, -0.85, -0.35, 0.03, 'tan'), rr(-1.15, -0.62, -0.88, -0.5, 0.03, 'tan'),
     ],
   }],
-  ['space-bike', 'Space Bike', 'Світловий мотоцикл: суцільний обтічний корпус, колеса-кільця з неоновим ободом і світний слід позаду.', 'bike', ['#1a1a2a', '#5ef0ff'], {
+  ['space-bike', 'Space Bike', 'Світловий мотоцикл: суцільний чорний обтічний корпус, що огинає колеса без маточин зі світними шинами, неоновий розчерк уздовж боку і світна стіна позаду.', 'bike', ['#1a1a2a', '#5ef0ff'], {
     axles: [1.15, 1.15],
-    o: o({ rim: 'disc' }), speed: 1.15, hideWheels: [0, 1], air: 1.4, lamp: null,
-    // A light cycle: big hubless ring wheels with neon rims, one sleek shell wrapping over both of
-    // them, the rider lying forward along it with hands on the low grips in the front cowl, neon
-    // seams, and the wall of light it leaves behind.
+    o: o({ rim: 'neon' }), speed: 1.15, air: 1.4, lamp: null,
+    // After the Tron light cycle: one glossy black shell, long and low, hugs the rear wheel from
+    // behind and over the top and the front wheel from above and in front; on top a step behind
+    // the seat, the seat dip, a tank hump and the dash up front; a low belly between the wheels.
+    // The hubless wheels' whole tyres glow, a neon swoosh runs from behind the seat down the side
+    // to the belly by the front wheel, an oval badge sits low in the middle.
     head: () => [0.22, -0.8],
-    rider: (f) => ({ pose: 'ride', front: true, lean: 0.55, hand: [f.wheels[1].x - 0.22, -0.52], foot: [f.wheels[0].x + 0.3, -0.3] }),
-    ribbon: (f) => ({ at: [f.wheels[0].x - f.wheels[0].r * 0.5, f.wheels[0].y + f.wheels[0].r], h: 0.85, mat: 'accent', life: 1.4 }),
+    rider: (f) => ({ pose: 'ride', lean: 0.55, hand: [f.wheels[1].x - 0.18, -0.5], foot: [f.wheels[0].x + 0.45, -0.3] }),
+    ribbon: (f) => ({ at: [f.wheels[0].x - f.wheels[0].r - 0.1, f.wheels[0].y + f.wheels[0].r], h: 0.85, mat: 'accent', life: 1.4 }),
     skin: (f) => {
       const [rw, fw] = f.wheels;
-      const ring = (w: typeof rw) => [circ(w.x, w.y, w.r, 'black'), circ(w.x, w.y, w.r - 0.06, 'accent', { flat: true }), circ(w.x, w.y, w.r - 0.17, 'black', { flat: true }), circ(w.x, w.y, 0.07, 'accent', { flat: true })];
+      const hy = rw.y, R = rw.r, S = R + 0.13;
+      const around = (w: typeof rw, a: number): Pt => [w.x + Math.cos(a) * S, hy + Math.sin(a) * S];
       const shell: Pt[] = [
-        [rw.x - rw.r - 0.1, rw.y - 0.05], [rw.x - rw.r * 0.8, rw.y - rw.r - 0.06], [rw.x + 0.2, rw.y - rw.r - 0.14], [-0.05, -0.36],
-        [fw.x - 0.3, fw.y - fw.r - 0.14], [fw.x + fw.r * 0.8, fw.y - fw.r - 0.02], [fw.x + fw.r + 0.12, fw.y - 0.05], [fw.x, fw.y - 0.02], [0.0, 0.02], [rw.x, rw.y - 0.02],
+        // round the back of the rear wheel and over it
+        around(rw, Math.PI * 0.82), around(rw, Math.PI * 1.0), around(rw, Math.PI * 1.2), around(rw, Math.PI * 1.4),
+        // the step behind the seat, the seat, the tank hump, the dash
+        [rw.x + 0.2, -0.42], [rw.x + 0.4, -0.43], [rw.x + 0.6, -0.27], [-0.02, -0.25], [0.12, -0.36], [0.4, -0.37], [0.62, -0.42], [0.84, -0.47],
+        // over the front wheel and down its front
+        around(fw, Math.PI * 1.65), around(fw, Math.PI * 1.85), around(fw, Math.PI * 2.0), around(fw, Math.PI * 2.16),
+        // the belly (its ends hide behind the wheels)
+        [fw.x + R * 0.2, hy + R * 0.6], [fw.x - R - 0.05, hy + R * 0.72], [0.0, hy + R * 0.76], [rw.x + R + 0.05, hy + R * 0.72], [rw.x - R * 0.2, hy + R * 0.6],
       ];
+      const swoosh = smooth([[rw.x + 0.26, -0.36], [rw.x + 0.4, -0.12], [rw.x + 0.7, 0.04], [0.05, 0.08], [0.28, 0.12], [0.36, 0.26], [0.37, hy + R * 0.66]], 1, false);
       return [
-        blob(shell, 'body', {}, 2),
-        // the ring wheels show whole through the shell's open sides, under fender arcs
-        ...ring(rw), ...ring(fw),
-        ...[rw, fw].flatMap((w) => [arc(w.x, w.y, w.r + 0.05, Math.PI * 1.08, Math.PI * 1.92, 0.12, 'body'), arc(w.x, w.y, w.r + 0.1, Math.PI * 1.1, Math.PI * 1.9, 0.035, 'accent', { flat: true })]),
-        // neon seam along the spine, the low canopy over the front, a tail light
-        ...path([[rw.x + 0.2, rw.y - rw.r - 0.1], [-0.05, -0.32], [fw.x - 0.3, fw.y - fw.r - 0.1]], 0.035, 'accent'),
-        ...path([[rw.x + rw.r + 0.05, rw.y - 0.12], [fw.x - fw.r - 0.05, fw.y - 0.12]], 0.035, 'accent'),
-        blob([[fw.x - 0.5, fw.y - fw.r - 0.12], [fw.x - 0.15, fw.y - fw.r - 0.32], [fw.x + 0.25, fw.y - fw.r - 0.12]], 'glass', {}, 1),
-        rr(rw.x - rw.r - 0.16, rw.y - 0.16, rw.x - rw.r - 0.06, rw.y - 0.04, 0.02, 'accent'),
+        // glossy black: flat, with hand-placed highlights along the top
+        blob(shell, 'body', { flat: true }, 1),
+        // gloss on the rear cowl and the tank, the dash and its little screen, the handlebar
+        ...path([around(rw, Math.PI * 1.08), around(rw, Math.PI * 1.22), [rw.x - 0.1, -0.31]].map(([x, y]) => [x + 0.05, y + 0.06] as Pt), 0.05, 'grey', { flat: true }),
+        ...path([[0.14, -0.31], [0.38, -0.32]], 0.05, 'grey', { flat: true }),
+        rr(0.7, -0.56, 0.98, -0.44, 0.03, 'dark'), rect(0.76, -0.54, 0.92, -0.48, 'glass', { flat: true }),
+        ...path([[fw.x - 0.25, -0.42], [fw.x - 0.1, -0.5]], 0.06, 'grey'),
+        // the neon swoosh and the badge
+        ...path(swoosh, 0.075, 'accent', { flat: true }),
+        ell(-0.05, hy + 0.12, 0.2, 0.11, 'grey'), ell(-0.05, hy + 0.12, 0.13, 0.06, 'dark', { flat: true }),
+        rr(rw.x - S - 0.04, hy - 0.12, rw.x - S + 0.08, hy + 0.02, 0.02, 'accent'),
       ];
     },
   }],
