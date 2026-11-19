@@ -2,12 +2,9 @@ import type { Game } from '../game/game';
 
 /**
  * Match notes: a quick "fix this later" memo about a car, the arena or the game in general.
- * Every note is kept in the browser and the whole list is handed to the player as one plain
- * text file (share sheet on phones, download elsewhere), so nothing is lost between matches.
+ * Every note is saved as its own small plain text file (share sheet on phones, download
+ * elsewhere); nothing is kept in the browser.
  */
-
-const STORE_KEY = 'hba-notes-v1';
-const FILE_NAME = 'head-bash-arena-notes.txt';
 
 export interface Note {
   at: string;
@@ -17,27 +14,19 @@ export interface Note {
   map: string;
 }
 
-function load(): Note[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(STORE_KEY) ?? '[]');
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
-
-function persist(list: Note[]) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch { /* blocked: the file is what matters */ }
-}
-
 export function notesToText(list: Note[]) {
   return list
     .map((n) => `[${n.at.replace('T', ' ').slice(0, 16)}] ${n.target} (арена: ${n.map}, раунд ${n.round})\n${n.text}\n`)
     .join('\n');
 }
 
-async function saveText(text: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
-  const file = new File([text], FILE_NAME, { type: 'text/plain' });
+function noteFileName(n: Note) {
+  const t = n.at.replace(/[:.]/g, '-').slice(0, 19);
+  return `note-${t}.txt`;
+}
+
+async function saveText(text: string, fileName: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
+  const file = new File([text], fileName, { type: 'text/plain' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (matchMedia('(pointer: coarse)').matches && nav.canShare?.({ files: [file] })) {
     try {
@@ -50,7 +39,7 @@ async function saveText(text: string): Promise<'shared' | 'downloaded' | 'cancel
   const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
-  a.download = FILE_NAME;
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -130,11 +119,10 @@ export function openNoteEditor(
   mk('Зберегти', 'big', async () => {
     const text = ta.value.trim();
     if (!text) { ta.focus(); return; }
-    const list = load();
-    list.push({ at: new Date().toISOString(), target, text, round: game.match.round, map: game.map.name });
-    persist(list);
-    const res = await saveText(notesToText(list));
-    ctx.say(res === 'cancelled' ? 'Нотатку збережено в грі, файл не відправлено' : res === 'shared' ? 'Нотатки відправлено' : `Нотатки збережено: ${FILE_NAME}`);
+    const note: Note = { at: new Date().toISOString(), target, text, round: game.match.round, map: game.map.name };
+    const name = noteFileName(note);
+    const res = await saveText(notesToText([note]), name);
+    ctx.say(res === 'cancelled' ? 'Нотатку не збережено' : res === 'shared' ? 'Нотатку відправлено' : `Нотатку збережено: ${name}`);
     close();
   });
   mk('Скасувати', '', close);
