@@ -55,6 +55,8 @@ export interface Shot {
   used?: boolean;
   /** Wobble phase. */
   phase?: number;
+  /** Current turn rate of a smoothly steering shot (rad per step). */
+  turn?: number;
 }
 
 export interface Item {
@@ -1140,7 +1142,15 @@ export class Game {
           while (da > Math.PI) da -= Math.PI * 2;
           while (da < -Math.PI) da += Math.PI * 2;
           const lim = pr.seek ?? 0.07;
-          const turn = Math.max(-lim, Math.min(lim, da));
+          let turn: number;
+          if (pr.smoothSeek) {
+            // Steer in proportion to the error and let the turn rate itself change gradually, so
+            // the path bends into a curve and straightens out of it with no corners.
+            const want = Math.max(-lim, Math.min(lim, da * 0.06));
+            const prevTurn = s.turn ?? 0;
+            turn = prevTurn + Math.max(-lim * 0.08, Math.min(lim * 0.08, want - prevTurn));
+            s.turn = turn;
+          } else turn = Math.max(-lim, Math.min(lim, da));
           const sp = Math.max(pr.speed, v.length());
           s.body.setLinearVelocity(new Vec2(Math.cos(cur + turn) * sp, Math.sin(cur + turn) * sp));
         }

@@ -365,6 +365,7 @@ export function generateWheelGrid(wd: WheelDef, ppm = CAR_PPM): PixelGrid {
   const size = r * 2 + 1;
   const g = makeGrid(size, size, r, r);
   const style = wd.rim ?? 'spokes';
+  if (style === 'neon') return neonWheelGrid(r);
   const monster = style === 'monster';
   const tireIn = Math.max(1.6, r * (monster ? 0.44 : 0.52));
   const rimIn = Math.max(1.2, tireIn - Math.max(1, r * 0.13));
@@ -394,6 +395,32 @@ export function generateWheelGrid(wd: WheelDef, ppm = CAR_PPM): PixelGrid {
         }
         if (d < 0.9) c = WP.RIM;
       }
+      gset(g, x, y, c);
+    }
+  }
+  return g;
+}
+
+/**
+ * A light cycle's wheel (Tron): hubless, the whole thick tyre glowing in the accent colour, and
+ * inside it a grey ribbed hub motor whose ribs turn with the wheel, so the spin shows.
+ */
+function neonWheelGrid(r: number): PixelGrid {
+  const size = r * 2 + 1;
+  const g = makeGrid(size, size, r, r);
+  const glowIn = r - Math.max(2.2, r * 0.32), ribIn = glowIn - Math.max(1.6, r * 0.22);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = x - r, dy = y - r;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d > r + 0.3) continue;
+      const a = Math.atan2(dy, dx);
+      let c: number;
+      if (d > r - 0.7) c = WP.OUTLINE;
+      else if (d > glowIn) c = d > r - 1.5 && dx + dy > r * 0.4 ? WP.HUB : WP.RIM_L;
+      else if (d > glowIn - 0.8) c = WP.OUTLINE;
+      else if (d > ribIn) c = Math.floor(((a + Math.PI) / (Math.PI * 2)) * 10) % 2 ? WP.RIM : WP.TIRE_L;
+      else c = d > ribIn - 0.9 ? WP.TIRE_L : WP.TIRE;
       gset(g, x, y, c);
     }
   }
