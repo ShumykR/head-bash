@@ -99,6 +99,8 @@ export interface GameConfig {
 }
 
 const COUNTDOWN = 3;
+/** Seconds between the two presses of a double tap that lights the booster. */
+export const DOUBLE_TAP = 0.32;
 /** How far aim assist may turn a shot away from the barrel (rad). */
 const AIM_ASSIST = 0.26;
 /** For shots the head counts as this many times its radius. */
@@ -134,6 +136,8 @@ export class Game {
   /** Action button held (humans); edge-triggered. */
   readonly actions: boolean[] = [false, false];
   private prevAction = [false, false];
+  /** Double-tap booster: the direction last let go of and when, and whether the booster is armed (second press still held). */
+  private tap = [{ dir: 0, t: -9, held: 0, armed: false }, { dir: 0, t: -9, held: 0, armed: false }];
   shots: Shot[] = [];
   private shotId = 0;
   items: Item[] = [];
@@ -216,6 +220,7 @@ export class Game {
     for (const c of this.cars) this.loadCargo(c);
     for (const pr of this.arena.props) this.spawnItem(pr.kind, -1, new Vec2(pr.x, pr.y), new Vec2(0, 0), Infinity);
     this.prevAction = [false, false];
+    this.tap = [{ dir: 0, t: -9, held: 0, armed: false }, { dir: 0, t: -9, held: 0, armed: false }];
     this.resolver.reset();
     this.phase = 'countdown';
     this.phaseTime = 0;
@@ -279,7 +284,7 @@ export class Game {
       const act = ctrl ? (ctrl.action?.(this, p) ?? false) : this.actions[p];
       if (act && !this.prevAction[p]) this.useAbility(p);
       this.prevAction[p] = act;
-      this.cars[p].boostHeld = this.phase === 'play' && (ctrl ? (ctrl.boost?.(this, p) ?? false) : act);
+      this.cars[p].boostHeld = this.phase === 'play' && (ctrl ? (ctrl.boost?.(this, p) ?? false) : this.doubleTap(p, dir));
       this.cars[p].tickAbility(dt);
     }
     for (const c of this.cars) c.preStep(dt);
@@ -559,6 +564,23 @@ export class Game {
   }
 
   /** Fire the player's special action if it is charged. */
+  /** Double-tap-and-hold of a direction (second press within DOUBLE_TAP seconds of letting go) lights the booster for as long as it is held. */
+  private doubleTap(p: number, dir: -1 | 0 | 1): boolean {
+    const s = this.tap[p];
+    if (dir !== s.held) {
+      // `dir` of the last release and its time; a press of the same direction soon after is the second tap.
+      if (dir !== 0) s.armed = dir === s.dir && this.time - s.t <= DOUBLE_TAP;
+      else {
+        s.armed = false;
+        s.dir = s.held;
+        s.t = this.time;
+      }
+      if (dir !== 0 && s.held !== 0) s.dir = 0; // switched straight from the other side: no tap
+      s.held = dir;
+    }
+    return s.armed && dir === this.cars[p].facing;
+  }
+
   useAbility(p: number) {
     const car = this.cars[p];
     const ab = car.ability;

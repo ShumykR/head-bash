@@ -266,3 +266,39 @@ describe('lava', () => {
     expect(c.alive).toBe(true);
   });
 });
+
+describe('rocket booster on a double tap', () => {
+  function boosted(id: string) {
+    const def = CAR_BY_ID[id];
+    const g = new Game({ cars: [def, CARS[1]], maps: [MAP_BY_ID.meadow], randomMaps: false, target: 9, roundTime: 60, seed: 3 });
+    while (g.phase !== 'play') g.step();
+    return g;
+  }
+  const hold = (g: Game, dir: -1 | 0 | 1, steps: number) => { g.inputs[0] = dir; for (let i = 0; i < steps; i++) g.step(); };
+
+  it('a single press only drives; a quick second press lights the booster while held', () => {
+    const g = boosted('firework');
+    const f = g.cars[0].facing;
+    hold(g, f, 20);
+    expect(g.cars[0].boosting).toBe(false);
+    hold(g, 0, 6); // let go for 0.1 s
+    hold(g, f, 3);
+    expect(g.cars[0].boosting).toBe(true);
+    const fuel = g.cars[0].boostFuel;
+    hold(g, f, 20);
+    expect(g.cars[0].boostFuel).toBeLessThan(fuel);
+    hold(g, 0, 1);
+    expect(g.cars[0].boosting).toBe(false);
+  });
+  it('a slow second press does not, and the action button never burns it', () => {
+    const g = boosted('firework');
+    const f = g.cars[0].facing;
+    hold(g, f, 5);
+    hold(g, 0, 40); // 0.67 s: too slow
+    hold(g, f, 5);
+    expect(g.cars[0].boosting).toBe(false);
+    g.actions[0] = true;
+    hold(g, f, 20);
+    expect(g.cars[0].boosting).toBe(false);
+  });
+});

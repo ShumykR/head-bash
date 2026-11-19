@@ -262,7 +262,7 @@ export function abilityName(a: AbilityDef): string {
 }
 
 const BOOST_LABEL = '🚀 Реактивний двигун';
-const BOOST_BLURB = 'Тримай кнопку дії — реактивний двигун штовхає вперед, доки є пальне; відпусти, щоб воно відновилось.';
+const BOOST_BLURB = 'Двічі швидко натисни «вперед» і тримай вдруге — реактивний двигун штовхає, доки є пальне; відпусти, щоб воно відновилось.';
 
 export function abilityLabel(def: CarDef): string {
   const a = abilityOf(def);
@@ -274,7 +274,7 @@ export function abilityLabel(def: CarDef): string {
 /** One-line description of the action (garage card). */
 export function abilityBlurb(def: CarDef): string {
   const a = abilityOf(def);
-  const passive = [...(def.boost ? [a ? 'Не відпускай кнопку після дії — горить реактивний двигун, доки є пальне.' : BOOST_BLURB] : []), ...(def.traits ?? []).map(traitBlurb)].join(' ');
+  const passive = [...(def.boost ? [a ? 'Реактивний двигун окремо від дії: двічі швидко натисни «вперед» і тримай вдруге — горить, доки є пальне.' : BOOST_BLURB] : []), ...(def.traits ?? []).map(traitBlurb)].join(' ');
   if (!a) return passive || (def.cargo ? 'Без спецдії: зброя — вантаж, що згодом поповнюється, і фізика.' : def.flail ? 'Без спецдії: зброя — вантаж і фізика.' : 'Без спецдії: лише кермо, газ і фізика.');
   return `${actionBlurb(a)}${passive ? ` ${passive}` : ''}`;
 }
