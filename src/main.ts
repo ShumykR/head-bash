@@ -1,4 +1,5 @@
 import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug/report';
+import { openNoteEditor } from './debug/notes';
 import { Application, TextureSource } from 'pixi.js';
 import { Game, GameEvent } from './game/game';
 import { GameView } from './render/view';
@@ -70,10 +71,19 @@ async function boot() {
     clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => toast.classList.remove('on'), 2600);
   };
+  // While a note or bug report is being written/sent the match is frozen.
+  let frozen = false;
+  const freeze = (f: boolean) => {
+    frozen = f;
+    if (f) audio.stopEngines();
+    music.duck(f || state === 'paused');
+  };
   const reportBug = async () => {
-    if (!game) return;
+    if (!game || state !== 'play' || frozen) return;
+    freeze(true);
     const rep = buildReport(game, recorder, { fps, uiState: state, mode });
-    const res = await saveReport(rep);
+    let res: Awaited<ReturnType<typeof saveReport>>;
+    try { res = await saveReport(rep); } finally { freeze(false); }
     say(res === 'cancelled' ? 'Звіт не відправлено' : res === 'shared' ? 'Звіт відправлено' : `Звіт збережено: ${reportFileName(rep)}`);
   };
   const bugBtn = document.createElement('button');
@@ -83,10 +93,23 @@ async function boot() {
   bugBtn.addEventListener('click', () => void reportBug());
   document.getElementById('ui')!.appendChild(bugBtn);
 
+  const writeNote = () => {
+    if (!game || state !== 'play' || frozen) return;
+    freeze(true);
+    openNoteEditor(document.getElementById('ui')!, game, { say, onClose: () => freeze(false) });
+  };
+  const noteBtn = document.createElement('button');
+  noteBtn.className = 'btn note-btn';
+  noteBtn.textContent = '📝';
+  noteBtn.title = 'Нотатка (F8)';
+  noteBtn.addEventListener('click', writeNote);
+  document.getElementById('ui')!.appendChild(noteBtn);
+
   const setState = (s: State) => {
     state = s;
     pauseBtn.style.display = s === 'play' ? '' : 'none';
     bugBtn.style.display = s === 'play' ? '' : 'none';
+    noteBtn.style.display = s === 'play' ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
     if (s !== 'play') audio.stopEngines();
@@ -208,11 +231,12 @@ async function boot() {
     audio.unlock();
     if (code === 'Backquote') view.debug = !view.debug;
     if (code === 'F9' && game) void reportBug();
-    if (code === 'Escape' && state === 'play') pause();
+    if (code === 'F8' && game) writeNote();
+    if (code === 'Escape' && state === 'play' && !frozen) pause();
   };
   window.addEventListener('pointerdown', () => audio.unlock(), { once: false });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) pause();
+    if (document.hidden && !frozen) pause();
   });
 
   if (q.has('autostart') || q.has('map') || q.has('p1') || q.has('bots')) {
@@ -233,17 +257,17 @@ async function boot() {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
     if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
     if (!game) return;
-    if (state !== 'paused') recorder?.tick(dt);
+    if (state !== 'paused' && !frozen) recorder?.tick(dt);
     if (input.touchEnabled && state === 'play') view.showTouch = true;
-    if (state === 'play' || state === 'menu' || state === 'over') {
+    if (!frozen && (state === 'play' || state === 'menu' || state === 'over')) {
       game.inputs[0] = input.dir(0);
       game.inputs[1] = input.dir(1);
       game.actions[0] = state === 'play' && input.action(0);
       game.actions[1] = state === 'play' && input.action(1);
       game.frame(dt);
     }
-    view.render(state === 'paused' ? 0 : dt);
-    if (state === 'play') {
+    view.render(state === 'paused' || frozen ? 0 : dt);
+    if (state === 'play' && !frozen) {
       audio.setEngines(game.cars.map((c, i) => ({ load: c.engineLoad, throttle: c.input !== 0, alive: c.alive, pitch: i === 0 ? 1 : 1.12 })));
       if (overTimer > 0) {
         overTimer -= dt;
