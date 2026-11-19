@@ -44,7 +44,7 @@ export class Car {
   locked = false;
   boostFuel: number;
   boosting = false;
-  /** The action button is held this step: the rocket booster burns while it is (and there is fuel). */
+  /** The booster is lit this step (double tap of the drive button held, or the bot's decision): it burns while it is (and there is fuel). */
   boostHeld = false;
   /** Seconds the car has been stuck upside down. */
   flipTimer = 0;
@@ -358,9 +358,9 @@ export class Car {
     return this.wheelsOnGround === 0 && !this.chassisTouching && !this.linkTouching;
   }
 
-  /** Has something on the action button (a special action or a rocket booster). */
+  /** Has a special action on the action button (the booster is not on it: it is a double tap of the drive button). */
   get hasAction(): boolean {
-    return !!this.ability || !!this.def.boost;
+    return !!this.ability;
   }
 
   /** Booster fuel, 0 = empty, 1 = full (0 for cars without one). */
@@ -369,9 +369,9 @@ export class Car {
     return b ? this.boostFuel / b.fuel : 0;
   }
 
-  /** 0 = just used, 1 = ready. A car whose only action is the booster shows its fuel. */
+  /** 0 = just used, 1 = ready. */
   get abilityCharge(): number {
-    if (!this.ability) return this.boostCharge;
+    if (!this.ability) return 0;
     return 1 - Math.max(0, this.abilityCd) / abilityCd(this.ability);
   }
 
@@ -689,7 +689,7 @@ export class Car {
       if (this.chassisTouching || this.linkTouching) this.chassis.applyForceToCenter(new Vec2(0, -this.mass * DEFAULT_GRAVITY * 0.75 * k), true);
     }
 
-    // Rocket booster: burns while the action button is held, refuels while it is not.
+    // Rocket booster: burns while it is lit (double-tap-and-hold), refuels while it is not.
     this.boosting = this.nitroT > 0;
     if (d.boost) {
       const can = this.alive && !this.locked && this.stunT <= 0 && this.shellT <= 0 && this.stasisT <= 0;
