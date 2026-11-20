@@ -74,8 +74,8 @@ export interface Item {
   dead?: boolean;
   /** Cargo still inside its car's bed: drawn behind the car body until it spills out. */
   stowed?: Car;
-  /** Speed just before it struck a driver's head (the impact itself slows it, so the check can't use the speed afterwards). */
-  headHitSpeed?: number;
+  /** Its velocity before the latest physics step (a solid hit in the same step may already have slowed it). */
+  v0?: Vec2;
 }
 
 /** A lightning strike on its way down. */
@@ -95,6 +95,10 @@ export interface HeadLogEntry {
   [extra: string]: unknown;
 }
 const HEAD_LOG_MAX = 60;
+/** A thrown, dropped or falling item kills when it closes on a head faster than this (m/s)... */
+const HEAD_ITEM_SPEED = 3.5;
+/** ...and is itself moving faster than this: a stationary prop that a car runs into does not count. */
+const HEAD_ITEM_MOVING = 1.5;
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
 /** Tow cable: how fast it reels in (m/s) and how close it brings the rival (m from the tow bar to its middle). */
@@ -172,6 +176,8 @@ export class Game {
   private contactQueue: [Fixture, Fixture, Contact][] = [];
   /** The last head contacts and what was decided about each (for bug reports). */
   headLog: HeadLogEntry[] = [];
+  /** Each head's velocity before the latest physics step. */
+  private headV0: (Vec2 | null)[] = [null, null];
   /** Called at the end of every physics step (the flight recorder hooks in here). */
   onStep: (() => void) | null = null;
   private impactCooldown = 0;
@@ -312,8 +318,11 @@ export class Game {
     for (const c of this.cars) c.preStep(dt);
     for (const r of this.ragdolls) r.snapshot();
     this.arena.step(dt);
+    for (const it of this.items) it.v0 = it.body.getLinearVelocity().clone();
+    this.cars.forEach((c, p) => { this.headV0[p] = c.alive ? c.headBody.getLinearVelocityFromWorldPoint(c.headWorld()) : null; });
     this.world.step(dt, VELOCITY_ITERS, POSITION_ITERS);
     this.processContacts();
+    this.scanHeads();
     this.stepShots();
     this.stepItems(dt);
     this.stepCargo(dt);
@@ -386,6 +395,55 @@ export class Game {
     }
   }
 
+  /**
+   * How an item meets a head: its own speed and how fast it closes on the head (both the larger of now and
+   * before the step, since a solid hit in the same step may already have slowed it). A head sensor does not
+   * slow anything down, so there is nothing to read "just before the impact" from a pre-solve callback.
+   */
+  private headItemSpeed(player: number, it: Item): { speed: number; rel: number } {
+    const car = this.cars[player];
+    const hv = car.headBody.getLinearVelocityFromWorldPoint(car.headWorld());
+    const v = it.body.getLinearVelocity();
+    const v0 = it.v0 ?? v, hv0 = this.headV0[player] ?? hv;
+    return { speed: Math.max(v.length(), v0.length()), rel: Math.max(Vec2.sub(v, hv).length(), Vec2.sub(v0, hv0).length()) };
+  }
+
+  /**
+   * Heads are checked every step, not only when a contact begins: something that was already overlapping
+   * (a shield that has run out, an item that was slow when it arrived) counts as soon as it qualifies.
+   */
+  private scanHeads() {
+    if (this.phase !== 'play') return;
+    for (const car of this.cars) {
+      if (!car.alive || !car.headFixture || car.shieldT > 0) continue;
+      for (let ce = car.headBody.getContactList(); ce; ce = ce.next) {
+        const c = ce.contact;
+        if (!c.isTouching()) continue;
+        const fa = c.getFixtureA(), fb = c.getFixtureB();
+        const other = fa === car.headFixture ? fb : fb === car.headFixture ? fa : null;
+        const t = other && tagOf(other);
+        if (!t) continue;
+        const info: Record<string, unknown> = { via: 'overlap' };
+        let by: number | undefined;
+        if ((t.kind === 'car' || t.kind === 'head') && t.player !== car.player) {
+          by = t.player;
+          info.by = t.player;
+          if (t.kind === 'car') info.part = t.part;
+        } else if (t.kind === 'item' && t.owner !== car.player) {
+          const it = this.items.find((x) => x.id === t.id);
+          if (!it || it.dead || it.fx === 'explode') continue;
+          const h = this.headItemSpeed(car.player, it);
+          if (!(h.speed > HEAD_ITEM_MOVING && h.rel > HEAD_ITEM_SPEED)) continue;
+          Object.assign(info, { item: t.item, id: t.id, owner: t.owner, speed: round2(h.speed), rel: round2(h.rel), need: HEAD_ITEM_SPEED });
+          by = t.owner >= 0 ? t.owner : undefined;
+        } else continue;
+        this.kill(car.player, 'hit', by);
+        this.logHead(car.player, t.kind, car, car.shieldT > 0, undefined, info);
+        break;
+      }
+    }
+  }
+
   private logHead(player: number, withKind: string, car: Car, shield0: boolean, ignored: string | undefined, info: Record<string, unknown>) {
     const result = !car.alive ? 'KILL' : this.phase === 'countdown' ? 'countdown-reset' : ignored ?? (shield0 ? 'shield-blocked' : 'no-effect');
     this.headLog.push({ t: round2(this.time), step: this.stepCount, round: this.match.round, player, with: withKind, result, ...info });
@@ -412,20 +470,19 @@ export class Game {
         else { this.shotEffect(b.id, a.player); ignored = 'harmless-effect'; }
       } else if (b.kind === 'item' && b.owner !== a.player) {
         const it = this.items.find((x) => x.id === b.id);
-        const speed = it ? it.body.getLinearVelocity().length() : 0;
         info.item = b.item;
         info.id = b.id;
         info.owner = b.owner;
         info.fx = it?.fx ?? null;
-        info.speed = round2(speed);
-        if (it) {
-          const hv = car.headBody.getLinearVelocityFromWorldPoint(car.headWorld());
-          info.rel = round2(Vec2.sub(it.body.getLinearVelocity(), hv).length());
-        }
-        info.need = 4.5;
+        info.need = HEAD_ITEM_SPEED;
         if (it?.fx === 'explode') { this.explode(it); ignored = 'exploded'; }
-        else if (it && Math.max(speed, it.headHitSpeed ?? 0) > 4.5) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
-        else ignored = 'below-threshold';
+        else if (it) {
+          const h = this.headItemSpeed(a.player, it);
+          info.speed = round2(h.speed);
+          info.rel = round2(h.rel);
+          if (h.speed > HEAD_ITEM_MOVING && h.rel > HEAD_ITEM_SPEED) this.kill(a.player, 'hit', b.owner >= 0 ? b.owner : undefined);
+          else ignored = 'below-threshold';
+        } else ignored = 'gone';
       } else if (b.kind === 'item') {
         info.item = b.item;
         info.id = b.id;
@@ -492,16 +549,6 @@ export class Game {
         const it = this.items.find((i) => i.id === x.id);
         if (it?.fx === 'oil' && y.player !== it.owner) c.setFriction(0.01);
         else if (it?.fx === 'tar' && y.player !== it.owner) this.cars[y.player].slowT = Math.max(this.cars[y.player].slowT, 0.3);
-      }
-      // A thrown cow, log or crate hitting a head: note how fast it came in, before the impact slows it.
-      if (x.kind === 'item' && y.kind === 'head' && x.owner !== y.player) {
-        const it = this.items.find((i) => i.id === x.id);
-        if (it) {
-          // Speed of the item itself, or of the closing between it and the head when it was already moving (a cow kicked into a head).
-          const vi = it.body.getLinearVelocity(), speed = vi.length();
-          const rel = Vec2.sub(vi, fy.getBody().getLinearVelocity()).length();
-          it.headHitSpeed = speed > 1.5 ? Math.max(speed, rel) : speed;
-        }
       }
       if (x.kind === 'loop' && (y.kind === 'car' || y.kind === 'head')) {
         if (!this.arena.loopRiding(y.player)) c.setEnabled(false);

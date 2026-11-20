@@ -9,10 +9,12 @@ export interface Settings {
   map: string; // map id or 'random'
   /** New random car for each player every round. */
   randomCars: boolean;
+  /** Show the debug buttons during a match: bug report 🐞, moment mark 📍, note 📝 (and their F9 / F7 / F8 keys). */
+  debugButtons: boolean;
 }
 
 const KEY = 'hba-settings-v1';
-export const DEFAULTS: Settings = { target: 5, roundTime: 60, bot: 'normal', p1: 'sparrow', p2: 'bulldog', map: 'random', randomCars: false };
+export const DEFAULTS: Settings = { target: 5, roundTime: 60, bot: 'normal', p1: 'sparrow', p2: 'bulldog', map: 'random', randomCars: false, debugButtons: true };
 
 export function loadSettings(): Settings {
   try {

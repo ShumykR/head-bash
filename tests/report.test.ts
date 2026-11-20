@@ -87,15 +87,21 @@ describe('bug report', () => {
     const rep = JSON.parse(compactJson(buildReport(g, rec)));
     expect(rep.recording.samples.some((s: { near: string[][] }) => s.near.some((t) => t[0].startsWith('melon#')))).toBe(true);
     const hit = rep.headLog.find((e: { with: string }) => e.with === 'item');
-    expect(hit).toMatchObject({ player: 0, item: 'melon', owner: 1, result: 'KILL', need: 4.5 });
-    expect(hit.speed).toBeGreaterThan(4.5);
+    expect(hit).toMatchObject({ player: 0, item: 'melon', owner: 1, result: 'KILL', need: 3.5 });
+    expect(hit.rel).toBeGreaterThan(3.5);
     expect(typeof hit.rel).toBe('number');
   });
 
   it('writes a slow touch as below-threshold instead of nothing', () => {
-    const { g } = dropRig(0.6);
-    expect(g.phase).toBe('play');
-    expect(g.headLog.find((e) => e.with === 'item')).toMatchObject({ result: 'below-threshold' });
+    const g = new Game({ cars: [CAR_BY_ID.sparrow, CAR_BY_ID.rowboat], maps: [MAP_BY_ID.meadow], randomMaps: false, target: 99, roundTime: 60, seed: 3 });
+    while (g.phase !== 'play') g.step();
+    for (let i = 0; i < 120; i++) g.step();
+    const hp = g.cars[0].headWorld();
+    const it = g.spawnItem('cone', 1, new Vec2(hp.x - 1, hp.y), new Vec2(2, 0), 30);
+    it.body.setGravityScale(0);
+    for (const c of g.cars) for (const b of c.bodies) b.setLinearVelocity(new Vec2(0, 0));
+    for (let i = 0; i < 60; i++) { it.body.setLinearVelocity(new Vec2(2, 0)); g.step(); }
+    expect(g.headLog.find((e) => e.with === 'item' && e.item === 'cone')).toMatchObject({ result: 'below-threshold' });
   });
 
   it('compactJson stays valid JSON and puts short things on one line', () => {
