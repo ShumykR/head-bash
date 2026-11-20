@@ -1,5 +1,5 @@
 import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug/report';
-import { openNoteEditor } from './debug/notes';
+import { openNoteEditor, openBugEditor } from './debug/notes';
 import { Application, TextureSource } from 'pixi.js';
 import { Game, GameEvent } from './game/game';
 import { GameView } from './render/view';
@@ -78,20 +78,41 @@ async function boot() {
     if (f) audio.stopEngines();
     music.duck(f || state === 'paused');
   };
-  const reportBug = async () => {
+  // The bug button marks the moment at once, then asks what went wrong: a report without a note is not saved.
+  const reportBug = () => {
     if (!game || state !== 'play' || frozen) return;
+    const g = game;
     freeze(true);
-    const rep = buildReport(game, recorder, { fps, uiState: state, mode });
-    let res: Awaited<ReturnType<typeof saveReport>>;
-    try { res = await saveReport(rep); } finally { freeze(false); }
-    say(res === 'cancelled' ? 'Звіт не відправлено' : res === 'shared' ? 'Звіт відправлено' : `Звіт збережено: ${reportFileName(rep)}`);
+    recorder?.mark('report');
+    openBugEditor(document.getElementById('ui')!, g, {
+      marks: recorder?.marks() ?? 0,
+      onSubmit: async ({ category, text }) => {
+        const rep = buildReport(g, recorder, { fps, uiState: state, mode, note: text, category, full: !!(window as any).__reportFull });
+        const res = await saveReport(rep);
+        say(res === 'cancelled' ? 'Звіт не відправлено' : res === 'shared' ? 'Звіт відправлено' : `Звіт збережено: ${reportFileName(rep)}`);
+      },
+      onClose: () => freeze(false),
+    });
+  };
+  // One tap during play: "it just happened". The game goes on; the report saved later carries the steps around this moment.
+  const markMoment = () => {
+    if (!game || state !== 'play' || frozen) return;
+    recorder?.mark('mark');
+    say('📍 Момент позначено. Збережіть звіт кнопкою 🐞, коли зручно');
   };
   const bugBtn = document.createElement('button');
   bugBtn.className = 'btn bug-btn';
   bugBtn.textContent = '🐞';
-  bugBtn.title = 'Зберегти звіт про баг (F9)';
-  bugBtn.addEventListener('click', () => void reportBug());
+  bugBtn.title = 'Звіт про баг з обов’язковою нотаткою (F9)';
+  bugBtn.addEventListener('click', reportBug);
   document.getElementById('ui')!.appendChild(bugBtn);
+
+  const markBtn = document.createElement('button');
+  markBtn.className = 'btn mark-btn';
+  markBtn.textContent = '📍';
+  markBtn.title = 'Позначити момент «щойно було» (F7)';
+  markBtn.addEventListener('click', markMoment);
+  document.getElementById('ui')!.appendChild(markBtn);
 
   const writeNote = () => {
     if (!game || state !== 'play' || frozen) return;
@@ -101,7 +122,7 @@ async function boot() {
   const noteBtn = document.createElement('button');
   noteBtn.className = 'btn note-btn';
   noteBtn.textContent = '📝';
-  noteBtn.title = 'Нотатка (F8)';
+  noteBtn.title = 'Нотатка: ідея, правка, зауваження (не баг) (F8)';
   noteBtn.addEventListener('click', writeNote);
   document.getElementById('ui')!.appendChild(noteBtn);
 
@@ -110,6 +131,7 @@ async function boot() {
     pauseBtn.style.display = s === 'play' ? '' : 'none';
     bugBtn.style.display = s === 'play' ? '' : 'none';
     noteBtn.style.display = s === 'play' ? '' : 'none';
+    markBtn.style.display = s === 'play' ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
     if (s !== 'play') audio.stopEngines();
@@ -230,7 +252,8 @@ async function boot() {
   input.onAnyKey = (code) => {
     audio.unlock();
     if (code === 'Backquote') view.debug = !view.debug;
-    if (code === 'F9' && game) void reportBug();
+    if (code === 'F9' && game) reportBug();
+    if (code === 'F7' && game) markMoment();
     if (code === 'F8' && game) writeNote();
     if (code === 'Escape' && state === 'play' && !frozen) pause();
   };
@@ -257,7 +280,6 @@ async function boot() {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
     if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
     if (!game) return;
-    if (state !== 'paused' && !frozen) recorder?.tick(dt);
     if (input.touchEnabled && state === 'play') view.showTouch = true;
     if (!frozen && (state === 'play' || state === 'menu' || state === 'over')) {
       game.inputs[0] = input.dir(0);

@@ -131,3 +131,79 @@ export function openNoteEditor(
   host.appendChild(root);
   ta.focus();
 }
+
+/** What kind of bug it was: a quick pick that goes into the report next to the text. */
+export const BUG_CATEGORIES = ['Не вбило', 'Вбило даремно', 'Завис / застряг', 'Фізика / дивна поведінка', 'Інше'];
+/** The shortest note the bug report accepts. */
+export const BUG_NOTE_MIN = 3;
+
+/**
+ * The bug report dialog: a category and a note that has to be filled in before the report can be
+ * saved. `onSubmit` builds and sends the report; `onClose` is called once the dialog is gone
+ * (after a save or a cancel), so the caller can unfreeze the match.
+ */
+export function openBugEditor(
+  host: HTMLElement,
+  game: Game,
+  ctx: { marks: number; onSubmit: (r: { category: string; text: string }) => Promise<void>; onClose: () => void },
+) {
+  const root = document.createElement('div');
+  root.className = 'screen overlay note-editor';
+  root.style.zIndex = '12';
+  root.style.position = 'fixed';
+
+  const title = document.createElement('div');
+  title.className = 'hint';
+  const marks = ctx.marks ? ` · позначок 📍: ${ctx.marks}` : '';
+  title.innerHTML = `<b>Звіт про баг</b> — гру зупинено (раунд ${game.match.round}, ${game.map.name}${marks})`;
+
+  let category = BUG_CATEGORIES[BUG_CATEGORIES.length - 1];
+  const seg = document.createElement('div');
+  seg.className = 'row note-targets';
+  const btns = BUG_CATEGORIES.map((label) => {
+    const b = document.createElement('button');
+    b.className = 'btn small' + (label === category ? ' on' : '');
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      category = label;
+      btns.forEach((x) => x.classList.toggle('on', x === b));
+      ta.focus();
+    });
+    seg.appendChild(b);
+    return b;
+  });
+
+  const ta = document.createElement('textarea');
+  ta.className = 'note-text';
+  ta.placeholder = 'Що сталося? Обов’язково: хто/що, де і що мало бути.';
+  ta.rows = 5;
+  for (const ev of ['keydown', 'keyup'] as const) ta.addEventListener(ev, (e) => e.stopPropagation());
+
+  const actions = document.createElement('div');
+  actions.className = 'row';
+  const close = () => {
+    root.remove();
+    ctx.onClose();
+  };
+  const save = document.createElement('button');
+  save.className = 'btn big';
+  save.textContent = 'Зберегти звіт';
+  save.disabled = true;
+  const cancel = document.createElement('button');
+  cancel.className = 'btn';
+  cancel.textContent = 'Скасувати';
+  cancel.addEventListener('click', close);
+  actions.append(save, cancel);
+
+  const valid = () => ta.value.trim().length >= BUG_NOTE_MIN;
+  ta.addEventListener('input', () => { save.disabled = !valid(); });
+  save.addEventListener('click', async () => {
+    if (!valid()) { ta.focus(); return; }
+    save.disabled = true;
+    try { await ctx.onSubmit({ category, text: ta.value.trim() }); } finally { close(); }
+  });
+
+  root.append(title, seg, ta, actions);
+  host.appendChild(root);
+  ta.focus();
+}
