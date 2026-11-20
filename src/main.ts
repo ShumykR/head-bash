@@ -80,7 +80,7 @@ async function boot() {
   };
   // The bug button marks the moment at once, then asks what went wrong: a report without a note is not saved.
   const reportBug = () => {
-    if (!game || state !== 'play' || frozen) return;
+    if (!game || !settings.debugButtons || state !== 'play' || frozen) return;
     const g = game;
     freeze(true);
     recorder?.mark('report');
@@ -96,7 +96,7 @@ async function boot() {
   };
   // One tap during play: "it just happened". The game goes on; the report saved later carries the steps around this moment.
   const markMoment = () => {
-    if (!game || state !== 'play' || frozen) return;
+    if (!game || !settings.debugButtons || state !== 'play' || frozen) return;
     recorder?.mark('mark');
     say('📍 Момент позначено. Збережіть звіт кнопкою 🐞, коли зручно');
   };
@@ -115,7 +115,7 @@ async function boot() {
   document.getElementById('ui')!.appendChild(markBtn);
 
   const writeNote = () => {
-    if (!game || state !== 'play' || frozen) return;
+    if (!game || !settings.debugButtons || state !== 'play' || frozen) return;
     freeze(true);
     openNoteEditor(document.getElementById('ui')!, game, { say, onClose: () => freeze(false) });
   };
@@ -129,9 +129,7 @@ async function boot() {
   const setState = (s: State) => {
     state = s;
     pauseBtn.style.display = s === 'play' ? '' : 'none';
-    bugBtn.style.display = s === 'play' ? '' : 'none';
-    noteBtn.style.display = s === 'play' ? '' : 'none';
-    markBtn.style.display = s === 'play' ? '' : 'none';
+    for (const b of [bugBtn, noteBtn, markBtn]) b.style.display = s === 'play' && settings.debugButtons ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
     if (s !== 'play') audio.stopEngines();

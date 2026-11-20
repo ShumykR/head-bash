@@ -119,6 +119,7 @@ export class Menu {
     mk('Випадкові авто щораунду', [1, 0], this.settings.randomCars ? 1 : 0, (v) => (v ? 'так' : 'ні'), (v) => (this.settings.randomCars = !!v));
     mk('Звук', [1, 0], audio.muted ? 0 : 1, (v) => (v ? 'увімк' : 'вимк'), (v) => audio.setMuted(!v));
     mk('Музика', [1, 0], music.enabled ? 1 : 0, (v) => (v ? 'увімк' : 'вимк'), (v) => music.setEnabled(!!v));
+    mk('Дебаг-кнопки (🐞 📍 📝)', [1, 0], this.settings.debugButtons ? 1 : 0, (v) => (v ? 'показані' : 'сховані'), (v) => (this.settings.debugButtons = !!v));
     s.appendChild(button('◀ назад', '', () => this.showMain(), 'back'));
     this.keyHandler = (e) => e.code === 'Escape' && this.showMain();
   }
