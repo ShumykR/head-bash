@@ -1155,6 +1155,13 @@ export function buildCar(spec: CarSpec): CarDef {
   if (bikeLike && !spec.rider) f.head = { ...f.head, y: +(f.head.y - BIKE_SIT).toFixed(3) };
   const skinned = !!spec.skin;
   const polys = skinned ? f.polys.map((p) => ({ ...p, hide: true })) : [...f.polys];
+  /** Small frame pieces under a skin (a dragster's wing, a stack): checked like hidden parts. */
+  // (a roof right over the helmet stays: it shields the driver, and that is a balance matter)
+  const overHead = (pts: Pt[]) => pts.every((q) => q[1] < f.head.y) && Math.min(...pts.map((q) => q[0])) < f.head.x + f.head.r && Math.max(...pts.map((q) => q[0])) > f.head.x - f.head.r;
+  // (and only pieces up above the wheels: bars down at axle height are the chassis itself)
+  const wheelTop = Math.min(...f.wheels.map((w) => w.y - w.r));
+  const upper = (pts: Pt[]) => pts.reduce((t, q) => t + q[1], 0) / pts.length < wheelTop;
+  const framePieces = new Set(skinned ? polys.filter((p) => !p.deco && polyAreaOf(p.pts) < GHOST_FRAME_AREA && upper(p.pts) && !overHead(p.pts)) : []);
   const windows = skinned ? [] : [...f.windows];
   if (spec.skin) for (const p of spec.skin(f)) polys.push({ ...p, deco: true });
   if (f.port && f.cabin && !spec.head && spec.headOn === undefined) {
@@ -1172,6 +1179,8 @@ export function buildCar(spec: CarSpec): CarDef {
   let boost = false;
   let arch: Archetype = f.arch;
   const autoLinks: LinkSpec[] = [...(f.limbs ?? [])];
+  /** Bolted-on parts hidden under a skin: they keep colliding only where the skin draws something. */
+  const hiddenParts = new Set<CarPoly>();
   for (const pp of spec.parts ?? []) {
     const [id, k] = Array.isArray(pp) ? pp : [pp, undefined];
     const r = part(f, id, k ?? 1);
@@ -1179,7 +1188,9 @@ export function buildCar(spec: CarSpec): CarDef {
     for (const p of r.polys) if (!p.deco && (inPoly(p.pts, f.head.x, f.head.y) || inPoly(p.pts, f.head.x, f.head.y - f.head.r * 0.7))) p.deco = true;
     // Horns are the real thing: what you see is what gores (unless the skin redraws them in place).
     const hideIt = skinned && !!spec.hideParts && (id !== 'horns' || spec.hideParts === 'all');
-    polys.push(...(hideIt ? r.polys.map((p) => ({ ...p, hide: true })) : r.polys));
+    const added = hideIt ? r.polys.map((p) => ({ ...p, hide: true })) : r.polys;
+    if (hideIt) for (const p of added) hiddenParts.add(p);
+    polys.push(...added);
     if (r.windows && !hideIt) windows.push(...r.windows);
     if (r.boost) boost = true;
     if (r.arch) arch = r.arch;
@@ -1218,6 +1229,17 @@ export function buildCar(spec: CarSpec): CarDef {
       { ...circ8(lx + 0.1, ly, 0.06, 'light', 0.15), deco: true },
       { ...circ8(lx + 0.12, ly - 0.06, 0.03, 'white', 0.05), deco: true, flat: true },
     );
+  }
+  // A hidden part the skin doesn't redraw in place would be an invisible hook (a spoiler nobody can
+  // see snagging an island corner): such a part stops colliding. Its gift (a booster's fuel) stays.
+  if (hiddenParts.size || framePieces.size) {
+    const seen = polys.filter((p) => p.deco && !p.cut && !p.hide);
+    const shown = f.wheels.filter((w, i) => !w.hidden && !spec.hideWheels?.includes(i));
+    for (let i = polys.length - 1; i >= 0; i--) {
+      const p = polys[i];
+      if (!(hiddenParts.has(p) || framePieces.has(p)) || p.deco) continue;
+      if (drawnShare(p.pts, seen, shown) < GHOST_PART_SHARE) polys.splice(i, 1);
+    }
   }
   const s = spec.s ?? 1;
   const pre = PRESETS[arch];
@@ -1377,6 +1399,27 @@ function centroidX(pts: Pt[]): [number, number] {
   }
   if (Math.abs(a) < 1e-9) return [pts[0][0], 0];
   return [cx / (3 * a), Math.abs(a) / 2];
+}
+
+/** Below this share of its area drawn by the skin, a hidden part stops colliding (a part drawn a little
+ *  off its place, like a tow truck's boom, still has a good part of it covered and stays). */
+const GHOST_PART_SHARE = 0.35;
+/** Frame pieces smaller than this (m²) are trimmed like hidden parts; the hull itself always stays. */
+const GHOST_FRAME_AREA = 0.3;
+/** How much of a polygon the given art (polygons and wheels) covers, sampled every 4 cm with a 5 cm reach. */
+function drawnShare(pts: Pt[], art: CarPoly[], wheels: WheelDef[]): number {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const R = 0.05, H = 0.04;
+  const near = (x: number, y: number) => wheels.some((w) => Math.hypot(x - w.x, y - w.y) < w.r + R)
+    || art.some((a) => [[0, 0], [R, 0], [-R, 0], [0, R], [0, -R]].some(([dx, dy]) => inPoly(a.pts, x + dx, y + dy)));
+  let n = 0, hit = 0;
+  for (let x = x0 + H / 2; x < x1; x += H) for (let y = y0 + H / 2; y < y1; y += H) {
+    if (!inPoly(pts, x, y)) continue;
+    n++;
+    if (near(x, y)) hit++;
+  }
+  return n ? hit / n : 1;
 }
 
 function inPoly(pts: Pt[], x: number, y: number) {

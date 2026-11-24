@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { Vec2 } from 'planck';
 import { Game } from '../src/game/game';
 import { CAR_BY_ID } from '../src/cars/defs';
 import { MAP_BY_ID } from '../src/maps/defs';
@@ -29,7 +28,7 @@ describe('bug reports', () => {
         const c = g.cars[side];
         const run = c.joints.map(() => 0);
         for (let i = 0; i < 60 * 12 && c.alive; i++) {
-          g.inputs[side] = i < 180 + delay ? 0 : (side === 0 ? 1 : -1) * (Math.floor(i / 50) % 3 === 2 ? -1 : 1);
+          g.inputs[side] = (i < 180 + delay ? 0 : (side === 0 ? 1 : -1) * (Math.floor(i / 50) % 3 === 2 ? -1 : 1)) as -1 | 0 | 1;
           g.step();
           c.joints.forEach((j, k) => {
             const a = j.getAnchorA(), b = j.getAnchorB(), ax = c.chassis.getWorldVector(j.getLocalAxisA());
@@ -56,5 +55,14 @@ describe('bug reports', () => {
   it('snowmobile carries no hidden collision parts above its deck', () => {
     const top = Math.min(...CAR_BY_ID.snowmobile.body.filter((p) => p.hide && !p.deco).flatMap((p) => p.pts.map((q) => q[1])));
     expect(top).toBeGreaterThan(-0.4);
+  });
+
+  it('hidden bolted-on parts the skin does not draw stop colliding (invisible dragster wings, the freezer tank)', () => {
+    const top = (id: string, x0: number, x1: number) => Math.min(0, ...CAR_BY_ID[id].body.filter((p) => !p.deco).flatMap((p) => p.pts.filter((q) => q[0] > x0 && q[0] < x1).map((q) => q[1])));
+    // nothing solid stands above the dragsters' tails or on the freezer's roof any more
+    for (const id of ['wheelie-king', 'knight-dragster', 'antique-f1']) expect(top(id, -2.7, -1.5), id).toBeGreaterThan(-0.5);
+    expect(top('freezer', -1.5, -0.1)).toBeGreaterThan(-1.2);
+    // while what the skin does draw keeps its physics: the tow truck's boom
+    expect(CAR_BY_ID['tow-truck'].body.some((p) => !p.deco && p.pts.some((q) => q[1] < -1.2))).toBe(true);
   });
 });

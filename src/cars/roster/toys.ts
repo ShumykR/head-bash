@@ -1,5 +1,5 @@
 import { blob, checkers, stack, circ, ell, eyeball, fangs, flameDecal, grille, lightbar, ladder, path, poly, rect, rr, seat, seg, spikesAlong, starShape, stripe, tank, shoulders } from '../draw';
-import { arc, boxy, dragsterBody, fenders, formula, frontLamp, hover, monsterChassis, pickup, rearLamp, sedan, tracks, monsterTruck } from '../skins';
+import { arc, boxy, dragsterBody, fenders, formula, headrest, frontLamp, hover, monsterChassis, pickup, rearLamp, sedan, tracks, monsterTruck } from '../skins';
 import type { CarMat, CarPoly } from '../types';
 import type { Frame } from '../factory';
 import { fishCar, arm, browEye, maw, quadruped } from '../critters';
@@ -515,6 +515,7 @@ export const TOYS = group('toys', [
   ['big-head-racer', 'Big Head Racer', 'Вінтажний болід, у якому водій більший за машину.', 'formula', ['#c08a2a', '#2a2a2a'], {
     // A tiny car: the head keeps its full size, so the driver ends up bigger than the car.
     s: 0.68, o: o({ rim: 'spokes', wheel: 1.15 }),
+    art: (f) => [{ ...headrest(f), deco: false }],
     skin: (f) => [
       ell(0.0, 0.0, f.nose.x - 0.15, 0.3, 'body', {}, 28), stripe(-1.0, f.nose.x - 0.6, 0.14, 0.05, 'red'),
       ...[0, 1, 2, 3].map((i) => rect(-0.85 + i * 0.15, -0.14, -0.8 + i * 0.15, 0.06, 'dark', { flat: true })),
