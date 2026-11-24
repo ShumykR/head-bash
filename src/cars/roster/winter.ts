@@ -52,7 +52,8 @@ const fir = (cx: number, y: number, s = 1): CarPoly[] => [
 
 export const WINTER = group('winter', [
   ['snowmobile', 'Snowmobile', 'Снігохід на лижі з вітровим склом.', 'sled', ['#e02a4a', '#2a2a2a'], {
-    parts: ['wing'], hideParts: true,
+    // no bolted-on parts: a hidden tail wing used to be a T-shaped hook nobody could see (it hung the
+    // sled from island corners)
     skin: (f) => {
       const a = f.wheels[0];
       return [

@@ -437,11 +437,50 @@ export class Arena {
     return this.def.gravity;
   }
 
-  private stepMover(m: Mover, dt: number) {
+  /** True when the mover is shoving a loose body (a wheel, a car) into something fixed: the body sits
+   *  ahead of the mover on its line of travel and is pressed against static ground on its far side. */
+  private crushing(m: Mover, dx: number, dy: number): boolean {
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-6) return false;
+    const ux = dx / len, uy = dy / len;
+    for (let ce = m.body.getContactList(); ce; ce = ce.next) {
+      const c = ce.contact;
+      const other = ce.other;
+      if (!c.isTouching() || !other || !other.isDynamic()) continue;
+      const n = c.getWorldManifold(null)?.normal;
+      if (!n) continue;
+      // manifold normal points from fixture A to B; flip it so it points from the mover to the body
+      const s = c.getFixtureA().getBody() === m.body ? 1 : -1;
+      if ((n.x * ux + n.y * uy) * s < 0.5) continue;
+      for (let oe = other.getContactList(); oe; oe = oe.next) {
+        const o = oe.other;
+        if (!o || o === m.body || !o.isStatic() || !oe.contact.isTouching()) continue;
+        const n2 = oe.contact.getWorldManifold(null)?.normal;
+        if (!n2) continue;
+        const s2 = oe.contact.getFixtureA().getBody() === other ? 1 : -1;
+        if ((n2.x * ux + n2.y * uy) * s2 > 0.5) return true;
+      }
+    }
+    return false;
+  }
+
+  private stepMover(m: Mover, dt: number, guard = false) {
     if (m.pause > 0) {
       m.pause -= dt;
       m.body.setLinearVelocity(new Vec2(0, 0));
       return;
+    }
+    // A platform never grinds a wheel into the wall (a kinematic body always wins, so the wheel would be
+    // pushed through the ground and torn off its axle): it backs off and goes the other way.
+    if (guard) {
+      const t = m.path[m.seg + m.dirn], p0 = m.body.getPosition();
+      if (this.crushing(m, t[0] - p0.x, t[1] - p0.y)) {
+        m.seg += m.dirn;
+        m.dirn = m.dirn === 1 ? -1 : 1;
+        m.pause = 0.25;
+        m.body.setLinearVelocity(new Vec2(0, 0));
+        return;
+      }
     }
     const nextIdx = m.seg + m.dirn;
     const target = m.path[nextIdx];
@@ -461,10 +500,11 @@ export class Arena {
     }
   }
 
-  /** Per fixed step update. */
-  step(dt: number) {
+  /** Per fixed step update. `calm` (the countdown) holds back falling blocks, so the first one drops
+   *  a full interval after GO instead of landing on a parked head at the very first step. */
+  step(dt: number, calm = false) {
     this.time += dt;
-    for (const p of this.platforms) this.stepMover(p, dt);
+    for (const p of this.platforms) this.stepMover(p, dt, true);
     for (const s of this.saws) {
       if (s.mover) this.stepMover(s.mover, dt);
       const sw = s.def.swing;
@@ -488,7 +528,7 @@ export class Arena {
     }
 
     const fb = this.def.fallingBlocks;
-    if (fb) {
+    if (fb && !calm) {
       this.blockTimer += dt;
       if (this.blockTimer >= fb.interval) {
         this.blockTimer = 0;

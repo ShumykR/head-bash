@@ -317,7 +317,7 @@ export class Game {
     }
     for (const c of this.cars) c.preStep(dt);
     for (const r of this.ragdolls) r.snapshot();
-    this.arena.step(dt);
+    this.arena.step(dt, this.phase === 'countdown');
     for (const it of this.items) it.v0 = it.body.getLinearVelocity().clone();
     this.cars.forEach((c, p) => { this.headV0[p] = c.alive ? c.headBody.getLinearVelocityFromWorldPoint(c.headWorld()) : null; });
     this.world.step(dt, VELOCITY_ITERS, POSITION_ITERS);
