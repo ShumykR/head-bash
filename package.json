@@ -11,7 +11,8 @@
     "e2e": "node scripts/smoke.mjs '--query=autostart=1&bots=1' --steps=300",
     "detcheck": "node scripts/detcheck.mjs",
     "online-e2e": "node scripts/online-e2e.mjs",
-    "online-ui": "node scripts/online-ui.mjs"
+    "online-ui": "node scripts/online-ui.mjs",
+    "telegram-e2e": "node scripts/telegram-e2e.mjs"
   },
   "repository": {
     "type": "git",

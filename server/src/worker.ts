@@ -3,18 +3,26 @@
  *
  *   GET /health         → { ok, proto }
  *   GET /ws/new         → create a room near the caller, connect to it (code comes in `welcome`)
- *   GET /ws/:code       → join an existing room
- *
- * The Integration API for the Telegram bot (/api/v1/*) lands here later
- * (docs/online-plan.md, stage 5).
+ *   GET /ws/:code       → join an existing room (or open one for a lobby the bot created)
+ *   /api/v1/*           → the Telegram bot's API (hub.ts; docs/online-plan.md §3)
  */
 import { CODE_RE, PROTO, randomCode } from '../../src/net/protocol';
 import { random } from './room';
 
 export { Room } from './room';
+export { Hub } from './hub';
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
+  HUB: DurableObjectNamespace;
+  /** Public game URL (GitHub Pages), for the links the API returns. */
+  GAME_URL: string;
+  /** The Telegram bot: numeric id (verifies Mini App players), username and Mini App short name (t.me links). */
+  TG_BOT_ID?: string;
+  TG_BOT_USERNAME?: string;
+  TG_APP_SHORT_NAME?: string;
+  /** Secret: the key the bot sends as `Authorization: Bearer …`. */
+  BOT_API_KEY?: string;
 }
 
 const json = (body: unknown, status = 200) =>
@@ -34,6 +42,11 @@ export default {
     const path = url.pathname.replace(/\/+$/, '');
 
     if (path === '/health' || path === '') return json({ ok: true, proto: PROTO });
+
+    if (path.startsWith('/api/v1/')) {
+      const hub = env.HUB.get(env.HUB.idFromName('hub'), { locationHint: 'eeur' });
+      return hub.fetch(req);
+    }
 
     const ws = /^\/ws\/([A-Za-z0-9]+)$/.exec(path);
     if (ws) {

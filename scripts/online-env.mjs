@@ -18,7 +18,15 @@ export const until = async (fn, ms, what) => {
   }
 };
 
+/** Bot API key the local server is started with (server/.dev.vars). */
+export const LOCAL_BOT_KEY = 'local-test-key';
+
 export async function startServers() {
+  if (!remote) {
+    const fs = await import('node:fs');
+    const dv = path.join(root, 'server', '.dev.vars');
+    if (!fs.existsSync(dv)) fs.writeFileSync(dv, `BOT_API_KEY="${LOCAL_BOT_KEY}"\n`);
+  }
   const procs = [];
   const start = (cmd, args, cwd) => {
     const p = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: true });

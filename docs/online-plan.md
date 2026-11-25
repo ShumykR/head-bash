@@ -320,24 +320,24 @@ docs/
 - [x] Дебаг-кнопки сховані за замовчуванням (також для збережених раніше налаштувань, якщо гравець їх сам не вмикав).
 - [x] `scripts/online-ui.mjs` (у CI): два браузери розміру телефона проходять увесь шлях через інтерфейс — створення, запрошення, налаштування, зміна авто, «готовий», матч, здача.
 
-### Етап 4. Деплой — 1–2 дні
+### Етап 4. Деплой — ✅ готово (production — після злиття в `main`)
 
-- [ ] Акаунт Cloudflare, `CLOUDFLARE_API_TOKEN` у секретах GitHub.
-- [ ] Два Worker-середовища у `wrangler.toml`: `staging` (з гілок `ccr-*` / ручний запуск) і `production` (з `main`).
-- [ ] Job `deploy-server` у `.github/workflows/deploy.yml` (лише коли змінено `server/`, `src/net/protocol.ts` або `docs/integration/openapi.yaml`).
-- [ ] Адреса сервера в клієнті через `VITE_SERVER_URL`.
-- [ ] Порядок деплою: спершу сервер (сумісний із попереднім `proto`), потім Pages.
+- [x] Акаунт Cloudflare, піддомен `headbash.workers.dev`, секрети `CLOUDFLARE_API_TOKEN` і `CLOUDFLARE_ACCOUNT_ID` у GitHub.
+- [x] Два середовища: `head-bash-staging` (з гілок) і `head-bash` (з `main`), job `deploy-server` у `deploy.yml`; після деплою — перевірка двома клієнтами й сценарієм бота вже на живому сервері.
+- [x] Гра збирається з адресою щойно розгорнутого сервера (`VITE_SERVER_URL`); якщо деплой сервера впав, гра все одно публікується (без онлайну).
+- [x] Перевірено вручну на staging: два браузери через `wss://head-bash-staging.headbash.workers.dev` — хеші однакові, перезавантаження вкладки посеред матчу.
+- [ ] Production з'явиться після злиття гілки в `main`.
 
-**Готово, коли:** гра на Pages грає онлайн через `*.workers.dev`.
+**Готово, коли:** гра на Pages грає онлайн через `*.workers.dev`. ✅ для staging; production — після злиття в `main`.
 
-### Етап 5. Telegram з нашого боку — 3–4 дні
+### Етап 5. Telegram з нашого боку — ✅ готово (чекає значень бота)
 
-- [ ] `server/src/api.ts`: Integration API v1, ключі, `Idempotency-Key`, валідація за OpenAPI-схемою, однаковий формат помилок.
-- [ ] `server/src/events.ts`: журнал подій і `GET /api/v1/events`; необов'язкові вебхуки (HMAC-підпис, повтори).
-- [ ] `server/src/tgauth.ts`: перевірка `initData` за Ed25519 `signature` і `bot_id` + тест на справжніх зразках.
-- [ ] `src/platform/telegram.ts`: `telegram-web-app.js`, `start_param` → лобі, `requestFullscreen`, `lockOrientation`, `disableVerticalSwipes`, кнопка «Назад», haptics при ударі/очку, safe-area.
-- [ ] `server/scripts/integration.ts`: видати ключ і секрет для бота (staging і production окремо).
-- [ ] Контрактні тести: відповіді API й події відповідають `openapi.yaml` (тест падає, якщо код і документація розійшлися).
+- [x] API для бота (`server/src/hub.ts`, логіка — `hub-core.ts`): `POST /api/v1/lobbies` (з `meta`, `ttlSec`, `Idempotency-Key`), `GET /lobbies/{code}`, `POST /lobbies/{code}/cancel`, `GET /events?after=&limit=`. Один бот → один ключ: секрет `BOT_API_KEY` (production) / `BOT_API_KEY_STAGING` у GitHub, деплой кладе його в Cloudflare. Без ключа API відповідає 503.
+- [x] Кімната для лобі бота створюється біля першого гравця й звітує хабу: гравець зайшов/вийшов, матч почався/закінчився, кімната закрилась. Лобі, куди ніхто не зайшов, закривається за `ttlSec`; події зберігаються 24 год.
+- [x] `server/src/tgauth.ts`: перевірка `initData` за підписом Ed25519 і `TG_BOT_ID` (без токена бота) — гравець з Telegram отримує ім'я й `tgUserId`, які бачить бот.
+- [x] `src/platform/telegram.ts`: SDK вантажиться лише коли гру відкрив Telegram; `start_param` `l_<КОД>` → одразу в лобі; ім'я з Telegram; повноекранний режим, горизонтальна орієнтація, без свайпу-закриття, кнопка «Назад» (= Escape; у матчі — «здатися» через діалог Telegram), вібровідгук на вибуваннях і кінці матчу, відступи під елементи Telegram; без Service Worker.
+- [x] Тести: `tests/hub.test.ts`, `tests/tgauth.test.ts`; `server/scripts/bot-smoke.mjs` (сценарій бота на `wrangler dev` і на живому сервері); `scripts/telegram-e2e.mjs` (Mini App з імітацією Telegram SDK: лобі бота → гра → події для бота).
+- [ ] Значення бота у `server/wrangler.toml` (`TG_BOT_ID`, `TG_BOT_USERNAME`, `TG_APP_SHORT_NAME`) — від розробника бота.
 
 **Готово, коли:** у staging `curl` за прикладами з документації проходить весь сценарій: створити лобі → двоє заходять → матч → `match.finished` у `GET /events`.
 

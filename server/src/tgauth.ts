@@ -32,9 +32,9 @@ export function dataCheckString(initData: string, botId: string): string | null 
   return `${botId}:WebAppData\n${lines.join('\n')}`;
 }
 
-const hexBytes = (hex: string) => new Uint8Array(hex.match(/../g)!.map((h) => parseInt(h, 16)));
+const hexBytes = (hex: string): Uint8Array<ArrayBuffer> => new Uint8Array(hex.match(/../g)!.map((h) => parseInt(h, 16)));
 
-function base64urlBytes(s: string): Uint8Array {
+function base64urlBytes(s: string): Uint8Array<ArrayBuffer> {
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
   const bin = atob(b64);
   const out = new Uint8Array(bin.length);

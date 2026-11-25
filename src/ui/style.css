@@ -302,3 +302,9 @@ html, body {
   .lobby-config .set-row { min-width: 0; }
   .lobby-config .hint { grid-column: 1 / -1; }
 }
+
+/* Telegram full screen: keep clear of Telegram's own controls at the top (its SDK sets these variables) */
+html.tg .pause-btn, html.tg .bug-btn, html.tg .note-btn, html.tg .mark-btn, html.tg .net-badge {
+  top: calc(6px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+}
+html.tg .screen { padding-top: calc(8px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }

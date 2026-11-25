@@ -17,6 +17,7 @@ import { NetSession } from './net/session';
 import { serverUrl, buildId } from './net/config';
 import { CODE_RE, bitsOf } from './net/protocol';
 import { OnlineUI, type LobbyBanner } from './ui/lobby';
+import { initTelegram } from './platform/telegram';
 
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
@@ -30,6 +31,9 @@ async function boot() {
     (window as any).__ready = true;
     return;
   }
+
+  // Telegram Mini App (only when Telegram opened the page): full screen, Back button, the player's identity.
+  const tg = await initTelegram();
 
   const host = document.getElementById('app')!;
   const app = new Application();
@@ -52,6 +56,7 @@ async function boot() {
   const view = new GameView(app, input);
   view.debug = q.has('debug');
   const settings = loadSettings();
+  if (tg && !settings.name && tg.name) settings.name = tg.name;
   let state: State = 'menu';
   let mode: Mode = 'pvp';
   let game: Game | null = null;
@@ -149,6 +154,7 @@ async function boot() {
 
   const setState = (s: State) => {
     state = s;
+    tg?.setBack(s !== 'menu' || !document.querySelector('.screen.main'));
     pauseBtn.style.display = s === 'play' ? '' : 'none';
     pauseBtn.textContent = online ? '⚑' : 'II';
     pauseBtn.title = online ? 'Здатися' : 'Пауза';
@@ -163,6 +169,11 @@ async function boot() {
   const onEvent = (e: GameEvent) => {
     if (state === 'menu') return; // attract mode is silent
     if (online?.ls?.catchingUp) return; // re-simulating after a reconnect: no sound burst
+    if (tg) {
+      if (e.type === 'death') tg.haptic('heavy');
+      else if (e.type === 'impact' && e.carCar && e.strength > 2.5) tg.haptic('light');
+      else if (e.type === 'matchEnd') tg.haptic(online ? (e.winner === online.slot ? 'success' : 'error') : 'success');
+    }
     switch (e.type) {
       case 'countdown': audio.countdown(e.n); break;
       case 'go': audio.countdown(0); break;
@@ -274,7 +285,7 @@ async function boot() {
     onlineBanner = null;
     onlineUI.busy = false;
     let picked = false;
-    const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId() }, {
+    const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId(), auth: tg?.initData }, {
       makeGame: (cfg) => {
         const me = s.slot ?? 0;
         setOnlineLabels({ me, foe: s.lobby?.players[1 - me]?.name ?? '' });
@@ -361,11 +372,13 @@ async function boot() {
     if (state !== 'play') return;
     if (online) {
       // An online match cannot be paused: the button offers to concede instead.
-      if (confirm('Здатися й вийти з матчу?')) {
+      const ask = tg ? tg.confirm('Здатися й вийти з матчу?') : Promise.resolve(confirm('Здатися й вийти з матчу?'));
+      void ask.then((ok) => {
+        if (!ok || !online) return;
         leaveOnline();
         startDemo();
         menu.showMain();
-      }
+      });
       return;
     }
     setState('paused');
@@ -412,7 +425,17 @@ async function boot() {
     settingsChanged: () => saveSettings(settings),
   });
 
-  setupPwa((fn) => {
+  if (tg) {
+    // Telegram's Back button does what Escape does (menus go back; in an online match it offers to concede).
+    tg.onBack = () => {
+      if (state === 'play') return pause();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }));
+    };
+    // Show it whenever we are off the main menu.
+    new MutationObserver(() => tg.setBack(state !== 'menu' || !document.querySelector('.screen.main'))).observe(document.getElementById('ui')!, { childList: true, subtree: true });
+  }
+
+  if (!tg) setupPwa((fn) => {
     (menu as any).hooks.install = fn;
     if (state === 'menu' && !document.querySelector('.cars, .maps, .settings')) menu.showMain();
   });
@@ -430,7 +453,7 @@ async function boot() {
     if (document.hidden && !frozen && !online) pause();
   });
 
-  const roomParam = (q.get('room') ?? '').toUpperCase();
+  const roomParam = (tg?.roomCode ?? q.get('room') ?? '').toUpperCase();
   if (q.has('online')) {
     // Test/dev autopilot: ?online=1&room=new|CODE&car=…&target=…&time=…&map=…
     startDemo();

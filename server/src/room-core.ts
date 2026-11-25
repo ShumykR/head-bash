@@ -29,7 +29,7 @@ export interface RoomDeps {
 }
 
 export type RoomEvent =
-  | { type: 'player_joined'; slot: 0 | 1; name: string }
+  | { type: 'player_joined'; slot: 0 | 1; name: string; tgUserId?: number }
   | { type: 'player_left'; slot: 0 | 1; name: string }
   | { type: 'match_started'; cars: [string, string]; config: MatchConfig }
   | { type: 'match_finished'; winner: 0 | 1 | null; scores: [number, number] | null; reason: EndReason; names: [string, string] };
@@ -39,6 +39,8 @@ interface Slot {
   car: string | null;
   ready: boolean;
   token: string;
+  /** Telegram user id, when the player came in through the Mini App (verified initData). */
+  tgUserId?: number;
   connId: string | null;
   rtt: number;
   /** Epoch ms by which a dropped player must reconnect. */
@@ -110,7 +112,8 @@ export class RoomCore {
     if (!this.slots.some((s) => s?.connId === conn.id)) this.pending.set(conn.id, this.deps.now() + HELLO_SEC * 1000);
   }
 
-  message(connId: string, raw: string) {
+  /** A message from a socket. `ident`: the verified Telegram identity sent with a `hello` (checked by the host). */
+  message(connId: string, raw: string, ident?: { tgUserId: number; name: string }) {
     const conn = this.conns.get(connId);
     if (!conn) return;
     const m = parseClientMsg(raw);
@@ -123,7 +126,7 @@ export class RoomCore {
     }
     if (this.pending.has(connId)) {
       if (m.t !== 'hello') return this.reject(conn, 'bad');
-      return this.hello(conn, m);
+      return this.hello(conn, m, ident);
     }
     const p = this.slotOf(connId);
     if (p === null) return;
@@ -141,6 +144,21 @@ export class RoomCore {
     if (this.phase === 'playing') this.sendTo(1 - p, { t: 'peer', state: 'left', deadline: s.deadline });
     this.dirty = true;
     this.broadcastLobby();
+  }
+
+  /** The lobby was cancelled from outside (the bot): everyone out, the room is gone. */
+  cancel() {
+    for (const c of this.conns.values()) {
+      c.send({ t: 'reject', reason: 'notFound' });
+      c.close(4003, 'cancelled');
+    }
+    this.conns.clear();
+    this.pending.clear();
+    this.slots = [null, null];
+    this.match = null;
+    this.phase = 'lobby';
+    this.created = false;
+    this.expireAt = null;
   }
 
   // ---- time ----
@@ -208,7 +226,7 @@ export class RoomCore {
 
   // ---- internals ----
 
-  private hello(conn: Conn, m: Extract<ClientMsg, { t: 'hello' }>) {
+  private hello(conn: Conn, m: Extract<ClientMsg, { t: 'hello' }>, ident?: { tgUserId: number; name: string }) {
     if (m.proto !== PROTO || (this.build !== null && m.build !== this.build && this.slots.some((s) => s))) return this.reject(conn, 'version');
     this.pending.delete(conn.id);
     // Coming back to a seat (reconnect, or the same player in a new tab).
@@ -227,9 +245,9 @@ export class RoomCore {
       p = this.slots.findIndex((s) => !s);
       if (p === -1) return this.reject(conn, 'full');
       if (!this.slots.some((s) => s)) this.build = m.build;
-      const name = (m.name || '').trim().slice(0, 24) || `Гравець ${p + 1}`;
-      this.slots[p] = { name, car: null, ready: false, token: this.token(), connId: conn.id, rtt: 150, deadline: null };
-      this.deps.onEvent?.({ type: 'player_joined', slot: p as 0 | 1, name });
+      const name = (ident?.name || m.name || '').trim().slice(0, 24) || `Гравець ${p + 1}`;
+      this.slots[p] = { name, car: null, ready: false, token: this.token(), connId: conn.id, rtt: 150, deadline: null, ...(ident ? { tgUserId: ident.tgUserId } : {}) };
+      this.deps.onEvent?.({ type: 'player_joined', slot: p as 0 | 1, name, ...(ident ? { tgUserId: ident.tgUserId } : {}) });
     }
     this.expireAt = null;
     this.dirty = true;
