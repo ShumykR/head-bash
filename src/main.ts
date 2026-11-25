@@ -3,7 +3,7 @@ import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug
 import { openNoteEditor, openBugEditor } from './debug/notes';
 import { Application, TextureSource } from 'pixi.js';
 import { Game, GameEvent } from './game/game';
-import { GameView } from './render/view';
+import { GameView, setOnlineLabels } from './render/view';
 import { InputManager } from './input/input';
 import { CARS, CAR_BY_ID } from './cars/defs';
 import { MAPS, MAP_BY_ID } from './maps/defs';
@@ -205,6 +205,7 @@ async function boot() {
     const s = online;
     online = null; // first: closing the socket reports 'closed', which must not look like a lost connection
     s.leave();
+    setOnlineLabels(null);
     netBadge.classList.remove('on');
     input.solo = false;
     relayout();
@@ -275,6 +276,8 @@ async function boot() {
     let picked = false;
     const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId() }, {
       makeGame: (cfg) => {
+        const me = s.slot ?? 0;
+        setOnlineLabels({ me, foe: s.lobby?.players[1 - me]?.name ?? '' });
         const g = newGame(cfg);
         input.solo = true;
         relayout();
