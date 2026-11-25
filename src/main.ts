@@ -15,7 +15,8 @@ import { loadSettings, saveSettings } from './ui/settings';
 import { setupPwa } from './ui/pwa';
 import { NetSession } from './net/session';
 import { serverUrl, buildId } from './net/config';
-import { bitsOf } from './net/protocol';
+import { CODE_RE, bitsOf } from './net/protocol';
+import { OnlineUI, type LobbyBanner } from './ui/lobby';
 
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
@@ -148,7 +149,9 @@ async function boot() {
 
   const setState = (s: State) => {
     state = s;
-    pauseBtn.style.display = s === 'play' && !online ? '' : 'none';
+    pauseBtn.style.display = s === 'play' ? '' : 'none';
+    pauseBtn.textContent = online ? '⚑' : 'II';
+    pauseBtn.title = online ? 'Здатися' : 'Пауза';
     for (const b of [bugBtn, noteBtn, markBtn]) b.style.display = s === 'play' && settings.debugButtons ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
@@ -179,7 +182,7 @@ async function boot() {
       case 'roundEnd': if (e.result !== 'draw') audio.point(); break;
       case 'matchEnd':
         music.stop();
-        audio.jingle(mode === 'pvp' || e.winner === 0);
+        audio.jingle(online ? e.winner === online.slot : mode === 'pvp' || e.winner === 0);
         overTimer = 1.6;
         break;
     }
@@ -199,8 +202,9 @@ async function boot() {
   /** Leave the online room (any local game or the menu ends online play). */
   const leaveOnline = () => {
     if (!online) return;
-    online.leave();
-    online = null;
+    const s = online;
+    online = null; // first: closing the socket reports 'closed', which must not look like a lost connection
+    s.leave();
     netBadge.classList.remove('on');
     input.solo = false;
     relayout();
@@ -241,33 +245,54 @@ async function boot() {
     setState('play');
   };
 
+  /** Result line shown above the online lobby after a match. */
+  let onlineBanner: LobbyBanner | null = null;
+  const showOnlineLobby = () => {
+    const s = online;
+    if (!s || onlineUI.busy || state === 'play' || state === 'paused') return;
+    if (!s.lobby || s.slot === null || !s.code) return onlineUI.showConnecting();
+    onlineUI.showLobby(s.lobby, s.slot, s.code, onlineBanner, state === 'over');
+  };
+  const rejectText: Record<string, string> = {
+    version: 'Інша версія гри: онови сторінку',
+    full: 'Кімната вже заповнена',
+    notFound: 'Кімнату не знайдено',
+    auth: 'Не вдалося підтвердити гравця',
+    bad: 'Сервер відхилив підключення',
+  };
+
   /**
-   * Online match (stage 2: started from the URL, e.g.
-   * ?online=1&room=new&car=sparrow&server=ws://localhost:8787 — the lobby UI comes in stage 3).
-   * Each side plays with its own controls; the session drives the Game in lockstep.
+   * Online play: create a room (no code) or join one, then the lobby; the session drives
+   * the Game in lockstep, each side with its own controls.
+   * `auto` (from ?online=1&car=…&target=…) picks, configures and readies by itself — used by tests.
    */
-  const startOnline = () => {
-    const room = q.get('room') ?? 'new';
-    const car = q.get('car') ?? settings.p1;
+  const openOnline = (code?: string, auto = false) => {
+    leaveOnline();
+    if (state !== 'menu') startDemo();
+    goFullscreen();
+    onlineBanner = null;
+    onlineUI.busy = false;
     let picked = false;
-    online?.leave();
-    const s = new NetSession({ server: serverUrl(q), name: q.get('name') ?? 'Гравець', build: buildId() }, {
+    const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId() }, {
       makeGame: (cfg) => {
         const g = newGame(cfg);
         input.solo = true;
         relayout();
         overTimer = -1;
+        onlineBanner = null;
+        onlineUI.busy = false;
         menu.hide();
         music.playMatch();
         setState('play');
         return g;
       },
       onLobby: (l) => {
-        if (l.phase !== 'lobby') return;
+        if (l.phase !== 'lobby' || s.slot === null) return;
+        const me = l.players[s.slot];
         if (!picked) {
           picked = true;
-          s.pick(car);
-          if (s.slot === 0 && (q.has('target') || q.has('time') || q.has('map'))) {
+          if (!me?.car) s.pick((auto && q.get('car')) || settings.p1);
+          if (auto && s.slot === l.host && (q.has('target') || q.has('time') || q.has('map'))) {
             s.config({
               ...(q.has('target') ? { target: Number(q.get('target')) } : {}),
               ...(q.has('time') ? { roundTime: Number(q.get('time')) } : {}),
@@ -275,31 +300,50 @@ async function boot() {
             });
           }
         }
-        const me = s.slot !== null ? l.players[s.slot] : null;
-        if (me && me.car && !me.ready && l.players.every((p) => p && p.connected) && state !== 'over') s.ready();
+        if (auto && me?.car && !me.ready && l.players.every((p) => p && p.connected) && state !== 'over') s.ready();
+        showOnlineLobby();
       },
       onStatus: (st) => {
         if (st === 'open' && s.code) {
-          say(`Кімната ${s.code}`);
           const u = new URL(location.href);
           u.searchParams.set('room', s.code);
           history.replaceState(null, '', u);
         }
         if (st === 'reconnecting') say('Зв’язок втрачено, перепідключення…');
-        if (st === 'closed') say('З’єднання закрито');
+        if (st === 'closed' && online === s) {
+          say('З’єднання з сервером закрито');
+          leaveOnline();
+          startDemo();
+          onlineUI.showEntry();
+        }
       },
-      onPeer: (st, deadline) => say(st === 'left' ? `Суперник відключився (${Math.round(((deadline ?? Date.now()) - Date.now()) / 1000)} с на повернення)` : 'Суперник повернувся'),
+      onPeer: (st, deadline) => say(st === 'left' ? `Суперник відключився (${Math.max(0, Math.round(((deadline ?? Date.now()) - Date.now()) / 1000))} с на повернення)` : 'Суперник повернувся'),
       onEnd: (winner, scores, reason) => {
-        if (reason === 'desync') say('Розсинхрон: матч не зараховано');
-        else if (reason === 'forfeit') say(winner === s.slot ? 'Суперник здався або не повернувся: перемога' : 'Технічна поразка');
-        else if (reason === 'aborted') say('Матч перервано');
-        void scores;
+        const win = winner !== null && winner === s.slot;
+        const sc = scores ? ` ${scores[s.slot ?? 0]} : ${scores[1 - (s.slot ?? 0)]}` : '';
+        onlineBanner =
+          reason === 'score' ? { text: win ? `ТИ ПЕРЕМІГ!${sc}` : `СУПЕРНИК ПЕРЕМІГ${sc}`, color: win ? '#ffd23f' : '#ff5a6e' }
+          : reason === 'forfeit' ? { text: win ? 'СУПЕРНИК ВИЙШОВ: ПЕРЕМОГА' : 'ТЕХНІЧНА ПОРАЗКА', color: win ? '#ffd23f' : '#ff5a6e' }
+          : reason === 'desync' ? { text: 'РОЗСИНХРОН: НЕ ЗАРАХОВАНО', color: '#ffffff' }
+          : { text: 'МАТЧ ПЕРЕРВАНО', color: '#ffffff' };
+        // A normal finish waits for the match-end slow-mo (see the ticker); anything else returns at once.
+        if (reason !== 'score' || overTimer <= 0) {
+          overTimer = -1;
+          setState('over');
+          audio.stopEngines();
+          showOnlineLobby();
+        }
       },
-      onReject: (r) => say(r === 'version' ? 'Інша версія гри: онови сторінку' : r === 'full' ? 'Кімната заповнена' : r === 'notFound' ? 'Кімнату не знайдено' : 'Сервер відхилив підключення'),
+      onReject: (r) => {
+        say(rejectText[r] ?? rejectText.bad);
+        leaveOnline();
+        onlineUI.showEntry();
+      },
     });
     online = s;
     (window as any).__online = s;
-    s.connect(room === 'new' ? undefined : room.toUpperCase());
+    onlineUI.showConnecting();
+    s.connect(code);
   };
 
   const goFullscreen = () => {
@@ -311,7 +355,16 @@ async function boot() {
   };
 
   const pause = () => {
-    if (state !== 'play' || online) return; // an online match cannot be paused
+    if (state !== 'play') return;
+    if (online) {
+      // An online match cannot be paused: the button offers to concede instead.
+      if (confirm('Здатися й вийти з матчу?')) {
+        leaveOnline();
+        startDemo();
+        menu.showMain();
+      }
+      return;
+    }
     setState('paused');
     menu.showPause();
   };
@@ -331,17 +384,31 @@ async function boot() {
       startDemo();
       menu.showMain();
     },
-    rematch: () => {
-      if (!online) return startMatch();
-      // Online rematch: same room, both players press it.
-      menu.hide();
-      say('Чекаємо суперника…');
-      online.ready();
-    },
+    rematch: () => startMatch(),
+    online: () => onlineUI.showEntry(),
     changeCars: () => menu.showCars(mode, () => menu.showMaps(() => startMatch(), () => menu.showMain())),
     install: null,
     settingsChanged: () => saveSettings(settings),
   });
+  const onlineUI = new OnlineUI(menu, settings, {
+    create: () => openOnline(),
+    join: (code) => openOnline(code),
+    leave: () => {
+      leaveOnline();
+      if (state !== 'menu') startDemo();
+      menu.showMain();
+    },
+    pick: (car) => online?.pick(car),
+    config: (c) => online?.config(c),
+    ready: (r) => online?.ready(r),
+    pickMap: (done) => {
+      const back = () => { onlineUI.busy = false; showOnlineLobby(); };
+      menu.showMaps(() => { done(); back(); }, back);
+    },
+    refresh: () => showOnlineLobby(),
+    settingsChanged: () => saveSettings(settings),
+  });
+
   setupPwa((fn) => {
     (menu as any).hooks.install = fn;
     if (state === 'menu' && !document.querySelector('.cars, .maps, .settings')) menu.showMain();
@@ -360,9 +427,15 @@ async function boot() {
     if (document.hidden && !frozen && !online) pause();
   });
 
+  const roomParam = (q.get('room') ?? '').toUpperCase();
   if (q.has('online')) {
+    // Test/dev autopilot: ?online=1&room=new|CODE&car=…&target=…&time=…&map=…
     startDemo();
-    startOnline();
+    openOnline(roomParam && roomParam !== 'NEW' ? roomParam : undefined, true);
+  } else if (CODE_RE.test(roomParam)) {
+    // An invite link: straight into that room.
+    startDemo();
+    openOnline(roomParam);
   } else if (q.has('autostart') || q.has('map') || q.has('p1') || q.has('bots')) {
     if (q.get('p1')) settings.p1 = q.get('p1')!;
     if (q.get('p2')) settings.p2 = q.get('p2')!;
@@ -402,7 +475,8 @@ async function boot() {
         overTimer -= dt;
         if (overTimer <= 0) {
           setState('over');
-          menu.showOver(game.match.winner ?? 0, game.match.scores, mode);
+          if (online) showOnlineLobby();
+          else menu.showOver(game.match.winner ?? 0, game.match.scores, mode);
         }
       }
     }

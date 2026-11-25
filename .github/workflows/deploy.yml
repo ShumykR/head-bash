@@ -81,6 +81,7 @@ jobs:
         working-directory: server
       - run: npx playwright install --with-deps chromium
       - run: node scripts/online-e2e.mjs --seconds=20
+      - run: node scripts/online-ui.mjs
 
   deploy:
     if: github.ref == 'refs/heads/main'

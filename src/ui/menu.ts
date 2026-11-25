@@ -20,6 +20,8 @@ export const SHOW_BOT_MODE = true;
 
 export interface MenuHooks {
   start(mode: Mode): void;
+  /** Online play: create or join a room. */
+  online(): void;
   resume(): void;
   restart(): void;
   toMenu(): void;
@@ -61,6 +63,29 @@ export class Menu {
     this.keyHandler = null;
   }
 
+  /** An empty screen for other modules (the online lobby); `keys` gets the key presses. */
+  open(cls: string, keys: ((e: KeyboardEvent) => void) | null = null) {
+    const s = this.screen(cls);
+    this.keyHandler = keys;
+    return s;
+  }
+
+  /** The car picker (garage) on top of the current screen. */
+  pickCar(title: string, color: string, selected: string, onPick: (id: string) => void, onClose?: () => void) {
+    this.overlay = openCarBrowser(this.root, {
+      title,
+      mode: 'pick',
+      color,
+      selected,
+      filter: {},
+      onPick: (def) => onPick(def.id),
+      onClose: () => {
+        this.overlay = null;
+        onClose?.();
+      },
+    });
+  }
+
   private screen(cls: string) {
     this.hide();
     this.root.className = `menu-root ${cls}`;
@@ -76,6 +101,7 @@ export class Menu {
     s.appendChild(logo);
     const col = el('div', 'main-buttons');
     col.append(button('грати вдвох', 'primary big', () => this.hooks.start('pvp')));
+    col.append(button('онлайн', 'big', () => this.hooks.online()));
     if (SHOW_BOT_MODE) col.append(button('проти бота', 'big', () => this.hooks.start('bot')));
     const diff = el('div', 'seg');
     for (const lv of ['easy', 'normal', 'hard'] as BotLevel[]) {
@@ -119,7 +145,7 @@ export class Menu {
     mk('Випадкові авто щораунду', [1, 0], this.settings.randomCars ? 1 : 0, (v) => (v ? 'так' : 'ні'), (v) => (this.settings.randomCars = !!v));
     mk('Звук', [1, 0], audio.muted ? 0 : 1, (v) => (v ? 'увімк' : 'вимк'), (v) => audio.setMuted(!v));
     mk('Музика', [1, 0], music.enabled ? 1 : 0, (v) => (v ? 'увімк' : 'вимк'), (v) => music.setEnabled(!!v));
-    mk('Дебаг-кнопки (🐞 📍 📝)', [1, 0], this.settings.debugButtons ? 1 : 0, (v) => (v ? 'показані' : 'сховані'), (v) => (this.settings.debugButtons = !!v));
+    mk('Дебаг-кнопки (🐞 📍 📝)', [1, 0], this.settings.debugButtons ? 1 : 0, (v) => (v ? 'показані' : 'сховані'), (v) => { this.settings.debugButtons = !!v; this.settings.debugChosen = true; });
     s.appendChild(button('◀ назад', '', () => this.showMain(), 'back'));
     this.keyHandler = (e) => e.code === 'Escape' && this.showMain();
   }
