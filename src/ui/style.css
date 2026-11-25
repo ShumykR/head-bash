@@ -257,3 +257,8 @@ html, body {
   .set-row .btn.small { padding: 2px 9px; }
   .screen.settings > .btn { padding: 6px 14px; }
 }
+
+/* online: ping and "waiting for the other player" in the top-right corner */
+.net-badge { position: fixed; top: max(6px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 6; background: rgba(12, 9, 20, .7); color: var(--ink); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; pointer-events: none; display: none; }
+.net-badge.on { display: block; }
+.net-badge.warn { color: var(--gold); }

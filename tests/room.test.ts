@@ -131,7 +131,7 @@ describe('room lobby', () => {
     send(r, b, { t: 'pick', car: 'y' });
     send(r, a, { t: 'ready', ready: true });
     send(r, b, { t: 'ready', ready: true });
-    expect(a.last('start')?.delay).toBe(10);
+    expect(a.last('start')?.delay).toBe(15);
   });
 });
 

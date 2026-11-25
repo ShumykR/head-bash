@@ -67,6 +67,21 @@ jobs:
           for i in $(seq 1 60); do curl -sf localhost:8787/health && break; sleep 1; done
           node scripts/smoke.mjs || (cat wrangler.log; exit 1)
 
+  # Two real browsers play one online match through a local room server (lockstep + reload/resume).
+  online-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: server
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/online-e2e.mjs --seconds=20
+
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build

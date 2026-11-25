@@ -29,7 +29,7 @@ export const TICK_HZ = 60;
 /** A client confirms its input at least every BATCH ticks. */
 export const BATCH = 3;
 /** Input delay bounds, ticks. */
-export const MIN_DELAY = 4, MAX_DELAY = 10;
+export const MIN_DELAY = 4, MAX_DELAY = 15;
 /** Clients hash their state every HASH_EVERY ticks. */
 export const HASH_EVERY = 60;
 /** Seconds a dropped player has to come back during a match. */
