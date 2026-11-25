@@ -555,3 +555,9 @@ export function monsterTruck(f: Frame, o: { mat?: CarMat; frame?: CarMat; cab?: 
   out.push(...path([[x1, -0.32], [x1 + 0.18, -0.26], [x1 + 0.18, 0.04], [x1, 0.08]], 0.1, 'chrome'));
   return out;
 }
+
+/** A vintage racer's headrest fairing: a hump behind the helmet, tapering back along the tail. */
+export function headrest(f: Frame, mat: CarMat = 'body'): CarPoly {
+  const hx = f.head.x, r = f.head.r;
+  return poly([[hx - r * 0.55, -0.16], [hx - r * 0.7, -0.42], [hx - r * 1.0, -0.5], [hx - r * 1.5, -0.46], [hx - r * 3.4, -0.2], [hx - r * 3.4, -0.12]], mat);
+}

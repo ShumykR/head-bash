@@ -1,6 +1,6 @@
 import { tailgate } from '../art';
 import { beacon, blob, bumper, checkers, circ, door, ell, fender, flameDecal, grille, headlight, ladder, lightbar, pane, path, plus, poly, rect, rr, seat, seg, spare, stack, starShape, stripe, taillight, tank, truss, shoulders } from '../draw';
-import { dragsterBody, bike, boxy, carriage, fenders, formula, frontLamp, kart, monsterChassis, pickup, rearLamp, sedan, skirt, tracks, truckCab } from '../skins';
+import { dragsterBody, bike, boxy, carriage, fenders, formula, headrest, frontLamp, kart, monsterChassis, pickup, rearLamp, sedan, skirt, tracks, truckCab } from '../skins';
 import type { CarPoly, Pt } from '../types';
 import type { Frame, LinkSpec } from '../factory';
 import { group, o } from './util';
@@ -353,6 +353,8 @@ export const RETRO = group('retro', [
   }],
   ['antique-f1', 'Antique F1', 'Болід перших гран-прі: сигара на спицях і шкіряний шолом.', 'formula', ['#2a8a4a', '#e0d0a0'], {
     o: o({ wheel: 1.1, rim: 'spokes' }), accel: 1.15,
+    // a headrest fairing behind the driver, period-correct and solid: the car rolls back off its roof over it
+    art: (f) => [{ ...headrest(f), deco: false }],
     skin: (f) => [
       ell(0.0, 0.0, f.nose.x - 0.05, 0.3, 'body', {}, 28),
       ...[0, 1, 2, 3].map((i) => rect(-0.85 + i * 0.16, -0.14, -0.8 + i * 0.16, 0.08, 'dark', { flat: true })),

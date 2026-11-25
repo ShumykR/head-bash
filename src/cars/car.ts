@@ -643,8 +643,10 @@ export class Car {
       if (Math.sign(w) !== Math.sign(want) || Math.abs(w) < maxSpin) {
         this.chassis.applyTorque(want * d.air * I, true);
       }
-    } else if (dir !== 0) {
+    } else if (dir !== 0 && this.wheelsOnGround > 0) {
       // Ground tilt: pressing a direction lifts that end (wheelie / stoppie).
+      // Only with a wheel on the ground: a car caught by its body alone (a corner under a spoiler or a
+      // bumper) would otherwise be held up by this torque and swing there like a pendulum.
       // A PD controller eases the car toward its wheelie angle instead of flipping it.
       // Measured from the surface the wheels are on, so a car climbing a wall isn't told to level out.
       const n = this.groundNormal;
