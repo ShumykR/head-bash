@@ -13,8 +13,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # Room server on Cloudflare: main → production (head-bash), ccr-* branches → staging (head-bash-staging).
+  # Needs the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+  # After deploying, the two-client smoke test runs against the live server.
+  deploy-server:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: server
     runs-on: ubuntu-latest
+    concurrency:
+      group: server-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: server
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    outputs:
+      ws: ${{ steps.deploy.outputs.ws }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Check secrets
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Secret CLOUDFLARE_API_TOKEN is missing"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Secret CLOUDFLARE_ACCOUNT_ID is missing"; exit 1; }
+          npx wrangler whoami
+      - id: deploy
+        name: Deploy
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then ENV_ARGS=""; else ENV_ARGS="--env staging"; fi
+          npx wrangler deploy $ENV_ARGS 2>&1 | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          test -n "$URL" || { echo "::error::No workers.dev URL in the deploy output"; exit 1; }
+          echo "Deployed to $URL"
+          echo "ws=${URL/https:/wss:}" >> "$GITHUB_OUTPUT"
+      - name: Smoke test the live server
+        run: |
+          for i in $(seq 1 20); do curl -sf "${WS/wss:/https:}/health" && break; sleep 3; done
+          node scripts/smoke.mjs "$WS"
+        env:
+          WS: ${{ steps.deploy.outputs.ws }}
+
+  build:
+    # Builds even if the server deploy failed (the game still works offline), pointing online play at the deployed server.
+    if: ${{ !cancelled() }}
+    needs: deploy-server
+    runs-on: ubuntu-latest
+    env:
+      VITE_SERVER_URL: ${{ needs.deploy-server.outputs.ws }}
     steps:
       - uses: actions/checkout@v4
         with:
