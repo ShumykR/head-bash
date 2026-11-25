@@ -4,7 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const SERVER = 'ws://localhost:8787';
+/** Room server: local `wrangler dev`, or a deployed one via ONLINE_SERVER=wss://… (then nothing is started for it). */
+export const SERVER = process.env.ONLINE_SERVER || 'ws://localhost:8787';
+const remote = !!process.env.ONLINE_SERVER;
 export const WEB = 'http://localhost:5179';
 
 export const until = async (fn, ms, what) => {
@@ -28,9 +30,10 @@ export async function startServers() {
   };
   const stop = () => { for (const p of procs) try { process.kill(-p.pid, 'SIGTERM'); } catch { /* gone */ } };
   process.on('exit', stop);
-  const serverLog = start('npx', ['wrangler', 'dev', '--port', '8787'], path.join(root, 'server'));
+  const health = SERVER.replace(/^ws/, 'http') + '/health';
+  const serverLog = remote ? () => '' : start('npx', ['wrangler', 'dev', '--port', '8787'], path.join(root, 'server'));
   const webLog = start('npx', ['vite', '--port', '5179', '--strictPort'], root);
-  await until(() => fetch('http://localhost:8787/health').then((r) => r.ok), 60000, 'room server').catch((e) => { console.log(serverLog()); throw e; });
+  await until(() => fetch(health).then((r) => r.ok), 60000, 'room server').catch((e) => { console.log(serverLog()); throw e; });
   await until(() => fetch(WEB).then((r) => r.ok), 60000, 'web server').catch((e) => { console.log(webLog()); throw e; });
   return stop;
 }
