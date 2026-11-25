@@ -47,8 +47,12 @@ jobs:
       - id: deploy
         name: Deploy
         run: |
+          set -o pipefail
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then ENV_ARGS=""; else ENV_ARGS="--env staging"; fi
-          npx wrangler deploy $ENV_ARGS 2>&1 | tee deploy.log
+          npx wrangler deploy $ENV_ARGS 2>&1 | tee deploy.log || {
+            grep -q "register a workers.dev subdomain" deploy.log && echo "::error::Register a workers.dev subdomain once: Cloudflare dashboard → Workers & Pages (onboarding)"
+            exit 1
+          }
           URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           test -n "$URL" || { echo "::error::No workers.dev URL in the deploy output"; exit 1; }
           echo "Deployed to $URL"
