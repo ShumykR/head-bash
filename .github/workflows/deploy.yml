@@ -47,6 +47,26 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit firefox
       - run: npm run detcheck -- --minutes=3 --engines=node,chromium,webkit,firefox --strict
 
+  # Room server (server/): typecheck, then the scripted two-client smoke test against a local `wrangler dev`.
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: |
+          npx wrangler dev --port 8787 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:8787/health && break; sleep 1; done
+          node scripts/smoke.mjs || (cat wrangler.log; exit 1)
+
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build

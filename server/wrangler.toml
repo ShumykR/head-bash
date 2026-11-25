@@ -1,0 +1,22 @@
+# Online room server for Head Bash Arena. One Durable Object per lobby code.
+#   npm run dev            local server on http://localhost:8787
+#   npm run deploy         production (main)
+#   npm run deploy:staging staging
+name = "head-bash"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[env.staging]
+name = "head-bash-staging"
+
+[[env.staging.durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
