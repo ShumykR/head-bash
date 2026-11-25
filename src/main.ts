@@ -1,3 +1,4 @@
+import './net/detmath-install'; // must stay first: online lockstep needs identical Math in every engine
 import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug/report';
 import { openNoteEditor, openBugEditor } from './debug/notes';
 import { Application, TextureSource } from 'pixi.js';

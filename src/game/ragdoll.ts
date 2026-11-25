@@ -8,7 +8,7 @@ export class Ragdoll {
   readonly torso: Body;
   prev: { x: number; y: number; a: number }[] = [];
 
-  constructor(world: World, readonly player: number, x: number, y: number, r: number, angle: number, vx: number, vy: number, readonly facing: number) {
+  constructor(world: World, readonly player: number, x: number, y: number, r: number, angle: number, vx: number, vy: number, readonly facing: number, spin = 0) {
     const tag: FixtureTag = { kind: 'ragdoll', player };
     const opts = { filterCategoryBits: CAT.RAGDOLL, filterMaskBits: MASK.RAGDOLL, filterGroupIndex: -10 - player, userData: tag, friction: 0.6, restitution: 0.35 };
     this.head = world.createBody({ type: 'dynamic', position: new Vec2(x, y), angle, bullet: true });
@@ -18,7 +18,7 @@ export class Ragdoll {
     this.torso.createFixture({ shape: new Box(r * 0.8, r * 0.8), density: 1.5, ...opts });
     world.createJoint(new RevoluteJoint({ enableLimit: true, lowerAngle: -0.8, upperAngle: 0.8 }, this.head, this.torso, new Vec2((x + tx) / 2, (y + ty) / 2)));
     for (const b of [this.head, this.torso]) b.setLinearVelocity(new Vec2(vx, vy));
-    this.head.setAngularVelocity((Math.random() - 0.5) * 30);
+    this.head.setAngularVelocity(spin);
     this.snapshot();
   }
 

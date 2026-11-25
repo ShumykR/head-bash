@@ -1655,7 +1655,8 @@ export class Game {
     const hp = car.headWorld();
     car.ejectHead();
     // Driver flies out away from the attacker.
-    let vx = (Math.random() - 0.5) * 4, vy = -9;
+    // Game RNG, not Math.random: online play needs both clients to simulate identically.
+    let vx = (this.rand() - 0.5) * 4, vy = -9;
     if (by !== undefined) {
       const o = this.cars[by].position;
       const dx = hp.x - o.x;
@@ -1664,7 +1665,7 @@ export class Game {
     }
     const v = car.chassis.getLinearVelocity();
     if (cause !== 'fall') {
-      this.ragdolls.push(new Ragdoll(this.world, player, hp.x, hp.y, car.def.head.r, car.chassis.getAngle(), v.x * 0.5 + vx, v.y * 0.5 + vy, car.facing));
+      this.ragdolls.push(new Ragdoll(this.world, player, hp.x, hp.y, car.def.head.r, car.chassis.getAngle(), v.x * 0.5 + vx, v.y * 0.5 + vy, car.facing, (this.rand() - 0.5) * 30));
     }
     this.resolver.report({ player, step: this.stepCount });
     this.slowmo = 1.1;

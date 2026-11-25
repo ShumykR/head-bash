@@ -22,5 +22,5 @@ export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
   server: { host: true },
-  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
+  test: { include: ['tests/**/*.test.ts'], environment: 'node', setupFiles: ['tests/setup.ts'] },
 } as any);

@@ -33,6 +33,20 @@ jobs:
         with:
           path: dist
 
+  # Online play is lockstep: every engine must simulate bit-identically.
+  # Runs the same scripted match in Node, Chromium, WebKit (iOS) and Firefox and compares state hashes.
+  determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit firefox
+      - run: npm run detcheck -- --minutes=3 --engines=node,chromium,webkit,firefox --strict
+
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
