@@ -34,6 +34,8 @@ name = "head-bash-staging"
 
 [env.staging.vars]
 GAME_URL = "https://shumykr.github.io/head-bash/"
+# Staging lobbies tell the game to use this server (start_param ls_<code>, webUrl ?server=…).
+STAGING_WS = "wss://head-bash-staging.headbash.workers.dev"
 TG_BOT_ID = "8623414083"
 TG_BOT_USERNAME = "DriveHQ_Bot"
 TG_APP_SHORT_NAME = "arena"

@@ -25,6 +25,12 @@ export interface HubDeps {
   gameUrl: string;
   botUsername?: string;
   appShortName?: string;
+  /**
+   * Staging only: this server's wss:// URL. The Mini App URL is the same for both environments
+   * (the production game), so staging links say which server to use: start_param `ls_<code>`
+   * and `?server=` in the web link.
+   */
+  stagingWs?: string;
 }
 
 export type LobbyStatus = 'waiting' | 'playing' | 'closed';
@@ -216,14 +222,15 @@ export class HubCore {
   }
 
   private view(rec: LobbyRecord) {
-    const startParam = `l_${rec.code}`;
+    const startParam = `${this.d.stagingWs ? 'ls' : 'l'}_${rec.code}`;
     const base = this.d.gameUrl.replace(/\/?$/, '/');
+    const server = this.d.stagingWs ? `&server=${encodeURIComponent(this.d.stagingWs)}` : '';
     return {
       code: rec.code,
       status: rec.status,
       startParam,
       miniAppUrl: this.d.botUsername && this.d.appShortName ? `https://t.me/${this.d.botUsername}/${this.d.appShortName}?startapp=${startParam}` : null,
-      webUrl: `${base}?room=${rec.code}`,
+      webUrl: `${base}?room=${rec.code}${server}`,
       expiresAt: new Date(rec.expiresAt).toISOString(),
       players: rec.players,
       lastResult: rec.lastResult,

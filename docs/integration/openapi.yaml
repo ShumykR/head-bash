@@ -239,13 +239,13 @@ components:
           description: waiting — in the lobby (also between rematches); playing — a match is on; closed — for good.
         startParam:
           type: string
-          description: '`l_<code>`, the Mini App start parameter.'
+          description: '`l_<code>` (on staging `ls_<code>`: it tells the game to use the staging server), the Mini App start parameter.'
         miniAppUrl:
           type: [string, 'null']
           description: '`https://t.me/<bot>/<app>?startapp=<startParam>`; null until the bot username and Mini App short name are configured on the server (you can build it yourself).'
         webUrl:
           type: string
-          description: The same lobby in a plain browser (for players outside Telegram).
+          description: The same lobby in a plain browser (for players outside Telegram). On staging it also carries `&server=` for the staging server.
         expiresAt:
           type: string
           format: date-time
