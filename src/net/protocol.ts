@@ -43,7 +43,7 @@ export interface MatchConfig {
   randomCars: boolean;
 }
 
-export const DEFAULT_CONFIG: MatchConfig = { map: 'random', target: 5, roundTime: 60, randomCars: false };
+export const DEFAULT_CONFIG: MatchConfig = { map: 'random', target: 5, roundTime: 30, randomCars: true };
 
 export interface LobbyPlayer {
   name: string;

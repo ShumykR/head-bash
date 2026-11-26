@@ -39,9 +39,14 @@ await until(async () => (await host.locator('.seat:not(.empty)').count()) === 2,
 const names = await host.locator('.seat-name').allTextContents();
 console.log('host sees:', names.join(' | '));
 
-// Host sets 3 points; the guest's lobby shows it.
+// A new lobby plays random cars by default (30 s rounds, 5 points).
+const defaults = await guest.locator('.lobby-config').textContent();
+console.log(`defaults: random cars ${defaults.includes('випадкові авто')}, 30 s ${defaults.includes('раунд 30 с')}, 5 points ${defaults.includes('до 5 очок')}`);
+const defaultsOk = defaults.includes('випадкові авто') && defaults.includes('раунд 30 с') && defaults.includes('до 5 очок');
+// Host sets 3 points and own cars; the guest's lobby shows it.
 await host.getByRole('button', { name: '3', exact: true }).click();
-await until(async () => (await guest.locator('.lobby-config').textContent()).includes('до 3 очок'), 10000, 'config reaches guest');
+await host.locator('.set-row', { hasText: 'Випадкові авто' }).getByRole('button', { name: 'ні' }).click();
+await until(async () => { const t = await guest.locator('.lobby-config').textContent(); return t.includes('до 3 очок') && !t.includes('випадкові авто'); }, 10000, 'config reaches guest');
 // The guest changes car in the garage while the host also changes something (the lobby must
 // not redraw under the open garage); the host then sees the new car.
 await guest.getByRole('button', { name: 'змінити авто' }).click();
@@ -79,6 +84,6 @@ console.log('after concede: host in lobby with an empty seat; guest state', gues
 await browser.close();
 stop();
 if (errors.length) console.log('console errors:\n' + errors.join('\n'));
-const ok = errors.length === 0 && ticks.every((t) => t > 120) && guestState === 'menu' && garageStillOpen === 1;
+const ok = defaultsOk && errors.length === 0 && ticks.every((t) => t > 120) && guestState === 'menu' && garageStillOpen === 1;
 console.log(ok ? 'OK: lobby flow works' : 'FAILED');
 process.exit(ok ? 0 : 1);

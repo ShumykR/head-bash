@@ -126,7 +126,8 @@ export function setup(latency: number, jitter: number, seed = 1, target = 2, car
   a.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'A' });
   b.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'B' });
   for (const c of [a, b]) c.toServer({ t: 'pick', car: cars[c === a ? 0 : 1] });
-  a.toServer({ t: 'config', config: { target, roundTime: 15 } });
+  // The picked cars (random cars, the default, would ignore them).
+  a.toServer({ t: 'config', config: { target, roundTime: 15, randomCars: false } });
   for (const c of [a, b]) c.toServer({ t: 'ping', ts: 0, rtt: latency * 2000 });
   // Let the host's config land before anyone is ready (a config change clears ready).
   for (let i = 0; i < 60; i++) { net.t += 1 / 60; net.pump(); }
