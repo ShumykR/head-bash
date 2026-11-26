@@ -37,12 +37,17 @@ export class OnlineUI {
 
   constructor(private readonly menu: Menu, private readonly settings: Settings, private readonly hooks: LobbyHooks) {}
 
+  /** Server for invite links when it is not the game's default (a staging lobby), else null. */
+  static server: string | null = null;
+
   /** Link a friend opens to join the room. */
   static inviteUrl(code: string): string {
     const u = new URL(location.href);
     u.search = '';
     u.hash = '';
     u.searchParams.set('room', code);
+    const srv = OnlineUI.server ?? new URLSearchParams(location.search).get('server');
+    if (srv) u.searchParams.set('server', srv);
     return u.toString();
   }
 

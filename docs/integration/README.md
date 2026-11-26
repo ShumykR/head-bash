@@ -36,6 +36,8 @@
    - `staging` — для розробки й тестів: `https://head-bash-staging.headbash.workers.dev/api/v1`
    - `production` — для робочого бота: `https://head-bash.headbash.workers.dev/api/v1`
 
+   Mini App одна для обох середовищ, а лобі зі staging самі кажуть грі, до якого сервера підключатися (`startapp=ls_…`), тож бота можна тестувати в Telegram на staging-ключі.
+
    Ключ зберігати там же, де токен бота (домашній сервер, змінна оточення, наприклад `HBA_API_KEY`).
 2. **Зареєструвати Mini App** у [@BotFather](https://t.me/BotFather): `/newapp` → обрати бота → **Web App URL**: `https://shumykr.github.io/head-bash/` → коротка назва, наприклад `arena`.
 3. **Передати власнику гри** (це не секрети):

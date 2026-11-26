@@ -285,7 +285,9 @@ async function boot() {
     onlineBanner = null;
     onlineUI.busy = false;
     let picked = false;
-    const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId(), auth: tg?.initData }, {
+    const staging = !!tg?.staging && code === tg.roomCode;
+    OnlineUI.server = staging ? serverUrl(q, true) : null;
+    const s = new NetSession({ server: serverUrl(q, staging), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId(), auth: tg?.initData }, {
       makeGame: (cfg) => {
         const me = s.slot ?? 0;
         setOnlineLabels({ me, foe: s.lobby?.players[1 - me]?.name ?? '' });

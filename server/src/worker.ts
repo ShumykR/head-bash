@@ -21,6 +21,8 @@ export interface Env {
   TG_BOT_ID?: string;
   TG_BOT_USERNAME?: string;
   TG_APP_SHORT_NAME?: string;
+  /** Set on staging only: this server's wss:// URL, so links from staging lobbies point the game here. */
+  STAGING_WS?: string;
   /** Secret: the key the bot sends as `Authorization: Bearer …`. */
   BOT_API_KEY?: string;
 }

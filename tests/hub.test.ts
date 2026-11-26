@@ -36,6 +36,14 @@ describe('hub: lobbies for the bot', () => {
     expect((await hub.getLobby(l.code)).meta).toEqual({ chatId: -100, messageId: 7 });
   });
 
+  it('staging lobbies point the game at the staging server', async () => {
+    const st = new HubCore({ store: new MapStore(), now: () => now, rand: () => 0.5, gameUrl: 'https://g/', botUsername: 'b', appShortName: 'a', stagingWs: 'wss://stg.example' });
+    const l = await st.createLobby({});
+    expect(l.startParam).toBe(`ls_${l.code}`);
+    expect(l.miniAppUrl).toBe(`https://t.me/b/a?startapp=ls_${l.code}`);
+    expect(l.webUrl).toBe(`https://g/?room=${l.code}&server=wss%3A%2F%2Fstg.example`);
+  });
+
   it('is idempotent with the same key', async () => {
     const a = await hub.createLobby({}, 'k1');
     const b = await hub.createLobby({}, 'k1');

@@ -35,6 +35,7 @@ export class Hub extends DurableObject<Env> {
     this.core = new HubCore({
       store, now: () => Date.now(), rand: random,
       gameUrl: env.GAME_URL, botUsername: env.TG_BOT_USERNAME || undefined, appShortName: env.TG_APP_SHORT_NAME || undefined,
+      stagingWs: env.STAGING_WS || undefined,
     });
   }
 

@@ -37,8 +37,10 @@ const SDK = 'https://telegram.org/js/telegram-web-app.js?59';
 export interface TelegramPlatform {
   /** Raw initData for the room server. */
   initData: string;
-  /** Room code from the bot's link (start_param `l_<CODE>`), if any. */
+  /** Room code from the bot's link (start_param `l_<CODE>`, or `ls_<CODE>` for a staging lobby), if any. */
   roomCode: string | null;
+  /** The lobby lives on the staging server. */
+  staging: boolean;
   /** The player's name in Telegram. */
   name: string;
   /** Show/hide Telegram's Back button; `onBack` is what it does. */
@@ -87,11 +89,12 @@ export async function initTelegram(): Promise<TelegramPlatform | null> {
   document.documentElement.classList.add('tg');
 
   const sp = wa.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get('tgWebAppStartParam') ?? '';
-  const m = /^l_([A-Z0-9]{5})$/i.exec(sp);
+  const m = /^(ls?)_([A-Z0-9]{5})$/i.exec(sp);
   const u = wa.initDataUnsafe.user;
   const p: TelegramPlatform = {
     initData: wa.initData,
-    roomCode: m ? m[1].toUpperCase() : null,
+    roomCode: m ? m[2].toUpperCase() : null,
+    staging: !!m && m[1].toLowerCase() === 'ls',
     name: [u?.first_name, u?.last_name].filter(Boolean).join(' ').slice(0, 24) || u?.username || '',
     onBack: null,
     setBack: (v) => {
