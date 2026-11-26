@@ -46,6 +46,20 @@ const BLAST_LOOK: Record<string, BlastLook> = {
 
 export const PLAYER_COLORS = ['#3ec1ff', '#ff5a6e'];
 export const PLAYER_NAMES = ['P1', 'P2'];
+
+/** Online play: which seat is this screen's player, and the other player's name (null: local play, P1/P2). */
+let online: { me: 0 | 1; foe: string } | null = null;
+export function setOnlineLabels(o: { me: 0 | 1; foe: string } | null) {
+  online = o;
+}
+/** Label above a car. */
+function markerText(p: number) {
+  if (!online) return PLAYER_NAMES[p];
+  return p === online.me ? 'ТИ' : online.foe.toUpperCase().slice(0, 10) || 'СУПЕРНИК';
+}
+const pointText = (p: number) => (!online ? `ОЧКО ${PLAYER_NAMES[p]}!` : p === online.me ? 'ТВОЄ ОЧКО!' : 'ОЧКО СУПЕРНИКА');
+const winText = (p: number) => (!online ? `ПЕРЕМОГА ${PLAYER_NAMES[p]}!` : p === online.me ? 'ТИ ПЕРЕМІГ!' : 'СУПЕРНИК ПЕРЕМІГ');
+const chargedText = (p: number) => (!online ? `здібність ${PLAYER_NAMES[p]} заряджена` : p === online.me ? 'твоя здібність заряджена' : 'здібність суперника заряджена');
 /** Daytime arenas where a flock of birds crosses the sky now and then. */
 const BIRD_THEMES = new Set(['meadow', 'sawmill', 'sky', 'beach', 'winter', 'desert', 'toys', 'chasm']);
 
@@ -215,7 +229,7 @@ class CarView {
       ws.visible = !wd.hidden;
       this.wheels.push(ws);
     }
-    this.marker = new Sprite(pixelText(PLAYER_NAMES[car.player], { size: 8, color: PLAYER_COLORS[car.player] }));
+    this.marker = new Sprite(pixelText(markerText(car.player), { size: 8, color: PLAYER_COLORS[car.player] }));
     this.marker.anchor.set(0.5, 1);
     this.marker.scale.set(1 / ART_PPM);
     const behind: Container[] = [], front: Container[] = [];
@@ -584,7 +598,7 @@ export class GameView {
         break;
       }
       case 'goal':
-        this.setCenter('ГОЛ!', 1.4, `здібність ${PLAYER_NAMES[1 - e.side]} заряджена`, PLAYER_COLORS[1 - e.side]);
+        this.setCenter('ГОЛ!', 1.4, chargedText(1 - e.side), PLAYER_COLORS[1 - e.side]);
         this.particles.burst(e.x, e.y - 1, 50, { speed: 9, colors: [0xff3a5a, 0xffd23f, 0x5ef0ff, 0xffffff, 0x8cff5a], life: 0.9, size: 0.16, g: 8, drag: 1 });
         break;
       case 'bolt':
@@ -692,11 +706,11 @@ export class GameView {
       case 'roundEnd': {
         const r = e.result;
         if (r === 'draw') this.setCenter('НІЧИЯ', 2.4);
-        else this.setCenter(`ОЧКО ${PLAYER_NAMES[r]}!`, 2.4, `${g.match.scores[0]} : ${g.match.scores[1]}`, PLAYER_COLORS[r]);
+        else this.setCenter(pointText(r), 2.4, `${g.match.scores[0]} : ${g.match.scores[1]}`, PLAYER_COLORS[r]);
         break;
       }
       case 'matchEnd':
-        this.setCenter(`ПЕРЕМОГА ${PLAYER_NAMES[e.winner]}!`, 999, `${g.match.scores[0]} : ${g.match.scores[1]}`, PLAYER_COLORS[e.winner]);
+        this.setCenter(winText(e.winner), 999, `${g.match.scores[0]} : ${g.match.scores[1]}`, PLAYER_COLORS[e.winner]);
         break;
     }
   }

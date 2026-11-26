@@ -257,3 +257,54 @@ html, body {
   .set-row .btn.small { padding: 2px 9px; }
   .screen.settings > .btn { padding: 6px 14px; }
 }
+
+/* online: ping and "waiting for the other player" in the top-right corner */
+.net-badge { position: fixed; top: max(6px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 6; background: rgba(12, 9, 20, .7); color: var(--ink); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; pointer-events: none; display: none; }
+.net-badge.on { display: block; }
+.net-badge.warn { color: var(--gold); }
+
+/* ---- online: entry and lobby ---- */
+.screen.online { overflow-y: auto; touch-action: pan-y; }
+.screen.online.overlay { background: rgba(14,10,24,.82); }
+.text-in { font: inherit; font-weight: 700; font-size: 15px; color: var(--ink); background: #0c0914; border: 3px solid var(--panel2); border-radius: 6px; padding: 7px 10px; min-width: 0; width: 200px; user-select: text; -webkit-user-select: text; touch-action: auto; }
+.text-in:focus { outline: none; border-color: var(--gold); }
+.text-in.bad { border-color: var(--p2); }
+.code-in { width: 120px; text-align: center; letter-spacing: 4px; text-transform: uppercase; }
+.join-row { align-items: center; }
+.big-hint { font-size: 16px; padding: 18px 0; }
+.lobby-head { align-items: center; gap: 12px; }
+.room-code { font-size: 16px; color: var(--muted); }
+.room-code b { color: var(--gold); font-size: 22px; letter-spacing: 3px; }
+.seats { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.seat { width: min(250px, 44vw); background: var(--panel); border: 3px solid #0c0914; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.seat.p1 { border-top: 5px solid var(--p1); }
+.seat.p2 { border-top: 5px solid var(--p2); }
+.seat.empty { opacity: .6; justify-content: center; min-height: 120px; }
+.seat-name { font-weight: 800; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-name small { color: var(--gold); font-size: 11px; font-weight: 700; }
+.seat-wait { color: var(--muted); font-size: 13px; }
+.seat-car { image-rendering: pixelated; max-width: 100%; height: auto; }
+.seat-car.none { font-size: 40px; line-height: 64px; color: var(--muted); }
+.seat-carname { font-size: 12px; color: var(--muted); }
+.seat-state { font-size: 13px; font-weight: 800; color: var(--muted); }
+.seat-state.ready { color: #7be37b; }
+.seat-state.gone { color: var(--p2); }
+.lobby-config { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.lobby-config .set-row { min-width: min(520px, 92vw); padding: 4px 10px; }
+@media (max-height: 430px) {
+  .seat { padding: 5px; gap: 3px; }
+  .seat-car { max-height: 56px; width: auto; }
+  .lobby-config .set-row { padding: 2px 8px; }
+  .room-code b { font-size: 18px; }
+}
+@media (min-width: 700px) {
+  .lobby-config { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: min(760px, 96vw); }
+  .lobby-config .set-row { min-width: 0; }
+  .lobby-config .hint { grid-column: 1 / -1; }
+}
+
+/* Telegram full screen: keep clear of Telegram's own controls at the top (its SDK sets these variables) */
+html.tg .pause-btn, html.tg .bug-btn, html.tg .note-btn, html.tg .mark-btn, html.tg .net-badge {
+  top: calc(6px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+}
+html.tg .screen { padding-top: calc(8px + var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)); }

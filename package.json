@@ -8,7 +8,11 @@
     "preview": "vite preview --port 4173",
     "test": "vitest run",
     "typecheck": "tsc",
-    "e2e": "node scripts/smoke.mjs '--query=autostart=1&bots=1' --steps=300"
+    "e2e": "node scripts/smoke.mjs '--query=autostart=1&bots=1' --steps=300",
+    "detcheck": "node scripts/detcheck.mjs",
+    "online-e2e": "node scripts/online-e2e.mjs",
+    "online-ui": "node scripts/online-ui.mjs",
+    "telegram-e2e": "node scripts/telegram-e2e.mjs"
   },
   "repository": {
     "type": "git",
@@ -22,6 +26,13 @@
   },
   "homepage": "https://github.com/ShumykR/gameeee#readme",
   "dependencies": {
+    "@stdlib/math-base-special-atan2": "0.3.1",
+    "@stdlib/math-base-special-cos": "0.3.1",
+    "@stdlib/math-base-special-exp": "0.2.5",
+    "@stdlib/math-base-special-hypot": "0.2.4",
+    "@stdlib/math-base-special-pow": "0.3.1",
+    "@stdlib/math-base-special-sin": "0.3.1",
+    "@stdlib/math-base-special-tan": "0.3.1",
     "pixi.js": "^8.22.0",
     "planck": "^1.4.2"
   },
@@ -30,7 +41,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "yaml": "2.9.1"
   },
   "private": true,
   "type": "module"

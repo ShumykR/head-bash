@@ -1,8 +1,9 @@
+import './net/detmath-install'; // must stay first: online lockstep needs identical Math in every engine
 import { FlightRecorder, buildReport, reportFileName, saveReport } from './debug/report';
 import { openNoteEditor, openBugEditor } from './debug/notes';
 import { Application, TextureSource } from 'pixi.js';
 import { Game, GameEvent } from './game/game';
-import { GameView } from './render/view';
+import { GameView, setOnlineLabels } from './render/view';
 import { InputManager } from './input/input';
 import { CARS, CAR_BY_ID } from './cars/defs';
 import { MAPS, MAP_BY_ID } from './maps/defs';
@@ -12,6 +13,11 @@ import { music } from './audio/music';
 import { Menu, Mode } from './ui/menu';
 import { loadSettings, saveSettings } from './ui/settings';
 import { setupPwa } from './ui/pwa';
+import { NetSession } from './net/session';
+import { serverUrl, buildId } from './net/config';
+import { CODE_RE, bitsOf } from './net/protocol';
+import { OnlineUI, type LobbyBanner } from './ui/lobby';
+import { initTelegram } from './platform/telegram';
 
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
@@ -25,6 +31,9 @@ async function boot() {
     (window as any).__ready = true;
     return;
   }
+
+  // Telegram Mini App (only when Telegram opened the page): full screen, Back button, the player's identity.
+  const tg = await initTelegram();
 
   const host = document.getElementById('app')!;
   const app = new Application();
@@ -47,10 +56,27 @@ async function boot() {
   const view = new GameView(app, input);
   view.debug = q.has('debug');
   const settings = loadSettings();
+  if (tg && !settings.name && tg.name) settings.name = tg.name;
   let state: State = 'menu';
   let mode: Mode = 'pvp';
   let game: Game | null = null;
   let overTimer = -1;
+  /** The online session, when playing over the network. */
+  let online: NetSession | null = null;
+  const netBadge = document.createElement('div');
+  netBadge.className = 'net-badge';
+  document.getElementById('ui')!.appendChild(netBadge);
+  /** Seconds the simulation has been waiting for the other player. */
+  let stallT = 0;
+  const updateNetBadge = (dt: number) => {
+    const s = online;
+    netBadge.classList.toggle('on', !!s && state === 'play');
+    if (!s) return;
+    stallT = s.ls?.stalled ? stallT + dt : 0;
+    const waiting = stallT > 0.3 || s.client.status === 'reconnecting';
+    netBadge.classList.toggle('warn', waiting || s.client.rtt > 200);
+    netBadge.textContent = s.client.status === 'reconnecting' ? 'перепідключення…' : waiting ? 'чекаємо суперника…' : `${Math.round(s.client.rtt)} мс`;
+  };
 
   const pauseBtn = document.createElement('button');
   pauseBtn.className = 'btn pause-btn';
@@ -128,7 +154,10 @@ async function boot() {
 
   const setState = (s: State) => {
     state = s;
+    tg?.setBack(s !== 'menu' || !document.querySelector('.screen.main'));
     pauseBtn.style.display = s === 'play' ? '' : 'none';
+    pauseBtn.textContent = online ? '⚑' : 'II';
+    pauseBtn.title = online ? 'Здатися' : 'Пауза';
     for (const b of [bugBtn, noteBtn, markBtn]) b.style.display = s === 'play' && settings.debugButtons ? '' : 'none';
     view.hud.visible = s === 'play';
     view.showTouch = s === 'play' && (coarse || input.touchEnabled);
@@ -139,6 +168,12 @@ async function boot() {
 
   const onEvent = (e: GameEvent) => {
     if (state === 'menu') return; // attract mode is silent
+    if (online?.ls?.catchingUp) return; // re-simulating after a reconnect: no sound burst
+    if (tg) {
+      if (e.type === 'death') tg.haptic('heavy');
+      else if (e.type === 'impact' && e.carCar && e.strength > 2.5) tg.haptic('light');
+      else if (e.type === 'matchEnd') tg.haptic(online ? (e.winner === online.slot ? 'success' : 'error') : 'success');
+    }
     switch (e.type) {
       case 'countdown': audio.countdown(e.n); break;
       case 'go': audio.countdown(0); break;
@@ -158,7 +193,7 @@ async function boot() {
       case 'roundEnd': if (e.result !== 'draw') audio.point(); break;
       case 'matchEnd':
         music.stop();
-        audio.jingle(mode === 'pvp' || e.winner === 0);
+        audio.jingle(online ? e.winner === online.slot : mode === 'pvp' || e.winner === 0);
         overTimer = 1.6;
         break;
     }
@@ -175,7 +210,20 @@ async function boot() {
     return game;
   };
 
+  /** Leave the online room (any local game or the menu ends online play). */
+  const leaveOnline = () => {
+    if (!online) return;
+    const s = online;
+    online = null; // first: closing the socket reports 'closed', which must not look like a lost connection
+    s.leave();
+    setOnlineLabels(null);
+    netBadge.classList.remove('on');
+    input.solo = false;
+    relayout();
+  };
+
   const startDemo = () => {
+    leaveOnline();
     const a = CARS[Math.floor(Math.random() * CARS.length)], b = CARS[Math.floor(Math.random() * CARS.length)];
     const g = newGame({ cars: [a, b], maps: MAPS, randomMaps: true, randomCars: true, carPool: CARS, target: 999, roundTime: 40 });
     g.controllers[0] = new Bot('hard', 11);
@@ -184,6 +232,7 @@ async function boot() {
   };
 
   const startMatch = () => {
+    leaveOnline();
     const map = settings.map === 'random' ? null : MAP_BY_ID[settings.map];
     const g = newGame({
       cars: [CAR_BY_ID[settings.p1] ?? CARS[0], CAR_BY_ID[settings.p2] ?? CARS[1]],
@@ -208,6 +257,109 @@ async function boot() {
     setState('play');
   };
 
+  /** Result line shown above the online lobby after a match. */
+  let onlineBanner: LobbyBanner | null = null;
+  const showOnlineLobby = () => {
+    const s = online;
+    if (!s || onlineUI.busy || state === 'play' || state === 'paused') return;
+    if (!s.lobby || s.slot === null || !s.code) return onlineUI.showConnecting();
+    onlineUI.showLobby(s.lobby, s.slot, s.code, onlineBanner, state === 'over');
+  };
+  const rejectText: Record<string, string> = {
+    version: 'Інша версія гри: онови сторінку',
+    full: 'Кімната вже заповнена',
+    notFound: 'Кімнату не знайдено',
+    auth: 'Не вдалося підтвердити гравця',
+    bad: 'Сервер відхилив підключення',
+  };
+
+  /**
+   * Online play: create a room (no code) or join one, then the lobby; the session drives
+   * the Game in lockstep, each side with its own controls.
+   * `auto` (from ?online=1&car=…&target=…) picks, configures and readies by itself — used by tests.
+   */
+  const openOnline = (code?: string, auto = false) => {
+    leaveOnline();
+    if (state !== 'menu') startDemo();
+    goFullscreen();
+    onlineBanner = null;
+    onlineUI.busy = false;
+    let picked = false;
+    const s = new NetSession({ server: serverUrl(q), name: (auto && q.get('name')) || settings.name || 'Гравець', build: buildId(), auth: tg?.initData }, {
+      makeGame: (cfg) => {
+        const me = s.slot ?? 0;
+        setOnlineLabels({ me, foe: s.lobby?.players[1 - me]?.name ?? '' });
+        const g = newGame(cfg);
+        input.solo = true;
+        relayout();
+        overTimer = -1;
+        onlineBanner = null;
+        onlineUI.busy = false;
+        menu.hide();
+        music.playMatch();
+        setState('play');
+        return g;
+      },
+      onLobby: (l) => {
+        if (l.phase !== 'lobby' || s.slot === null) return;
+        const me = l.players[s.slot];
+        if (!picked) {
+          picked = true;
+          if (!me?.car) s.pick((auto && q.get('car')) || settings.p1);
+          if (auto && s.slot === l.host && (q.has('target') || q.has('time') || q.has('map'))) {
+            s.config({
+              ...(q.has('target') ? { target: Number(q.get('target')) } : {}),
+              ...(q.has('time') ? { roundTime: Number(q.get('time')) } : {}),
+              ...(q.has('map') ? { map: q.get('map')! } : {}),
+            });
+          }
+        }
+        if (auto && me?.car && !me.ready && l.players.every((p) => p && p.connected) && state !== 'over') s.ready();
+        showOnlineLobby();
+      },
+      onStatus: (st) => {
+        if (st === 'open' && s.code) {
+          const u = new URL(location.href);
+          u.searchParams.set('room', s.code);
+          history.replaceState(null, '', u);
+        }
+        if (st === 'reconnecting') say('Зв’язок втрачено, перепідключення…');
+        if (st === 'closed' && online === s) {
+          say('З’єднання з сервером закрито');
+          leaveOnline();
+          startDemo();
+          onlineUI.showEntry();
+        }
+      },
+      onPeer: (st, deadline) => say(st === 'left' ? `Суперник відключився (${Math.max(0, Math.round(((deadline ?? Date.now()) - Date.now()) / 1000))} с на повернення)` : 'Суперник повернувся'),
+      onEnd: (winner, scores, reason) => {
+        const win = winner !== null && winner === s.slot;
+        const sc = scores ? ` ${scores[s.slot ?? 0]} : ${scores[1 - (s.slot ?? 0)]}` : '';
+        onlineBanner =
+          reason === 'score' ? { text: win ? `ТИ ПЕРЕМІГ!${sc}` : `СУПЕРНИК ПЕРЕМІГ${sc}`, color: win ? '#ffd23f' : '#ff5a6e' }
+          : reason === 'forfeit' ? { text: win ? 'СУПЕРНИК ВИЙШОВ: ПЕРЕМОГА' : 'ТЕХНІЧНА ПОРАЗКА', color: win ? '#ffd23f' : '#ff5a6e' }
+          : reason === 'desync' ? { text: 'РОЗСИНХРОН: НЕ ЗАРАХОВАНО', color: '#ffffff' }
+          : { text: 'МАТЧ ПЕРЕРВАНО', color: '#ffffff' };
+        // A normal finish waits for the match-end slow-mo (see the ticker); anything else returns at once.
+        if (reason !== 'score' || overTimer <= 0) {
+          overTimer = -1;
+          setState('over');
+          audio.stopEngines();
+          showOnlineLobby();
+        }
+      },
+      onReject: (r) => {
+        say(rejectText[r] ?? rejectText.bad);
+        leaveOnline();
+        onlineUI.showEntry();
+      },
+    });
+    online = s;
+    (window as any).__online = s;
+    onlineUI.showConnecting();
+    s.connect(code);
+  };
+
   const goFullscreen = () => {
     if (!coarse) return;
     const de = document.documentElement as any;
@@ -218,6 +370,17 @@ async function boot() {
 
   const pause = () => {
     if (state !== 'play') return;
+    if (online) {
+      // An online match cannot be paused: the button offers to concede instead.
+      const ask = tg ? tg.confirm('Здатися й вийти з матчу?') : Promise.resolve(confirm('Здатися й вийти з матчу?'));
+      void ask.then((ok) => {
+        if (!ok || !online) return;
+        leaveOnline();
+        startDemo();
+        menu.showMain();
+      });
+      return;
+    }
     setState('paused');
     menu.showPause();
   };
@@ -238,11 +401,41 @@ async function boot() {
       menu.showMain();
     },
     rematch: () => startMatch(),
+    online: () => onlineUI.showEntry(),
     changeCars: () => menu.showCars(mode, () => menu.showMaps(() => startMatch(), () => menu.showMain())),
     install: null,
     settingsChanged: () => saveSettings(settings),
   });
-  setupPwa((fn) => {
+  const onlineUI = new OnlineUI(menu, settings, {
+    create: () => openOnline(),
+    join: (code) => openOnline(code),
+    leave: () => {
+      leaveOnline();
+      if (state !== 'menu') startDemo();
+      menu.showMain();
+    },
+    pick: (car) => online?.pick(car),
+    config: (c) => online?.config(c),
+    ready: (r) => online?.ready(r),
+    pickMap: (done) => {
+      const back = () => { onlineUI.busy = false; showOnlineLobby(); };
+      menu.showMaps(() => { done(); back(); }, back);
+    },
+    refresh: () => showOnlineLobby(),
+    settingsChanged: () => saveSettings(settings),
+  });
+
+  if (tg) {
+    // Telegram's Back button does what Escape does (menus go back; in an online match it offers to concede).
+    tg.onBack = () => {
+      if (state === 'play') return pause();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }));
+    };
+    // Show it whenever we are off the main menu.
+    new MutationObserver(() => tg.setBack(state !== 'menu' || !document.querySelector('.screen.main'))).observe(document.getElementById('ui')!, { childList: true, subtree: true });
+  }
+
+  if (!tg) setupPwa((fn) => {
     (menu as any).hooks.install = fn;
     if (state === 'menu' && !document.querySelector('.cars, .maps, .settings')) menu.showMain();
   });
@@ -257,10 +450,19 @@ async function boot() {
   };
   window.addEventListener('pointerdown', () => audio.unlock(), { once: false });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && !frozen) pause();
+    if (document.hidden && !frozen && !online) pause();
   });
 
-  if (q.has('autostart') || q.has('map') || q.has('p1') || q.has('bots')) {
+  const roomParam = (tg?.roomCode ?? q.get('room') ?? '').toUpperCase();
+  if (q.has('online')) {
+    // Test/dev autopilot: ?online=1&room=new|CODE&car=…&target=…&time=…&map=…
+    startDemo();
+    openOnline(roomParam && roomParam !== 'NEW' ? roomParam : undefined, true);
+  } else if (CODE_RE.test(roomParam)) {
+    // An invite link: straight into that room.
+    startDemo();
+    openOnline(roomParam);
+  } else if (q.has('autostart') || q.has('map') || q.has('p1') || q.has('bots')) {
     if (q.get('p1')) settings.p1 = q.get('p1')!;
     if (q.get('p2')) settings.p2 = q.get('p2')!;
     settings.map = q.get('map') ?? settings.map;
@@ -279,7 +481,13 @@ async function boot() {
     if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
     if (!game) return;
     if (input.touchEnabled && state === 'play') view.showTouch = true;
-    if (!frozen && (state === 'play' || state === 'menu' || state === 'over')) {
+    if (online && online.game === game) {
+      // Online: own controls (either keyboard set or the touch pad) drive our seat; the session steps the Game.
+      const b0 = input.buttons(0), b1 = input.buttons(1);
+      const live = state === 'play';
+      updateNetBadge(dt);
+      online.frame(dt, bitsOf(live && (b0.left || b1.left), live && (b0.right || b1.right), live && (input.action(0) || input.action(1))));
+    } else if (!frozen && (state === 'play' || state === 'menu' || state === 'over')) {
       game.inputs[0] = input.dir(0);
       game.inputs[1] = input.dir(1);
       game.actions[0] = state === 'play' && input.action(0);
@@ -293,7 +501,8 @@ async function boot() {
         overTimer -= dt;
         if (overTimer <= 0) {
           setState('over');
-          menu.showOver(game.match.winner ?? 0, game.match.scores, mode);
+          if (online) showOnlineLobby();
+          else menu.showOver(game.match.winner ?? 0, game.match.scores, mode);
         }
       }
     }

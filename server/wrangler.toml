@@ -1,0 +1,47 @@
+# Online room server for Head Bash Arena. One Durable Object per lobby code.
+#   npm run dev            local server on http://localhost:8787
+#   npm run deploy         production (main)
+#   npm run deploy:staging staging
+name = "head-bash"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+
+# Telegram bot settings are public values (the API key is a secret: BOT_API_KEY).
+[vars]
+GAME_URL = "https://shumykr.github.io/head-bash/"
+TG_BOT_ID = ""
+TG_BOT_USERNAME = ""
+TG_APP_SHORT_NAME = ""
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Hub"]
+
+[env.staging]
+name = "head-bash-staging"
+
+[env.staging.vars]
+GAME_URL = "https://shumykr.github.io/head-bash/"
+TG_BOT_ID = ""
+TG_BOT_USERNAME = ""
+TG_APP_SHORT_NAME = ""
+
+[[env.staging.durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[env.staging.durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"

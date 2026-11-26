@@ -13,8 +13,76 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # Room server on Cloudflare: main → production (head-bash), ccr-* branches → staging (head-bash-staging).
+  # Needs the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+  # After deploying, the two-client smoke test runs against the live server.
+  deploy-server:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: server
     runs-on: ubuntu-latest
+    concurrency:
+      group: server-${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: server
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # The key the Telegram bot uses for /api/v1 (optional; without it the bot API answers 503).
+      BOT_API_KEY: ${{ github.ref == 'refs/heads/main' && secrets.BOT_API_KEY || secrets.BOT_API_KEY_STAGING }}
+    outputs:
+      ws: ${{ steps.deploy.outputs.ws }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Check secrets
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Secret CLOUDFLARE_API_TOKEN is missing"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Secret CLOUDFLARE_ACCOUNT_ID is missing"; exit 1; }
+          npx wrangler whoami
+      - id: deploy
+        name: Deploy
+        run: |
+          set -o pipefail
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then ENV_ARGS=""; else ENV_ARGS="--env staging"; fi
+          npx wrangler deploy $ENV_ARGS 2>&1 | tee deploy.log || {
+            grep -q "register a workers.dev subdomain" deploy.log && echo "::error::Register a workers.dev subdomain once: Cloudflare dashboard → Workers & Pages (onboarding)"
+            exit 1
+          }
+          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          test -n "$URL" || { echo "::error::No workers.dev URL in the deploy output"; exit 1; }
+          echo "Deployed to $URL"
+          echo "ws=${URL/https:/wss:}" >> "$GITHUB_OUTPUT"
+      - name: Bot API key
+        if: env.BOT_API_KEY != ''
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then ENV_ARGS=""; else ENV_ARGS="--env staging"; fi
+          printf '%s' "$BOT_API_KEY" | npx wrangler secret put BOT_API_KEY $ENV_ARGS
+      - name: Smoke test the live server
+        run: |
+          for i in $(seq 1 20); do curl -sf "${WS/wss:/https:}/health" && break; sleep 3; done
+          node scripts/smoke.mjs "$WS"
+          if [ -n "$BOT_API_KEY" ]; then
+            # A freshly set secret takes a few seconds to reach every Cloudflare location.
+            for i in $(seq 1 30); do [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'authorization: Bearer wrong' "${WS/wss:/https:}/api/v1/events")" = 401 ] && break; sleep 3; done
+            node scripts/bot-smoke.mjs "${WS/wss:/https:}"
+          else echo "No bot API key for this environment: bot API check skipped"; fi
+        env:
+          WS: ${{ steps.deploy.outputs.ws }}
+
+  build:
+    # Builds even if the server deploy failed (the game still works offline), pointing online play at the deployed server.
+    if: ${{ !cancelled() }}
+    needs: deploy-server
+    runs-on: ubuntu-latest
+    env:
+      VITE_SERVER_URL: ${{ needs.deploy-server.outputs.ws }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,6 +100,59 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+  # Online play is lockstep: every engine must simulate bit-identically.
+  # Runs the same scripted match in Node, Chromium, WebKit (iOS) and Firefox and compares state hashes.
+  determinism:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit firefox
+      - run: npm run detcheck -- --minutes=3 --engines=node,chromium,webkit,firefox --strict
+
+  # Room server (server/): typecheck, then the scripted two-client smoke test against a local `wrangler dev`.
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: |
+          echo 'BOT_API_KEY="ci-test-key"' > .dev.vars
+          npx wrangler dev --port 8787 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf localhost:8787/health && break; sleep 1; done
+          node scripts/smoke.mjs || (cat wrangler.log; exit 1)
+          BOT_API_KEY=ci-test-key node scripts/bot-smoke.mjs || (cat wrangler.log; exit 1)
+
+  # Two real browsers play one online match through a local room server (lockstep + reload/resume).
+  online-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: server
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/online-e2e.mjs --seconds=20
+      - run: node scripts/online-ui.mjs
+      - run: node scripts/telegram-e2e.mjs
 
   deploy:
     if: github.ref == 'refs/heads/main'

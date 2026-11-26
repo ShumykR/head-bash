@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: Head Bash Arena — Bot API
+  version: 1.0.0
+  description: |
+    API for the Telegram bot that starts online Head Bash Arena matches from chats.
+
+    The bot creates a lobby, posts a button with `miniAppUrl` in the chat, and polls
+    `GET /events` to learn who joined and who won. The game itself (Telegram Mini App
+    or a browser) talks to the game server directly; the bot is never in the match path.
+
+    Every request needs `Authorization: Bearer <API key>`. Keys are separate for
+    staging and production. Errors always look like `{"error": {"code", "message"}}`;
+    branch on `code`, never on `message`.
+
+    Compatibility: within v1 fields and event types are only ever added. Ignore
+    fields and event types you do not know.
+servers:
+  - url: https://head-bash-staging.headbash.workers.dev/api/v1
+    description: staging (development and tests)
+  - url: https://head-bash.headbash.workers.dev/api/v1
+    description: production
+security:
+  - bearer: []
+paths:
+  /lobbies:
+    post:
+      operationId: createLobby
+      summary: Create a lobby (an invite-only room for two players)
+      description: |
+        Reserves a room code. The room itself opens when the first player follows the
+        link. Anyone with the link can take a seat (first two). The host (first player)
+        chooses arena and rules in the game; the bot does not pass settings.
+
+        While nobody has joined, the lobby closes after `ttlSec` (`lobby.closed`,
+        reason `expired`). Once someone is in, it stays open while players are in it,
+        through any number of rematches, and closes about 2 minutes after the last
+        player leaves (reason `empty`).
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          description: Any string up to 128 characters. Repeating a request with the same key within 24 h returns the same lobby instead of creating another (safe retries).
+          schema: { type: string, maxLength: 128 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                meta:
+                  description: Any JSON up to 1 KB, returned with the lobby and in every event (e.g. the chat id).
+                ttlSec:
+                  type: integer
+                  minimum: 30
+                  maximum: 3600
+                  default: 600
+                  description: How long to wait for the first player.
+            example: { meta: { chatId: -1001234567890 }, ttlSec: 600 }
+      responses:
+        '201':
+          description: Lobby created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lobby' }
+              example:
+                code: K7Q2M
+                status: waiting
+                startParam: l_K7Q2M
+                miniAppUrl: https://t.me/your_bot/arena?startapp=l_K7Q2M
+                webUrl: https://shumykr.github.io/head-bash/?room=K7Q2M
+                expiresAt: '2026-12-01T12:10:00.000Z'
+                players: []
+                lastResult: null
+                meta: { chatId: -1001234567890 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Disabled' }
+  /lobbies/{code}:
+    get:
+      operationId: getLobby
+      summary: Current state of a lobby
+      description: The room reports to this API asynchronously, so `status` and `players` catch up within about a second of what happens in the game. Events carry the same information in order.
+      parameters: [{ $ref: '#/components/parameters/Code' }]
+      responses:
+        '200':
+          description: The lobby
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lobby' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /lobbies/{code}/cancel:
+    post:
+      operationId: cancelLobby
+      summary: Close a lobby before its first match starts
+      description: Players inside are sent back to the game menu. Cancelling a closed lobby is a no-op that returns it. During a match the answer is 409.
+      parameters: [{ $ref: '#/components/parameters/Code' }]
+      responses:
+        '200':
+          description: The lobby, now `closed` with `closedReason` `cancelled`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lobby' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: A match is in progress (`match_in_progress`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /events:
+    get:
+      operationId: listEvents
+      summary: Events of all lobbies, after a cursor (poll this)
+      description: |
+        Returns events in order. Store the returned `cursor` and pass it as `after`
+        next time; with no new events the same cursor comes back. Start with no
+        `after` (or `0`). Events are kept for 24 hours. Event `id`s only grow; use them
+        to skip duplicates. Poll every 3–5 seconds while you have open lobbies, and not
+        at all when you have none.
+      parameters:
+        - in: query
+          name: after
+          required: false
+          schema: { type: string, pattern: '^[0-9]+$' }
+          description: The cursor from the previous response.
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+      responses:
+        '200':
+          description: A page of events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, cursor]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/Event' }
+                  cursor:
+                    type: string
+                    description: Pass as `after` in the next request.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  parameters:
+    Code:
+      in: path
+      name: code
+      required: true
+      schema: { type: string, pattern: '^[A-Z2-9]{5}$' }
+      description: Lobby code (5 characters, no 0/O/1/I/L).
+  responses:
+    BadRequest:
+      description: Invalid input (`bad_json`, `meta_too_large`, `bad_ttl`, `bad_idempotency_key`, `bad_cursor`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or wrong API key (`unauthorized`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: No such lobby (`lobby_not_found`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Disabled:
+      description: The bot API is not configured on this server (`api_disabled`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [unauthorized, api_disabled, bad_json, meta_too_large, bad_ttl, bad_idempotency_key, bad_cursor, lobby_not_found, match_in_progress, not_found, internal]
+            message: { type: string }
+    Player:
+      type: object
+      required: [slot, name]
+      properties:
+        slot:
+          type: integer
+          enum: [0, 1]
+          description: 0 = the host (first to join), 1 = the second player.
+        name:
+          type: string
+          description: Telegram name for Mini App players, otherwise the name typed in the game.
+        tgUserId:
+          type: integer
+          description: Telegram user id, present when the player came through the Mini App and Telegram's signature was verified.
+    Result:
+      type: object
+      required: [winner, scores, reason]
+      properties:
+        winner:
+          oneOf: [{ $ref: '#/components/schemas/Player' }, { type: 'null' }]
+        scores:
+          oneOf:
+            - type: array
+              items: { type: integer }
+              minItems: 2
+              maxItems: 2
+            - type: 'null'
+          description: Points of slot 0 and slot 1; null when the match did not finish normally.
+        reason:
+          type: string
+          enum: [score, forfeit, desync, aborted]
+          description: |
+            score — played to the end; forfeit — a player conceded or did not come back
+            within 15 s (the other wins); desync — the two games disagreed, not counted;
+            aborted — both players dropped, not counted.
+    Lobby:
+      type: object
+      required: [code, status, startParam, miniAppUrl, webUrl, expiresAt, players, lastResult, meta]
+      properties:
+        code: { type: string, pattern: '^[A-Z2-9]{5}$' }
+        status:
+          type: string
+          enum: [waiting, playing, closed]
+          description: waiting — in the lobby (also between rematches); playing — a match is on; closed — for good.
+        startParam:
+          type: string
+          description: '`l_<code>`, the Mini App start parameter.'
+        miniAppUrl:
+          type: [string, 'null']
+          description: '`https://t.me/<bot>/<app>?startapp=<startParam>`; null until the bot username and Mini App short name are configured on the server (you can build it yourself).'
+        webUrl:
+          type: string
+          description: The same lobby in a plain browser (for players outside Telegram).
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the lobby closes if nobody has joined by then.
+        players:
+          type: array
+          items: { $ref: '#/components/schemas/Player' }
+        lastResult:
+          oneOf: [{ $ref: '#/components/schemas/Result' }, { type: 'null' }]
+        closedReason:
+          type: string
+          enum: [expired, cancelled, empty]
+        meta:
+          description: Your `meta`, as sent.
+    Event:
+      type: object
+      required: [id, type, at, code, data, meta]
+      properties:
+        id: { type: integer, description: Grows by one per event. }
+        type:
+          type: string
+          enum: [lobby.player_joined, lobby.player_left, match.started, match.finished, lobby.closed]
+        at: { type: string, format: date-time }
+        code: { type: string }
+        meta: { description: The lobby's `meta`. }
+        data:
+          description: |
+            lobby.player_joined, lobby.player_left — `{ player }`;
+            match.started — `{ players }`;
+            match.finished — `{ winner, scores, reason, players }` (see Result);
+            lobby.closed — `{ reason: expired | cancelled | empty }`.
+          type: object
+          properties:
+            player: { $ref: '#/components/schemas/Player' }
+            players:
+              type: array
+              items: { $ref: '#/components/schemas/Player' }
+            winner:
+              oneOf: [{ $ref: '#/components/schemas/Player' }, { type: 'null' }]
+            scores:
+              oneOf:
+                - type: array
+                  items: { type: integer }
+                - type: 'null'
+            reason:
+              type: string
+              enum: [score, forfeit, desync, aborted, expired, cancelled, empty]
