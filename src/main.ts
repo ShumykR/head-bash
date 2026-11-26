@@ -363,7 +363,8 @@ async function boot() {
   };
 
   const goFullscreen = () => {
-    if (!coarse) return;
+    // In Telegram the Mini App goes full screen through Telegram (platform/telegram.ts).
+    if (!coarse || tg) return;
     const de = document.documentElement as any;
     if (!document.fullscreenElement && de.requestFullscreen) {
       de.requestFullscreen({ navigationUI: 'hide' }).then(() => (screen.orientation as any)?.lock?.('landscape').catch(() => {})).catch(() => {});
