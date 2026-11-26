@@ -96,13 +96,17 @@ export class Arena {
   private ballReset: { ball: BallRuntime; t: number }[] = [];
   private rainTimer = 0;
   private uid = 0;
+  private rng(): number {
+    this.rngState = (Math.imul(this.rngState, 1664525) + 1013904223) >>> 0;
+    return this.rngState / 4294967296;
+  }
   private blockTimer = 0;
   time = 0;
-  private rng: () => number;
+  /** Random state (a plain field, not a closure: online rollback copies the whole game state). */
+  private rngState: number;
 
   constructor(readonly world: World, readonly def: MapDef, seed = 1) {
-    let s = seed >>> 0 || 1;
-    this.rng = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+    this.rngState = seed >>> 0 || 1;
     this.terrain = world.createBody({ type: 'static' });
     for (const solid of def.solids) {
       this.terrain.createFixture({

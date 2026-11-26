@@ -81,7 +81,7 @@ async function boot() {
   const netStats = document.createElement('div');
   netStats.className = 'net-stats';
   document.getElementById('ui')!.appendChild(netStats);
-  let statsT = 0, statsStall0 = 0, statsFrames = 0, statsWorst = 0;
+  let statsT = 0, statsStall0 = 0, statsRb0 = 0, statsFrames = 0, statsWorst = 0;
   const updateNetStats = (dt: number) => {
     const s = online, ls = s?.ls;
     const on = !!ls && state === 'play' && (settings.netStats || q.has('netstats'));
@@ -97,11 +97,14 @@ async function boot() {
     netStats.textContent = [
       `пінг ${Math.round(s.client.rtt)} мс (${lo}–${hi})`,
       `затримка вводу ${ls.delay} т · ${Math.round((ls.delay * 1000) / 60)} мс`,
-      `очікування ${wait}% · запас ${ls.peerMargin} т`,
+      ls.rollback
+        ? `очікування ${wait}% · прогноз ${ls.predicted} т · відкатів ${ls.rollbacks - statsRb0}`
+        : `очікування ${wait}% · запас ${ls.peerMargin} т`,
       `кадр ${((statsT / statsFrames) * 1000).toFixed(1)} мс · гірший ${Math.round(statsWorst * 1000)}`,
     ].join('\n');
     statsT = statsFrames = statsWorst = 0;
     statsStall0 = ls.stallTime;
+    statsRb0 = ls.rollbacks;
   };
 
   const pauseBtn = document.createElement('button');
@@ -225,8 +228,10 @@ async function boot() {
     }
   };
 
-  const newGame = (cfg: ConstructorParameters<typeof Game>[0]) => {
-    game = new Game(cfg);
+  const newGame = (cfg: ConstructorParameters<typeof Game>[0]) => showGame(new Game(cfg));
+  /** Show a game: sounds, the flight recorder and the renderer follow it. */
+  const showGame = (g: Game) => {
+    game = g;
     game.on(onEvent);
     recorder = new FlightRecorder(game);
     view.attach(game);
@@ -328,6 +333,8 @@ async function boot() {
         setState('play');
         return g;
       },
+      onViewReset: () => view.rebuild(),
+      onFallback: (g) => showGame(g),
       onLobby: (l) => {
         if (l.phase !== 'lobby' || s.slot === null) return;
         const me = l.players[s.slot];
@@ -382,6 +389,8 @@ async function boot() {
         onlineUI.showEntry();
       },
     });
+    // Rollback is on; ?lockstep plays the plain lockstep way (to compare).
+    s.rollback = !q.has('lockstep');
     online = s;
     (window as any).__online = s;
     onlineUI.showConnecting();

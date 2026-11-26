@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { Client, setup } from './netsim';
+import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterAll } from 'vitest';
+import { Client, netsimDefaults, setup } from './netsim';
 import { PROTO } from '../src/net/protocol';
+
+// Whole matches on two (with rollback four) simulated games.
+vi.setConfig({ testTimeout: 40000 });
 
 function expectSameHashes(a: Client, b: Client) {
   let compared = 0;
@@ -13,7 +17,10 @@ function expectSameHashes(a: Client, b: Client) {
   return compared;
 }
 
-describe('lockstep over a simulated network', () => {
+describe.each([['lockstep', false], ['rollback', true]] as const)('%s over a simulated network', (_mode, rollback) => {
+  beforeAll(() => { netsimDefaults.rollback = rollback; });
+  afterAll(() => { netsimDefaults.rollback = false; });
+
   it('plays a whole match in sync with 40–70 ms latency and agrees on the result', () => {
     const { a, b, run } = setup(0.04, 0.03);
     run(400, () => !!(a.ended && b.ended));
@@ -96,7 +103,7 @@ describe('lockstep over a simulated network', () => {
       run(1 / 60);
       const ls = a.ls;
       if (!ls) break;
-      const lag = ls.confirmed[a.slot] - ls.simTick; // how far ahead A's own inputs land
+      const lag = ls.confirmed[a.slot] - ls.shown.stepCount; // how far ahead of the shown game A's own inputs land
       samples++;
       lagSum += lag;
       maxLag = Math.max(maxLag, lag);
@@ -111,4 +118,62 @@ describe('lockstep over a simulated network', () => {
     expect(maxLag).toBeLessThan(delay0 + 14);
     expect(stalled / samples).toBeLessThan(0.5);
   });
+});
+
+describe('rollback', () => {
+  /** Play `seconds` on a link and report how often A's screen froze and how far ahead A's input lands. */
+  function measure(rollback: boolean, latency: number, jitter: number, seconds = 30) {
+    netsimDefaults.rollback = rollback;
+    try {
+      const { a, b, run } = setup(latency, jitter, 3, 20);
+      run(3, () => !!(a.ls && b.ls));
+      run(3);
+      let resets = 0;
+      a.ls!.onViewReset = () => resets++;
+      let frames = 0, stalled = 0, lag = 0;
+      for (let i = 0; i < 60 * seconds; i++) {
+        run(1 / 60);
+        const ls = a.ls!;
+        frames++;
+        if (ls.stalled) stalled++;
+        lag += ls.confirmed[a.slot] - ls.shown.stepCount;
+      }
+      expect(a.desync || b.desync).toBe(false);
+      expect(expectSameHashes(a, b)).toBeGreaterThan(20);
+      return { a, b, stalled: stalled / frames, lag: lag / frames, resets, rounds: a.game!.match.round };
+    } finally {
+      netsimDefaults.rollback = false;
+    }
+  }
+
+  it('hides jitter: far fewer freezes and less input lag than plain lockstep, with no drift', () => {
+    const lock = measure(false, 0.03, 0.08);
+    const roll = measure(true, 0.03, 0.08);
+    expect(lock.stalled).toBeGreaterThan(0.1);
+    expect(roll.stalled).toBeLessThan(0.03);
+    expect(roll.lag).toBeLessThan(lock.lag);
+    for (const c of [roll.a, roll.b]) {
+      // It did guess wrong now and then, corrected it, and never drifted from the authoritative game.
+      expect(c.ls!.rollbacks).toBeGreaterThan(0);
+      expect(c.ls!.mismatches).toBe(0);
+      expect(c.ls!.rollback).toBe(true);
+    }
+    // The shown game keeps its own objects (the renderer's sprites). At most a wrong guess right
+    // at a round's start makes it take new ones (during the countdown, when sprites are rebuilt anyway).
+    expect(roll.rounds).toBeGreaterThan(1);
+    expect(roll.resets).toBeLessThan(roll.rounds);
+  }, 60000);
+
+  it('on a calm link the input delay comes down to a couple of ticks', () => {
+    const roll = measure(true, 0.02, 0.02, 20);
+    expect(roll.a.ls!.delay).toBeLessThanOrEqual(3);
+    expect(roll.b.ls!.delay).toBeLessThanOrEqual(3);
+    expect(roll.stalled).toBeLessThan(0.02);
+  }, 60000);
+
+  it('keeps both clocks together (the one ahead slows down)', () => {
+    const roll = measure(true, 0.05, 0.05, 20);
+    expect(Math.abs(roll.a.ls!.advantage)).toBeLessThan(2);
+    expect(Math.abs(roll.a.ls!.simTick - roll.b.ls!.simTick)).toBeLessThan(20);
+  }, 60000);
 });

@@ -127,7 +127,7 @@ export const DOUBLE_TAP = 0.32;
 const AIM_ASSIST = 0.26;
 /** For shots the head counts as this many times its radius. */
 const HEAD_SHOT_PAD = 1.5;
-const ROUND_END_DELAY = 2.8;
+export const ROUND_END_DELAY = 2.8;
 /** Seconds before a bed that has lost cargo is filled again. */
 export const CARGO_RELOAD = 6;
 /** Seconds spilled cargo lies about before it disappears. */
@@ -199,6 +199,13 @@ export class Game {
     return this.rand() < 0.5 ? 'lava' : 'flood';
   }
 
+  /** Subscribe to the physics world's contact events (also used when online rollback copies a world in). */
+  wireWorld() {
+    this.world.on('begin-contact', (c: Contact) => this.contactQueue.push([c.getFixtureA(), c.getFixtureB(), c]));
+    this.world.on('post-solve', (c: Contact, imp) => this.onPostSolve(c, imp.normalImpulses));
+    this.world.on('pre-solve', (c: Contact) => this.onPreSolve(c));
+  }
+
   rand(): number {
     this.rngState = (Math.imul(this.rngState, 1664525) + 1013904223) >>> 0;
     return this.rngState / 4294967296;
@@ -230,9 +237,7 @@ export class Game {
       this.roundCars = [a, pick(a)];
     } else this.roundCars = [...this.cfg.cars];
     this.world = new World({ gravity: new Vec2(0, this.map.gravity ?? DEFAULT_GRAVITY) });
-    this.world.on('begin-contact', (c: Contact) => this.contactQueue.push([c.getFixtureA(), c.getFixtureB(), c]));
-    this.world.on('post-solve', (c: Contact, imp) => this.onPostSolve(c, imp.normalImpulses));
-    this.world.on('pre-solve', (c: Contact) => this.onPreSolve(c));
+    this.wireWorld();
     this.arena = new Arena(this.world, this.map, Math.floor(this.rand() * 1e9));
     this.cars = [0, 1].map((p) => {
       const [x, y] = this.spawnPoint(p, this.roundCars[p]);

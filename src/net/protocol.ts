@@ -64,8 +64,12 @@ export type ClientMsg =
   | { t: 'pick'; car: string }
   | { t: 'config'; config: Partial<MatchConfig> }
   | { t: 'ready'; ready: boolean }
-  /** Input confirmed through tick `k`; `c` lists changes (ticks ≤ k) since the last message. */
-  | { t: 'in'; k: number; c?: InputChange[] }
+  /**
+   * Input confirmed through tick `k`; `c` lists changes (ticks ≤ k) since the last message;
+   * Rollback clients add: `w` where the sender's match clock is, `a` (tenths of a tick) how far it
+   * saw ours behind it (to keep the clocks together), `d` the input delay it asks the other to use.
+   */
+  | { t: 'in'; k: number; c?: InputChange[]; w?: number; a?: number; d?: number }
   | { t: 'hash'; k: number; h: number }
   | { t: 'result'; winner: 0 | 1; scores: [number, number] }
   /** Leave the room (in a match: concede). */
@@ -92,7 +96,7 @@ export type ServerMsg =
   | { t: 'welcome'; code: string; slot: 0 | 1; token: string }
   | { t: 'lobby'; phase: RoomPhase; players: (LobbyPlayer | null)[]; config: MatchConfig; host: 0 | 1 }
   | StartMsg
-  | { t: 'in'; p: 0 | 1; k: number; c?: InputChange[] }
+  | { t: 'in'; p: 0 | 1; k: number; c?: InputChange[]; w?: number; a?: number; d?: number }
   /** The other player dropped (`left`, with the deadline as epoch ms) or came back. */
   | { t: 'peer'; state: 'left' | 'back'; deadline?: number }
   | { t: 'desync'; k: number }
@@ -146,7 +150,7 @@ export function parseClientMsg(raw: string): ClientMsg | null {
     case 'ready':
       return typeof o.ready === 'boolean' ? (o as ClientMsg) : null;
     case 'in':
-      return int(o.k) && (o.c === undefined || (Array.isArray(o.c) && o.c.length <= 64 && o.c.every((x) => Array.isArray(x) && x.length === 2 && int(x[0]) && int(x[1]) && (x[1] as number) < 8))) ? (o as ClientMsg) : null;
+      return int(o.k) && (o.w === undefined || int(o.w)) && (o.a === undefined || Number.isInteger(o.a)) && (o.d === undefined || int(o.d)) && (o.c === undefined || (Array.isArray(o.c) && o.c.length <= 64 && o.c.every((x) => Array.isArray(x) && x.length === 2 && int(x[0]) && int(x[1]) && (x[1] as number) < 8))) ? (o as ClientMsg) : null;
     case 'hash':
       return int(o.k) && int(o.h) ? (o as ClientMsg) : null;
     case 'result':

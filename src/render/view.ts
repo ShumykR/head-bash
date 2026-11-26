@@ -1082,6 +1082,11 @@ export class GameView {
     this.hudSub.visible = !!sub;
   }
 
+  /** Rebuild the sprites tied to the game's objects (online rollback replaced them). */
+  rebuild() {
+    if (this.game) this.buildRound();
+  }
+
   private buildRound() {
     const g = this.game!;
     if (this.currentMap !== g.map) this.buildMap(g.map);
