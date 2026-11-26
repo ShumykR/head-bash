@@ -38,7 +38,10 @@ a.send({ t: 'pick', car: 'sparrow' }); b.send({ t: 'pick', car: 'bulldog' });
 await new Promise((r) => setTimeout(r, 300));
 a.send({ t: 'ready', ready: true }); b.send({ t: 'ready', ready: true });
 await a.wait('start');
-check((await hba.getLobby(code)).status === 'playing', 'lobby status playing');
+// The room reports to the hub asynchronously: the lobby shows 'playing' within a moment.
+let st = '';
+for (let i = 0; i < 25 && st !== 'playing'; i++) { st = (await hba.getLobby(code)).status; if (st !== 'playing') await new Promise((r) => setTimeout(r, 200)); }
+check(st === 'playing', 'lobby status playing');
 a.send({ t: 'result', winner: 1, scores: [2, 5] }); b.send({ t: 'result', winner: 1, scores: [2, 5] });
 await a.wait('end');
 

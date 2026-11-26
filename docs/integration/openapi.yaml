@@ -81,6 +81,7 @@ paths:
     get:
       operationId: getLobby
       summary: Current state of a lobby
+      description: The room reports to this API asynchronously, so `status` and `players` catch up within about a second of what happens in the game. Events carry the same information in order.
       parameters: [{ $ref: '#/components/parameters/Code' }]
       responses:
         '200':
