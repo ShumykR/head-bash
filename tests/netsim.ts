@@ -75,9 +75,16 @@ export class Client {
     }, resume);
   }
 
+  /** Seconds between this client's frames (0 = every frame of the loop): a slow device renders less often. */
+  frameInterval = 0;
+  private frameAcc = 0;
+
   frame(dt: number) {
     if (!this.ls || !this.connected) return;
-    this.ls.frame(dt, this.input(this.ls.simTick));
+    this.frameAcc += dt;
+    if (this.frameAcc < this.frameInterval) return;
+    this.ls.frame(this.frameAcc, this.input(this.ls.simTick));
+    this.frameAcc = 0;
   }
 }
 

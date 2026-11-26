@@ -153,6 +153,8 @@ jobs:
       - run: node scripts/online-e2e.mjs --seconds=20
       - run: node scripts/online-ui.mjs
       - run: node scripts/telegram-e2e.mjs
+      # A long match with the guest's CPU slowed 4x (a phone): no persistent waiting, no desync.
+      - run: node scripts/online-long.mjs --seconds=75 --throttle=4 --check
 
   deploy:
     if: github.ref == 'refs/heads/main'

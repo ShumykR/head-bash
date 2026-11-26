@@ -12,7 +12,8 @@
     "detcheck": "node scripts/detcheck.mjs",
     "online-e2e": "node scripts/online-e2e.mjs",
     "online-ui": "node scripts/online-ui.mjs",
-    "telegram-e2e": "node scripts/telegram-e2e.mjs"
+    "telegram-e2e": "node scripts/telegram-e2e.mjs",
+    "online-long": "node scripts/online-long.mjs"
   },
   "repository": {
     "type": "git",
