@@ -259,11 +259,14 @@ html, body {
 }
 
 /* online: ping and "waiting for the other player" in the top-right corner */
-.net-badge { position: fixed; top: max(6px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 6; background: rgba(12, 9, 20, .7); color: var(--ink); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; pointer-events: none; display: none; }
+.net-badge { position: fixed; top: max(6px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 6; background: rgba(12, 9, 20, .7); color: var(--ink); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 700; display: none; pointer-events: auto; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+/* a bigger tap target than the text */
+.net-badge::before { content: ''; position: absolute; inset: -8px -8px -8px -14px; }
 .net-badge.on { display: block; }
 .net-badge.warn { color: var(--gold); }
 .net-stats { position: fixed; top: calc(max(6px, env(safe-area-inset-top)) + 26px); right: max(8px, env(safe-area-inset-right)); z-index: 6; background: rgba(12, 9, 20, .55); color: var(--ink); border-radius: 6px; padding: 3px 7px; font: 600 10px/1.35 ui-monospace, monospace; white-space: pre; pointer-events: none; opacity: .85; display: none; }
 .net-stats.on { display: block; }
+.net-copy { display: block; margin-top: 4px; pointer-events: auto; font: inherit; color: var(--ink); background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); border-radius: 5px; padding: 3px 6px; cursor: pointer; }
 
 /* ---- online: entry and lobby ---- */
 .screen.online { overflow-y: auto; touch-action: pan-y; }

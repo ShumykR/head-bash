@@ -12,6 +12,7 @@ import { audio } from './audio/audio';
 import { music } from './audio/music';
 import { Menu, Mode } from './ui/menu';
 import { loadSettings, saveSettings } from './ui/settings';
+import { NetLog, copyText } from './net/netlog';
 import { setupPwa } from './ui/pwa';
 import { NetSession } from './net/session';
 import { serverUrl, buildId } from './net/config';
@@ -94,14 +95,46 @@ async function boot() {
     netBadge.classList.toggle('warn', waiting || s.client.rtt > 200);
     netBadge.textContent = s.client.status === 'reconnecting' ? 'перепідключення…' : waiting ? 'чекаємо суперника…' : `${Math.round(s.client.rtt)} мс`;
   };
-  // Network stats overlay (Settings → «Мережева статистика», or ?netstats): small, under the badge, never takes taps.
+  // Network panel: a tap on the ping badge opens it (and closes it); ?netstats opens it at once.
+  // Small, under the badge; only its copy button takes taps.
   const netStats = document.createElement('div');
   netStats.className = 'net-stats';
+  const netStatsText = document.createElement('div');
+  const netCopy = document.createElement('button');
+  netCopy.className = 'net-copy';
+  netCopy.textContent = '📋 копіювати лог';
+  netStats.append(netStatsText, netCopy);
   document.getElementById('ui')!.appendChild(netStats);
+  if (q.has('netstats')) settings.netStats = true;
+  netBadge.addEventListener('click', () => {
+    settings.netStats = !settings.netStats;
+    saveSettings(settings);
+  });
+  /** This match's network log (one sample a second, kept whether the panel is open or not). */
+  let netLog: NetLog | null = null;
+  let netLogLs: unknown = null;
+  netCopy.addEventListener('click', async () => {
+    const text = netLog?.text() ?? NetLog.last();
+    const ok = !!text && (await copyText(text));
+    netCopy.textContent = ok ? 'скопійовано ✓' : 'не вдалося';
+    setTimeout(() => (netCopy.textContent = '📋 копіювати лог'), 1500);
+  });
   let statsT = 0, statsStall0 = 0, statsRb0 = 0, statsFrames = 0, statsWorst = 0;
   const updateNetStats = (dt: number) => {
     const s = online, ls = s?.ls;
-    const on = !!ls && state === 'play' && (settings.netStats || q.has('netstats'));
+    if (s && ls && ls !== netLogLs) {
+      netLog?.save();
+      netLogLs = ls;
+      const g = s.game;
+      netLog = new NetLog(s, { build: buildId(), slot: s.slot, rollback: ls.rollback, telegram: !!tg, cars: g?.cars.map((c) => c.def.id), map: g?.map.id, ua: navigator.userAgent });
+    }
+    if (ls && netLog) {
+      const n = netLog.samples.length;
+      netLog.frame(dt);
+      // Kept now and then, so a closed app still leaves the log behind.
+      if (netLog.samples.length !== n && netLog.samples.length % 10 === 0) netLog.save();
+    }
+    const on = !!ls && state === 'play' && !!settings.netStats;
     netStats.classList.toggle('on', on);
     if (!on || !s || !ls) return;
     statsT += dt;
@@ -111,8 +144,10 @@ async function boot() {
     const r = s.client.rttSamples;
     const lo = r.length ? Math.round(Math.min(...r)) : 0, hi = r.length ? Math.round(Math.max(...r)) : 0;
     const wait = Math.round(((ls.stallTime - statsStall0) / statsT) * 100);
-    netStats.textContent = [
+    const peer = s.client.peerRtt;
+    netStatsText.textContent = [
       `пінг ${Math.round(s.client.rtt)} мс (${lo}–${hi})`,
+      `пінг суперника ${peer !== null ? `${peer} мс` : '—'}`,
       `затримка вводу ${ls.delay} т · ${Math.round((ls.delay * 1000) / 60)} мс`,
       ls.rollback
         ? `очікування ${wait}% · прогноз ${ls.predicted} т · відкатів ${ls.rollbacks - statsRb0}`
@@ -387,6 +422,7 @@ async function boot() {
       },
       onPeer: (st, deadline) => say(st === 'left' ? `Суперник відключився (${Math.max(0, Math.round(((deadline ?? Date.now()) - Date.now()) / 1000))} с на повернення)` : 'Суперник повернувся'),
       onEnd: (winner, scores, reason) => {
+        netLog?.save();
         const win = winner !== null && winner === s.slot;
         const sc = scores ? ` ${scores[s.slot ?? 0]} : ${scores[1 - (s.slot ?? 0)]}` : '';
         onlineBanner =

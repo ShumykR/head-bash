@@ -13,6 +13,10 @@ TG_BOT_ID = "8623414083"
 TG_BOT_USERNAME = "DriveHQ_Bot"
 TG_APP_SHORT_NAME = "arena"
 
+# Workers Logs: rooms log one network summary per match (event "match_net").
+[observability]
+enabled = true
+
 [[durable_objects.bindings]]
 name = "ROOMS"
 class_name = "Room"
@@ -31,6 +35,9 @@ new_sqlite_classes = ["Hub"]
 
 [env.staging]
 name = "head-bash-staging"
+
+[env.staging.observability]
+enabled = true
 
 [env.staging.vars]
 GAME_URL = "https://shumykr.github.io/head-bash/"

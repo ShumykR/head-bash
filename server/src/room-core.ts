@@ -26,7 +26,25 @@ export interface RoomDeps {
   rand(): number;
   /** Room events for integrations (webhooks later). */
   onEvent?(e: RoomEvent): void;
+  /** A line for the server log (Cloudflare Workers Logs): a match's network summary. */
+  log?(line: Record<string, unknown>): void;
 }
+
+/** How one player's connection behaved during a match (logged at its end). */
+interface NetStat {
+  rttSum: number;
+  rttN: number;
+  rttMax: number;
+  /** Input messages, and the gaps between them (arrival time, ms). */
+  msgs: number;
+  lastIn: number;
+  maxGap: number;
+  gaps100: number;
+  gaps250: number;
+  /** Times the player came back (reconnect or reload). */
+  resumes: number;
+}
+const netStat = (): NetStat => ({ rttSum: 0, rttN: 0, rttMax: 0, msgs: 0, lastIn: 0, maxGap: 0, gaps100: 0, gaps250: 0, resumes: 0 });
 
 export type RoomEvent =
   | { type: 'player_joined'; slot: 0 | 1; name: string; tgUserId?: number }
@@ -57,6 +75,8 @@ interface Match {
   hashes: Map<number, [number | null, number | null]>;
   results: [[number, number, number] | null, [number, number, number] | null];
   resultDeadline: number | null;
+  net: [NetStat, NetStat];
+  startedAt: number;
 }
 
 /** What survives a Durable Object eviction (the lobby; a running match does not). */
@@ -119,9 +139,19 @@ export class RoomCore {
     const m = parseClientMsg(raw);
     if (!m) return this.reject(conn, 'bad');
     if (m.t === 'ping') {
-      conn.send({ t: 'pong', ts: m.ts });
       const p = this.slotOf(connId);
-      if (p !== null && m.rtt !== undefined) this.slots[p]!.rtt = Math.min(m.rtt, 2000);
+      // The other player's round trip too: each side can see both connections.
+      const peer = p !== null ? this.slots[1 - p]?.rtt : undefined;
+      conn.send(peer !== undefined ? { t: 'pong', ts: m.ts, peer: Math.round(peer) } : { t: 'pong', ts: m.ts });
+      if (p !== null && m.rtt !== undefined) {
+        this.slots[p]!.rtt = Math.min(m.rtt, 2000);
+        const n = this.match?.net[p];
+        if (n && this.phase === 'playing') {
+          n.rttSum += m.rtt;
+          n.rttN++;
+          n.rttMax = Math.max(n.rttMax, Math.min(m.rtt, 5000));
+        }
+      }
       return;
     }
     if (this.pending.has(connId)) {
@@ -255,6 +285,7 @@ export class RoomCore {
     conn.send({ t: 'welcome', code: this.code, slot: p as 0 | 1, token: s.token });
     if (back && this.phase === 'playing' && this.match) {
       conn.send({ t: 'resume', start: this.match.start, inputs: this.match.inputs, confirmed: this.match.confirmed });
+      this.match.net[p].resumes++;
       this.sendTo(1 - p, { t: 'peer', state: 'back' });
     }
     this.broadcastLobby();
@@ -311,7 +342,7 @@ export class RoomCore {
     };
     for (const sl of this.slots) sl!.ready = false;
     this.phase = 'playing';
-    this.match = { start, inputs: [], confirmed: [-1, -1], hashes: new Map(), results: [null, null], resultDeadline: null };
+    this.match = { start, inputs: [], confirmed: [-1, -1], hashes: new Map(), results: [null, null], resultDeadline: null, net: [netStat(), netStat()], startedAt: this.deps.now() };
     this.dirty = true;
     this.broadcast(start);
     this.broadcastLobby();
@@ -322,6 +353,15 @@ export class RoomCore {
     const m = this.match;
     if (!m || this.phase !== 'playing') return;
     if (k <= m.confirmed[p] || k > m.confirmed[1 - p] + MAX_LEAD) return;
+    const n = m.net[p], t = this.deps.now();
+    if (n.lastIn) {
+      const gap = t - n.lastIn;
+      n.maxGap = Math.max(n.maxGap, gap);
+      if (gap > 100) n.gaps100++;
+      if (gap > 250) n.gaps250++;
+    }
+    n.lastIn = t;
+    n.msgs++;
     const changes: InputChange[] = [];
     for (const [ck, b] of c ?? []) {
       if (ck <= m.confirmed[p] || ck > k) continue;
@@ -366,6 +406,7 @@ export class RoomCore {
 
   private end(winner: 0 | 1 | null, scores: [number, number] | null, reason: EndReason) {
     if (this.phase !== 'playing') return;
+    if (this.match) this.logMatch(this.match, winner, reason);
     this.phase = 'lobby';
     this.match = null;
     for (const s of this.slots) if (s) s.ready = false;
@@ -374,6 +415,26 @@ export class RoomCore {
     this.broadcastLobby();
     const names = this.slots.map((s, i) => s?.name ?? `Гравець ${i + 1}`) as [string, string];
     this.deps.onEvent?.({ type: 'match_finished', winner, scores, reason, names });
+  }
+
+  /**
+   * One log line per match: each player's round trips and how evenly their input arrived (a gap
+   * over 100 ms is a hiccup the other player had to guess through or wait for).
+   */
+  private logMatch(m: Match, winner: 0 | 1 | null, reason: EndReason) {
+    if (!this.deps.log) return;
+    const players = m.net.map((n, i) => ({
+      name: this.slots[i]?.name ?? null,
+      car: m.start.cars[i],
+      rttAvg: n.rttN ? Math.round(n.rttSum / n.rttN) : null,
+      rttMax: n.rttN ? Math.round(n.rttMax) : null,
+      inputs: n.msgs,
+      maxGapMs: Math.round(n.maxGap),
+      gapsOver100: n.gaps100,
+      gapsOver250: n.gaps250,
+      resumes: n.resumes,
+    }));
+    this.deps.log({ event: 'match_net', room: this.code, seconds: Math.round((this.deps.now() - m.startedAt) / 1000), ticks: Math.max(...m.confirmed), winner, reason, delay: m.start.delay, players });
   }
 
   private removeSlot(p: 0 | 1) {

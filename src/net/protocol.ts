@@ -103,7 +103,8 @@ export type ServerMsg =
   | { t: 'end'; winner: 0 | 1 | null; scores: [number, number] | null; reason: EndReason }
   /** Reconnected mid-match: the start message and every input so far, to re-simulate up to now. */
   | { t: 'resume'; start: StartMsg; inputs: [p: 0 | 1, k: number, b: number][]; confirmed: [number, number] }
-  | { t: 'pong'; ts: number }
+  /** `peer`: the other player's last reported round trip (ms). */
+  | { t: 'pong'; ts: number; peer?: number }
   | { t: 'reject'; reason: RejectReason };
 
 export function bitsOf(left: boolean, right: boolean, action: boolean): number {

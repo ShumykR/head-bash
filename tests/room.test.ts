@@ -271,3 +271,37 @@ describe('room lifetime', () => {
     expect(sanitizeConfig({ target: 2.5 as number })).toEqual({ map: 'random', target: 5, roundTime: 30, randomCars: true });
   });
 });
+
+describe('network diagnostics', () => {
+  it('a pong carries the other player\'s round trip', () => {
+    const r = room();
+    const a = join(r, 'a'), b = join(r, 'b');
+    send(r, b, { t: 'ping', ts: 1, rtt: 180 });
+    send(r, a, { t: 'ping', ts: 2, rtt: 40 });
+    expect(a.last('pong')).toEqual({ t: 'pong', ts: 2, peer: 180 });
+    send(r, b, { t: 'ping', ts: 3 });
+    expect(b.last('pong')).toEqual({ t: 'pong', ts: 3, peer: 40 });
+  });
+
+  it('logs one network summary per match: round trips and input gaps per player', () => {
+    const lines: Record<string, unknown>[] = [];
+    const r = new RoomCore('LOGGD', { ...deps, log: (l) => lines.push(l) });
+    r.create();
+    const a = join(r, 'a'), b = join(r, 'b');
+    for (const c of [a, b]) send(r, c, { t: 'ready', ready: true });
+    expect(a.last('start')).toBeTruthy();
+    // a sends input every 20 ms, b with one 300 ms hiccup.
+    for (let k = 1; k <= 20; k++) {
+      now += k === 10 ? 300 : 20;
+      send(r, a, { t: 'in', k });
+      send(r, b, { t: 'in', k });
+      if (k % 5 === 0) for (const [c, rtt] of [[a, 50], [b, 120]] as const) send(r, c, { t: 'ping', ts: k, rtt });
+    }
+    send(r, b, { t: 'leave' });
+    expect(lines).toHaveLength(1);
+    const line = lines[0] as { event: string; reason: string; players: { rttAvg: number; inputs: number; maxGapMs: number; gapsOver250: number }[] };
+    expect(line).toMatchObject({ event: 'match_net', reason: 'forfeit' });
+    expect(line.players[0]).toMatchObject({ rttAvg: 50, inputs: 20, gapsOver250: 1 });
+    expect(line.players[1]).toMatchObject({ rttAvg: 120, inputs: 20, maxGapMs: 300 });
+  });
+});
