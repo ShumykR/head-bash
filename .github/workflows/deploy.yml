@@ -68,7 +68,11 @@ jobs:
         run: |
           for i in $(seq 1 20); do curl -sf "${WS/wss:/https:}/health" && break; sleep 3; done
           node scripts/smoke.mjs "$WS"
-          if [ -n "$BOT_API_KEY" ]; then node scripts/bot-smoke.mjs "${WS/wss:/https:}"; else echo "No bot API key for this environment: bot API check skipped"; fi
+          if [ -n "$BOT_API_KEY" ]; then
+            # A freshly set secret takes a few seconds to reach every Cloudflare location.
+            for i in $(seq 1 30); do [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'authorization: Bearer wrong' "${WS/wss:/https:}/api/v1/events")" = 401 ] && break; sleep 3; done
+            node scripts/bot-smoke.mjs "${WS/wss:/https:}"
+          else echo "No bot API key for this environment: bot API check skipped"; fi
         env:
           WS: ${{ steps.deploy.outputs.ws }}
 
