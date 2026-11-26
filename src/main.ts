@@ -478,6 +478,8 @@ async function boot() {
     menu.showMain();
   }
 
+  /** Time of the previous online frame (performance.now), for real elapsed time. */
+  let netLastMs = 0;
   app.ticker.add((t) => {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
     if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
@@ -488,7 +490,11 @@ async function boot() {
       const b0 = input.buttons(0), b1 = input.buttons(1);
       const live = state === 'play';
       updateNetBadge(dt);
-      online.frame(dt, bitsOf(live && (b0.left || b1.left), live && (b0.right || b1.right), live && (input.action(0) || input.action(1))));
+      // Real elapsed time (Pixi's ticker caps a frame at 0.1 s): the match clock must not lose time on slow devices.
+      const nowMs = performance.now();
+      const realDt = netLastMs ? Math.min((nowMs - netLastMs) / 1000, 1) : dt;
+      netLastMs = nowMs;
+      online.frame(realDt, bitsOf(live && (b0.left || b1.left), live && (b0.right || b1.right), live && (input.action(0) || input.action(1))));
     } else if (!frozen && (state === 'play' || state === 'menu' || state === 'over')) {
       game.inputs[0] = input.dir(0);
       game.inputs[1] = input.dir(1);

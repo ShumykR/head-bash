@@ -70,4 +70,31 @@ describe('lockstep over a simulated network', () => {
     expect(expectSameHashes(a, b)).toBeGreaterThan(5);
     void net;
   });
+
+  it('a slow device (12 fps) neither stalls the other player nor inflates their input lag', () => {
+    const { a, b, run } = setup(0.05, 0.02, 21, 20);
+    run(1, () => !!(a.ls && b.ls));
+    b.frameInterval = 1 / 12;
+    const delay0 = a.ls!.delay;
+    let samples = 0, lagSum = 0, stalled = 0, maxLag = 0;
+    const t0 = a.ls!.simTick;
+    for (let i = 0; i < 60 * 40; i++) {
+      run(1 / 60);
+      const ls = a.ls;
+      if (!ls) break;
+      const lag = ls.confirmed[a.slot] - ls.simTick; // how far ahead A's own inputs land
+      samples++;
+      lagSum += lag;
+      maxLag = Math.max(maxLag, lag);
+      if (ls.stalled) stalled++;
+    }
+    expect(a.desync || b.desync).toBe(false);
+    // Both keep (almost) real time: 40 s of play ≈ 2400 ticks.
+    expect(a.ls!.simTick - t0).toBeGreaterThan(60 * 40 * 0.85);
+    expect(b.ls!.simTick - t0).toBeGreaterThan(60 * 40 * 0.85);
+    // A's controls stay responsive: inputs land about `delay` ticks ahead, not half a second.
+    expect(lagSum / samples).toBeLessThan(delay0 + 6);
+    expect(maxLag).toBeLessThan(delay0 + 14);
+    expect(stalled / samples).toBeLessThan(0.5);
+  });
 });

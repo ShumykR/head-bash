@@ -13,7 +13,7 @@
  */
 import type { Game } from '../game/game';
 import { STEP_DT } from '../physics/constants';
-import { BATCH, BIT_ACTION, HASH_EVERY, MAX_DELAY, dirOfBits } from './protocol';
+import { BATCH, BIT_ACTION, HASH_EVERY, MIN_DELAY, dirOfBits } from './protocol';
 import type { ClientMsg, InputChange } from './protocol';
 import { stateHash } from './hash';
 
@@ -21,6 +21,12 @@ import { stateHash } from './hash';
 const CATCHUP_MS = 10;
 /** Ticks confirmed ahead (with no input) while the tab is hidden, so the other player is not held up. */
 const HIDDEN_AHEAD = 90;
+/** Adaptive input delay never goes above this (24 ticks = 0.4 s). */
+export const DELAY_CAP = 24;
+/** Ticks the clock may run ahead of a wait before the time is let go (ordinary jitter). */
+const JITTER_SLACK = 3;
+/** Seconds of play per adaptation window. */
+const WINDOW = 1;
 
 export class Lockstep {
   /** The next tick to simulate (= game.stepCount). */
@@ -44,11 +50,19 @@ export class Lockstep {
    */
   private clock: number;
   private resultSent = false;
+  // Adaptation window: real time, time spent waiting for the other player, closest the other's input came.
+  private winT = 0;
+  private winStall = 0;
+  private winMargin = Infinity;
+  private calmWindows = 0;
+  /** Smoothed length of our frames in ticks (a slow device sends its confirmations less often). */
+  private frameTicks = 1;
 
   constructor(
     readonly game: Game,
     readonly slot: 0 | 1,
-    readonly delay: number,
+    /** Input delay in ticks: starts from the room's value (by ping) and adapts to the link (see `adapt`). */
+    public delay: number,
     private readonly send: (m: ClientMsg) => void,
     resume?: { inputs: [p: 0 | 1, k: number, b: number][]; confirmed: [number, number] },
   ) {
@@ -94,12 +108,20 @@ export class Lockstep {
       g.slowmo -= realDt;
       scale = g.slowmo > 0.35 ? 0.22 : 0.22 + (1 - 0.22) * (1 - Math.max(0, g.slowmo) / 0.35);
     }
-    this.clock += (Math.min(Math.max(realDt, 0), 0.25) * scale) / STEP_DT;
-    // Do not run ahead of a player who is gone (disconnected, frozen): stay within reach of their input.
+    // The match clock follows real time even when frames are slow (a phone at 20 fps): a clock that
+    // loses time would leave this player behind and make the other one wait. Only a long gap (a
+    // background tab) is cut short.
+    this.clock += (Math.min(Math.max(realDt, 0), 1) * scale) / STEP_DT;
     const peer = this.confirmed[1 - this.slot];
-    this.clock = Math.max(this.simTick, Math.min(this.clock, peer + 2 * MAX_DELAY));
+    // If the other player is gone (disconnected, frozen), do not bank more than a little time.
+    this.clock = Math.max(this.simTick, Math.min(this.clock, peer + 1 + DELAY_CAP + 10));
     this.setLocal(bits);
-    this.extendLocal(Math.floor(this.clock) + this.delay);
+    // Our inputs go `delay` ticks ahead of where the match can actually be (never past the other
+    // player's confirmed input + 1): ahead of the real clock they would only add control lag.
+    // A slow device confirms only once per (long) frame, so it also covers its own frame length:
+    // its slowness costs its own controls a little, not the other player's.
+    this.frameTicks += (Math.min(Math.max(realDt, 0), 1) / STEP_DT - this.frameTicks) * 0.1;
+    this.extendLocal(Math.min(Math.floor(this.clock), peer + 1) + this.lead());
     let n = 0;
     const target = Math.floor(this.clock);
     // Normally one or two ticks per frame; further behind, catch up within a time budget.
@@ -110,8 +132,45 @@ export class Lockstep {
       n++;
     }
     this.stalled = this.simTick < target && !this.canStep();
+    // Waiting for the other player: let go of the time we could not use. Our clock then follows
+    // the pace both sides can keep (a late start or a hiccup on their side costs a moment, not a
+    // growing gap with stop-and-burst play); only steady waiting raises the input delay (`adapt`).
+    // A couple of ticks of slack absorb ordinary jitter (caught up next frame) without counting as waiting.
+    const waiting = this.stalled && this.clock - this.simTick >= JITTER_SLACK;
+    if (waiting) this.clock = this.simTick + JITTER_SLACK;
+    this.adapt(realDt, waiting);
     this.flush(false);
     return n;
+  }
+
+  /** How far ahead our inputs go: the input delay plus our frame length beyond one tick. */
+  private lead() {
+    return this.delay + Math.max(0, Math.ceil(this.frameTicks) - 1);
+  }
+
+  /**
+   * Adaptive input delay. Waiting for the other player means the two leads together (ours + theirs)
+   * do not cover the link's latency: raise ours by a tick (the other side does the same from its
+   * end). After several calm seconds with room to spare, give a tick back, for snappier controls.
+   */
+  private adapt(realDt: number, waiting: boolean) {
+    const dt = Math.min(Math.max(realDt, 0), 1);
+    this.winT += dt;
+    if (waiting) this.winStall += dt;
+    this.winMargin = Math.min(this.winMargin, this.confirmed[1 - this.slot] - this.simTick);
+    if (this.winT < WINDOW) return;
+    const ratio = this.winStall / this.winT;
+    if (ratio > 0.1) {
+      this.delay = Math.min(DELAY_CAP, this.delay + 1);
+      this.calmWindows = 0;
+    } else if (ratio < 0.02 && this.winMargin > 2) {
+      if (++this.calmWindows >= 4 && this.delay > MIN_DELAY) {
+        this.delay--;
+        this.calmWindows = 0;
+      }
+    } else this.calmWindows = 0;
+    this.winT = this.winStall = 0;
+    this.winMargin = Infinity;
   }
 
   /** Re-simulate everything known so far (after a reconnect), with no time budget. */
