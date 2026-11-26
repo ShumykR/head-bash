@@ -4,11 +4,14 @@
  * and every error code / event type the server can produce is documented.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import specText from '../docs/integration/openapi.yaml?raw';
+import curlMd from '../docs/integration/examples/curl.md?raw';
+import hubCoreSrc from '../server/src/hub-core.ts?raw';
+import hubSrc from '../server/src/hub.ts?raw';
 import { parse } from 'yaml';
 import { HubCore, HubStore } from '../server/src/hub-core';
 
-const spec = parse(readFileSync('docs/integration/openapi.yaml', 'utf8'));
+const spec = parse(specText);
 
 /** A small JSON Schema checker for the subset the spec uses. Returns error paths. */
 function check(schema: any, v: unknown, path = '$'): string[] {
@@ -85,7 +88,7 @@ describe('bot API contract (docs/integration/openapi.yaml)', () => {
   });
 
   it('every error code the server can return is documented', () => {
-    const src = ['server/src/hub-core.ts', 'server/src/hub.ts'].map((f) => readFileSync(f, 'utf8')).join('\n');
+    const src = [hubCoreSrc, hubSrc].join('\n');
     const codes = new Set([...src.matchAll(/(?:ApiError|apiError)\(\s*\d+,\s*'([a-z_]+)'/g)].map((m) => m[1]));
     expect(codes.size).toBeGreaterThan(5);
     const documented: string[] = schemaOf('Error').properties.error.properties.code.enum;
@@ -93,7 +96,7 @@ describe('bot API contract (docs/integration/openapi.yaml)', () => {
   });
 
   it('the JSON examples in examples/curl.md are valid', () => {
-    const md = readFileSync('docs/integration/examples/curl.md', 'utf8');
+    const md = curlMd;
     const blocks = [...md.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
     expect(blocks).toHaveLength(3);
     expect(check(schemaOf('Lobby'), blocks[0])).toEqual([]);
