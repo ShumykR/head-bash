@@ -15,6 +15,8 @@ export interface Settings {
   name: string;
   /** The player switched the debug buttons themselves (otherwise the default applies, even to settings saved earlier). */
   debugChosen?: boolean;
+  /** Show the network stats overlay in online matches (ping, input delay, waiting). */
+  netStats?: boolean;
 }
 
 const KEY = 'hba-settings-v1';

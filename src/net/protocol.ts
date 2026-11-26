@@ -27,7 +27,7 @@ export const CODE_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/;
 /** Ticks per second of the simulation (STEP_DT = 1/60). */
 export const TICK_HZ = 60;
 /** A client confirms its input at least every BATCH ticks. */
-export const BATCH = 3;
+export const BATCH = 1;
 /** Input delay bounds, ticks. */
 export const MIN_DELAY = 4, MAX_DELAY = 15;
 /** Clients hash their state every HASH_EVERY ticks. */

@@ -77,6 +77,32 @@ async function boot() {
     netBadge.classList.toggle('warn', waiting || s.client.rtt > 200);
     netBadge.textContent = s.client.status === 'reconnecting' ? 'перепідключення…' : waiting ? 'чекаємо суперника…' : `${Math.round(s.client.rtt)} мс`;
   };
+  // Network stats overlay (Settings → «Мережева статистика», or ?netstats): small, under the badge, never takes taps.
+  const netStats = document.createElement('div');
+  netStats.className = 'net-stats';
+  document.getElementById('ui')!.appendChild(netStats);
+  let statsT = 0, statsStall0 = 0, statsFrames = 0, statsWorst = 0;
+  const updateNetStats = (dt: number) => {
+    const s = online, ls = s?.ls;
+    const on = !!ls && state === 'play' && (settings.netStats || q.has('netstats'));
+    netStats.classList.toggle('on', on);
+    if (!on || !s || !ls) return;
+    statsT += dt;
+    statsFrames++;
+    statsWorst = Math.max(statsWorst, dt);
+    if (statsT < 0.5) return;
+    const r = s.client.rttSamples;
+    const lo = r.length ? Math.round(Math.min(...r)) : 0, hi = r.length ? Math.round(Math.max(...r)) : 0;
+    const wait = Math.round(((ls.stallTime - statsStall0) / statsT) * 100);
+    netStats.textContent = [
+      `пінг ${Math.round(s.client.rtt)} мс (${lo}–${hi})`,
+      `затримка вводу ${ls.delay} т · ${Math.round((ls.delay * 1000) / 60)} мс`,
+      `очікування ${wait}% · запас ${ls.peerMargin} т`,
+      `кадр ${((statsT / statsFrames) * 1000).toFixed(1)} мс · гірший ${Math.round(statsWorst * 1000)}`,
+    ].join('\n');
+    statsT = statsFrames = statsWorst = 0;
+    statsStall0 = ls.stallTime;
+  };
 
   const pauseBtn = document.createElement('button');
   pauseBtn.className = 'btn pause-btn';
@@ -491,6 +517,7 @@ async function boot() {
       const b0 = input.buttons(0), b1 = input.buttons(1);
       const live = state === 'play';
       updateNetBadge(dt);
+      updateNetStats(dt);
       // Real elapsed time (Pixi's ticker caps a frame at 0.1 s): the match clock must not lose time on slow devices.
       const nowMs = performance.now();
       const realDt = netLastMs ? Math.min((nowMs - netLastMs) / 1000, 1) : dt;
