@@ -20,7 +20,7 @@ export interface Settings {
 }
 
 const KEY = 'hba-settings-v1';
-export const DEFAULTS: Settings = { target: 5, roundTime: 60, bot: 'normal', p1: 'sparrow', p2: 'bulldog', map: 'random', randomCars: false, debugButtons: false, name: '' };
+export const DEFAULTS: Settings = { target: 5, roundTime: 30, bot: 'normal', p1: 'sparrow', p2: 'bulldog', map: 'random', randomCars: true, debugButtons: false, name: '' };
 
 export function loadSettings(): Settings {
   try {

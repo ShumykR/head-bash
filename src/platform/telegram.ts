@@ -52,7 +52,12 @@ export interface TelegramPlatform {
   haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error'): void;
   /** Telegram's own confirm dialog (window.confirm is unreliable in its WebView). */
   confirm(text: string): Promise<boolean>;
+  /** Telegram changed the visible area (turned, went full screen, safe areas moved). */
+  onViewport(cb: () => void): void;
 }
+
+/** Telegram's events for a changed visible area. */
+const VIEWPORT_EVENTS = ['viewportChanged', 'fullscreenChanged', 'safeAreaChanged', 'contentSafeAreaChanged'];
 
 /** True when the page was opened by Telegram as a Mini App. */
 export function launchedFromTelegram(): boolean {
@@ -78,7 +83,11 @@ function loadSdk(): Promise<void> {
  * an earlier session), and lock only once the phone is in landscape.
  */
 function keepLandscape(wa: WebApp) {
-  const landscape = () => window.innerWidth > window.innerHeight;
+  // The visual viewport: right after turning, iOS can still report the old innerWidth.
+  const landscape = () => {
+    const vv = window.visualViewport;
+    return (vv?.width || window.innerWidth) > (vv?.height || window.innerHeight);
+  };
   const check = () => {
     try {
       if (landscape()) {
@@ -88,7 +97,10 @@ function keepLandscape(wa: WebApp) {
   };
   check();
   window.addEventListener('resize', check);
-  try { wa.onEvent('viewportChanged', check); } catch { /* older clients */ }
+  window.visualViewport?.addEventListener('resize', check);
+  for (const e of VIEWPORT_EVENTS) {
+    try { wa.onEvent(e, check); } catch { /* older clients */ }
+  }
 }
 
 /** Set up the Mini App; null when not in Telegram (or the SDK did not load). */
@@ -127,6 +139,11 @@ export async function initTelegram(): Promise<TelegramPlatform | null> {
       if (wa.showConfirm && at('6.2')) wa.showConfirm(text, (ok) => resolve(!!ok));
       else resolve(window.confirm(text));
     }),
+    onViewport: (cb) => {
+      for (const e of VIEWPORT_EVENTS) {
+        try { wa.onEvent(e, cb); } catch { /* older clients */ }
+      }
+    },
     haptic: (kind) => {
       try {
         if (kind === 'success' || kind === 'error') wa.HapticFeedback?.notificationOccurred(kind);

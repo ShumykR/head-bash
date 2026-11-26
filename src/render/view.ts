@@ -527,6 +527,8 @@ export class GameView {
   private scoreKey = '';
   private snapCam = true;
   showTouch = false;
+  /** Online: the seat this device plays (its touch buttons belong to that car, not to player 1's). */
+  localSlot = 0;
   debug = false;
   private debugGfx = new Graphics();
 
@@ -1082,6 +1084,11 @@ export class GameView {
     this.hudSub.visible = !!sub;
   }
 
+  /** Rebuild the sprites tied to the game's objects (online rollback replaced them). */
+  rebuild() {
+    if (this.game) this.buildRound();
+  }
+
   private buildRound() {
     const g = this.game!;
     if (this.currentMap !== g.map) this.buildMap(g.map);
@@ -1573,16 +1580,18 @@ export class GameView {
     this.touchLabels.removeChildren();
     if (!this.showTouch) return;
     for (const z of this.input.zones) {
-      if (z.btn === 'action' && this.game && !this.game.cars[z.player]?.hasAction) continue;
+      // One device, one car: the solo layout's buttons drive this device's seat.
+      const seat = this.input.solo ? this.localSlot : z.player;
+      if (z.btn === 'action' && this.game && !this.game.cars[seat]?.hasAction) continue;
       const pressed = this.input.touch[z.player][z.btn];
-      const col = toHex(hex(PLAYER_COLORS[z.player]));
+      const col = toHex(hex(PLAYER_COLORS[seat]));
       const pad = 6;
       t.roundRect(z.x + pad, z.y + pad, z.w - pad * 2, z.h - pad * 2, 14).fill({ color: pressed ? col : 0x000000, alpha: pressed ? 0.4 : 0.1 });
       t.roundRect(z.x + pad, z.y + pad, z.w - pad * 2, z.h - pad * 2, 14).stroke({ color: col, alpha: 0.55, width: 3 });
       const cx = z.x + z.w / 2, cy = z.y + z.h / 2;
       const s = Math.min(z.w, z.h) * 0.2;
       if (z.btn === 'action') {
-        const car = this.game?.cars[z.player];
+        const car = this.game?.cars[seat];
         const k = car ? car.abilityCharge : 1;
         const inner = z.h - pad * 2 - 6;
         t.roundRect(z.x + pad + 3, z.y + pad + 3 + inner * (1 - k), z.w - pad * 2 - 6, inner * k, 10).fill({ color: col, alpha: k >= 1 ? 0.45 : 0.18 });

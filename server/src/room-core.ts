@@ -284,7 +284,7 @@ export class RoomCore {
         if (this.slots.every((sl) => sl && sl.ready && sl.connId)) this.startMatch();
         return;
       case 'in':
-        return this.input(p as 0 | 1, m.k, m.c);
+        return this.input(p as 0 | 1, m);
       case 'hash':
         return this.hash(p as 0 | 1, m.k, m.h);
       case 'result':
@@ -318,7 +318,7 @@ export class RoomCore {
     this.deps.onEvent?.({ type: 'match_started', cars: start.cars, config: start.config });
   }
 
-  private input(p: 0 | 1, k: number, c: InputChange[] | undefined) {
+  private input(p: 0 | 1, { k, c, w, a, d }: Extract<ClientMsg, { t: 'in' }>) {
     const m = this.match;
     if (!m || this.phase !== 'playing') return;
     if (k <= m.confirmed[p] || k > m.confirmed[1 - p] + MAX_LEAD) return;
@@ -329,7 +329,12 @@ export class RoomCore {
       m.inputs.push([p, ck, b]);
     }
     m.confirmed[p] = k;
-    this.sendTo(1 - p, changes.length ? { t: 'in', p, k, c: changes } : { t: 'in', p, k });
+    const msg: Extract<ServerMsg, { t: 'in' }> = changes.length ? { t: 'in', p, k, c: changes } : { t: 'in', p, k };
+    // Rollback timing, passed on as is.
+    if (w !== undefined) msg.w = w;
+    if (a !== undefined) msg.a = a;
+    if (d !== undefined) msg.d = d;
+    this.sendTo(1 - p, msg);
   }
 
   private hash(p: 0 | 1, k: number, h: number) {

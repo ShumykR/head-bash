@@ -38,13 +38,20 @@ export interface SessionHooks {
   onPeer?(state: 'left' | 'back', deadline?: number): void;
   onStatus?(s: ClientStatus): void;
   onReject?(r: RejectReason): void;
+  /** Rollback replaced the shown game's objects: rebuild what is drawn for them. */
+  onViewReset?(game: Game): void;
+  /** Rollback stopped: show this (authoritative) game from now on. */
+  onFallback?(game: Game): void;
 }
 
 export class NetSession {
   readonly client: NetClient;
   lobby: LobbyState | null = null;
   ls: Lockstep | null = null;
+  /** The game on screen (with rollback, not the one the players' hashes come from). */
   game: Game | null = null;
+  /** Show a game that runs ahead on a guess for the other player's input (see Lockstep). */
+  rollback = true;
   /** Hashes this client reported, by tick (debugging and the two-browser test). */
   readonly hashes = new Map<number, number>();
 
@@ -91,7 +98,7 @@ export class NetSession {
         this.begin(m.start, m);
         break;
       case 'in':
-        this.ls?.receive(m.p, m.k, m.c);
+        this.ls?.receive(m.p, m.k, m.c, m.w, m.a, m.d);
         break;
       case 'peer':
         this.hooks.onPeer?.(m.state, m.deadline);
@@ -108,14 +115,23 @@ export class NetSession {
   private begin(start: StartMsg, resume?: Extract<ServerMsg, { t: 'resume' }>) {
     const slot = this.client.slot;
     if (slot === null) return;
-    const game = this.hooks.makeGame(gameConfigFor(start));
+    // Both games from the very same config object (the rollback copy shares what never changes).
+    const cfg = gameConfigFor(start);
+    const game = this.hooks.makeGame(cfg);
+    const auth = this.rollback ? new Game(cfg) : game;
     this.game = game;
     this.hashes.clear();
-    this.ls = new Lockstep(game, slot, start.delay, (msg) => {
+    const ls = new Lockstep(auth, slot, start.delay, (msg) => {
       if (msg.t === 'hash') this.hashes.set(msg.k, msg.h);
       this.client.send(msg);
-    }, resume && { inputs: resume.inputs, confirmed: resume.confirmed });
-    if (resume) this.ls.fastForward();
-    this.hooks.onStart?.(game, this.ls);
+    }, resume && { inputs: resume.inputs, confirmed: resume.confirmed }, this.rollback ? game : undefined);
+    this.ls = ls;
+    ls.onViewReset = () => this.hooks.onViewReset?.(game);
+    ls.onFallback = (g) => {
+      this.game = g;
+      this.hooks.onFallback?.(g);
+    };
+    if (resume) ls.fastForward();
+    this.hooks.onStart?.(this.game, ls);
   }
 }

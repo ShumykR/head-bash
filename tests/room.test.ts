@@ -106,6 +106,7 @@ describe('room lobby', () => {
   it('cannot be ready without a car unless cars are random', () => {
     const r = room();
     const a = join(r, 'a');
+    send(r, a, { t: 'config', config: { randomCars: false } });
     send(r, a, { t: 'ready', ready: true });
     expect(r.slots[0]?.ready).toBe(false);
     send(r, a, { t: 'config', config: { randomCars: true } });
@@ -267,6 +268,6 @@ describe('room lifetime', () => {
   });
 
   it('sanitizeConfig fills defaults', () => {
-    expect(sanitizeConfig({ target: 2.5 as number })).toEqual({ map: 'random', target: 5, roundTime: 60, randomCars: false });
+    expect(sanitizeConfig({ target: 2.5 as number })).toEqual({ map: 'random', target: 5, roundTime: 30, randomCars: true });
   });
 });

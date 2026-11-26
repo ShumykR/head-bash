@@ -29,12 +29,18 @@ export class Net {
   }
 }
 
+/** Settings for clients made by `setup` (a test suite can switch rollback on for all of them). */
+export const netsimDefaults = { rollback: false };
+
 export class Client {
   slot: 0 | 1 = 0;
   token = '';
   ls: Lockstep | null = null;
   lastLs: Lockstep | null = null;
   game: Game | null = null;
+  /** Rollback: the game this client shows (else the same as `game`). */
+  view: Game | null = null;
+  rollback = netsimDefaults.rollback;
   ended: ServerMsg | null = null;
   desync = false;
   hashes = new Map<number, number>();
@@ -61,18 +67,20 @@ export class Client {
         this.begin(m.start, { inputs: m.inputs, confirmed: m.confirmed });
         this.ls!.fastForward();
         break;
-      case 'in': this.ls?.receive(m.p, m.k, m.c); break;
+      case 'in': this.ls?.receive(m.p, m.k, m.c, m.w, m.a, m.d); break;
       case 'desync': this.desync = true; break;
       case 'end': this.ended = m; this.lastLs = this.ls; this.ls = null; break;
     }
   }
 
   begin(start: Extract<ServerMsg, { t: 'start' }>, resume?: { inputs: [0 | 1, number, number][]; confirmed: [number, number] }) {
-    this.game = new Game(gameConfigFor(start));
+    const cfg = gameConfigFor(start);
+    this.game = new Game(cfg);
+    this.view = this.rollback ? new Game(cfg) : null;
     this.ls = new Lockstep(this.game, this.slot, start.delay, (m) => {
       if (m.t === 'hash') this.hashes.set(m.k, m.h);
       this.toServer(m);
-    }, resume);
+    }, resume, this.view ?? undefined);
   }
 
   /** Seconds between this client's frames (0 = every frame of the loop): a slow device renders less often. */
@@ -118,7 +126,8 @@ export function setup(latency: number, jitter: number, seed = 1, target = 2, car
   a.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'A' });
   b.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'B' });
   for (const c of [a, b]) c.toServer({ t: 'pick', car: cars[c === a ? 0 : 1] });
-  a.toServer({ t: 'config', config: { target, roundTime: 15 } });
+  // The picked cars (random cars, the default, would ignore them).
+  a.toServer({ t: 'config', config: { target, roundTime: 15, randomCars: false } });
   for (const c of [a, b]) c.toServer({ t: 'ping', ts: 0, rtt: latency * 2000 });
   // Let the host's config land before anyone is ready (a config change clears ready).
   for (let i = 0; i < 60; i++) { net.t += 1 / 60; net.pump(); }
