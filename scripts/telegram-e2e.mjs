@@ -18,7 +18,8 @@ console.log('bot created lobby', lobby.code);
 
 const browser = await chromium.launch();
 const errors = [];
-const ctx = await browser.newContext({ viewport: { width: 915, height: 412 }, hasTouch: true });
+// Opened from a chat the phone is usually upright: start in portrait, then turn it.
+const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true });
 // Telegram's SDK, replaced: a WebApp object that records what the game asks of it.
 await ctx.route('https://telegram.org/js/**', (route) => route.fulfill({ contentType: 'application/javascript', body: `
   window.__tgCalls = [];
@@ -26,8 +27,10 @@ await ctx.route('https://telegram.org/js/**', (route) => route.fulfill({ content
   window.Telegram = { WebApp: {
     initData: 'query_id=x&user=%7B%22id%22%3A4242%2C%22first_name%22%3A%22%D0%9E%D0%BB%D0%B5%D0%B3%22%7D&auth_date=${Math.floor(Date.now() / 1000)}&signature=fake&hash=fake',
     initDataUnsafe: { start_param: 'l_${lobby.code}', user: { id: 4242, first_name: 'Олег' } },
-    version: '8.0', isVersionAtLeast: () => true,
-    ready: rec('ready'), expand: rec('expand'), requestFullscreen: rec('requestFullscreen'), lockOrientation: rec('lockOrientation'),
+    version: '8.0', isVersionAtLeast: () => true, isOrientationLocked: true,
+    unlockOrientation: () => { window.__tgCalls.push('unlockOrientation'); window.Telegram.WebApp.isOrientationLocked = false; },
+    ready: rec('ready'), expand: rec('expand'), requestFullscreen: rec('requestFullscreen'),
+    lockOrientation: () => { window.__tgCalls.push(innerWidth > innerHeight ? 'lockOrientation:landscape' : 'lockOrientation:PORTRAIT'); window.Telegram.WebApp.isOrientationLocked = true; },
     disableVerticalSwipes: rec('disableVerticalSwipes'), setHeaderColor: rec('setHeaderColor'), setBackgroundColor: rec('setBackgroundColor'),
     BackButton: { show: rec('back.show'), hide: rec('back.hide'), onClick: (cb) => { window.__tgBack = cb; } },
     HapticFeedback: { impactOccurred: rec('haptic'), notificationOccurred: rec('haptic') },
@@ -37,6 +40,9 @@ const tgPage = await ctx.newPage();
 tgPage.on('pageerror', (e) => errors.push(`tg: ${e.message}`));
 tgPage.on('console', (m) => m.type() === 'error' && errors.push(`tg: ${m.text()}`));
 await tgPage.goto(`${WEB}/?server=${encodeURIComponent(SERVER)}#tgWebAppData=stub&tgWebAppVersion=8.0`);
+await until(() => tgPage.evaluate(() => (window.__tgCalls ?? []).includes('ready')), 20000, 'Mini App started');
+const portraitCalls = await tgPage.evaluate(() => [...window.__tgCalls]);
+await tgPage.setViewportSize({ width: 915, height: 412 }); // the player turns the phone
 await until(() => tgPage.locator('.room-code b').textContent({ timeout: 500 }).then((t) => t === lobby.code), 20000, 'Mini App opened the lobby');
 const seat = await tgPage.locator('.seat.p1 .seat-name').textContent();
 const calls = await tgPage.evaluate(() => window.__tgCalls);
@@ -60,7 +66,9 @@ console.log('bot events:', events.map((e) => `${e.type}${e.data.player ? `(${e.d
 
 await browser.close();
 stop();
-const ok = seat.startsWith('Олег') && calls.includes('requestFullscreen') && calls.includes('disableVerticalSwipes') && calls.includes('back.show')
+const orientationOk = portraitCalls.includes('unlockOrientation') && !calls.includes('lockOrientation:PORTRAIT') && calls.includes('lockOrientation:landscape');
+console.log('orientation: in portrait', portraitCalls.filter((c) => c.includes('rientation')).join(',') || '-', '→ after turning', calls.filter((c) => c.includes('rientation')).join(','));
+const ok = orientationOk && seat.startsWith('Олег') && calls.includes('requestFullscreen') && calls.includes('disableVerticalSwipes') && calls.includes('back.show')
   && events.some((e) => e.type === 'match.finished' && e.data.reason === 'forfeit' && e.data.winner?.name === 'Ігор') && errors.length === 0;
 if (errors.length) console.log('errors:\n' + errors.join('\n'));
 console.log(ok ? 'OK: Telegram Mini App path works' : 'FAILED');

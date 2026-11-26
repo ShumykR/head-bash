@@ -18,7 +18,10 @@ interface WebApp {
   ready(): void;
   expand(): void;
   requestFullscreen?(): void;
+  /** Locks the CURRENT orientation (whatever it is now), not landscape. */
   lockOrientation?(): void;
+  unlockOrientation?(): void;
+  isOrientationLocked?: boolean;
   disableVerticalSwipes?(): void;
   setHeaderColor?(c: string): void;
   setBackgroundColor?(c: string): void;
@@ -68,6 +71,26 @@ function loadSdk(): Promise<void> {
   });
 }
 
+/**
+ * Telegram's lockOrientation() freezes whatever orientation the phone is in at that moment. The
+ * game is opened from a chat, usually in portrait, so locking at start would freeze portrait and
+ * the screen would never turn. Instead: release any lock while in portrait (a lock can survive from
+ * an earlier session), and lock only once the phone is in landscape.
+ */
+function keepLandscape(wa: WebApp) {
+  const landscape = () => window.innerWidth > window.innerHeight;
+  const check = () => {
+    try {
+      if (landscape()) {
+        if (!wa.isOrientationLocked) wa.lockOrientation?.();
+      } else if (wa.isOrientationLocked) wa.unlockOrientation?.();
+    } catch { /* older clients */ }
+  };
+  check();
+  window.addEventListener('resize', check);
+  try { wa.onEvent('viewportChanged', check); } catch { /* older clients */ }
+}
+
 /** Set up the Mini App; null when not in Telegram (or the SDK did not load). */
 export async function initTelegram(): Promise<TelegramPlatform | null> {
   if (!launchedFromTelegram()) return null;
@@ -83,10 +106,10 @@ export async function initTelegram(): Promise<TelegramPlatform | null> {
     if (at('7.7')) wa.disableVerticalSwipes?.();
     if (at('8.0')) {
       wa.requestFullscreen?.();
-      wa.lockOrientation?.();
     }
   } catch { /* older clients: stay as they are */ }
   document.documentElement.classList.add('tg');
+  if (at('8.0')) keepLandscape(wa);
 
   const sp = wa.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get('tgWebAppStartParam') ?? '';
   const m = /^(ls?)_([A-Z0-9]{5})$/i.exec(sp);
