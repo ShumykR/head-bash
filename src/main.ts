@@ -38,7 +38,7 @@ async function boot() {
   const host = document.getElementById('app')!;
   const app = new Application();
   await app.init({
-    resizeTo: window,
+    ...viewportSize(),
     background: '#14101e',
     antialias: false,
     resolution: Math.min(window.devicePixelRatio || 1, 2),
@@ -48,9 +48,26 @@ async function boot() {
   host.appendChild(app.canvas);
 
   const input = new InputManager(app.canvas);
-  const relayout = () => input.layout(window.innerWidth, window.innerHeight);
-  relayout();
-  window.addEventListener('resize', relayout);
+  const relayout = () => input.layout(app.screen.width, app.screen.height);
+  /**
+   * Fit the canvas to the screen. Telegram's web view on iOS can still report the old width right
+   * after the phone turns (half the screen stayed empty), so besides the events we also check again
+   * a little later and compare on every frame (cheap).
+   */
+  const fit = () => {
+    const { width, height } = viewportSize();
+    if (width !== app.screen.width || height !== app.screen.height) app.renderer.resize(width, height);
+    relayout();
+  };
+  const fitSoon = () => {
+    fit();
+    for (const ms of [100, 300, 700]) setTimeout(fit, ms);
+  };
+  fit();
+  window.addEventListener('resize', fitSoon);
+  window.addEventListener('orientationchange', fitSoon);
+  window.visualViewport?.addEventListener('resize', fitSoon);
+  tg?.onViewport(fitSoon);
   const coarse = matchMedia('(pointer: coarse)').matches;
 
   const view = new GameView(app, input);
@@ -250,6 +267,7 @@ async function boot() {
     setOnlineLabels(null);
     netBadge.classList.remove('on');
     input.solo = false;
+    view.localSlot = 0;
     relayout();
   };
 
@@ -323,6 +341,7 @@ async function boot() {
         const me = s.slot ?? 0;
         setOnlineLabels({ me, foe: s.lobby?.players[1 - me]?.name ?? '' });
         const g = newGame(cfg);
+        view.localSlot = me;
         input.solo = true;
         relayout();
         overTimer = -1;
@@ -517,6 +536,8 @@ async function boot() {
   /** Time of the previous online frame (performance.now), for real elapsed time. */
   let netLastMs = 0;
   app.ticker.add((t) => {
+    const vs = viewportSize();
+    if (vs.width !== app.screen.width || vs.height !== app.screen.height) fit();
     const dt = Math.min(t.deltaMS / 1000, 0.1);
     if (t.deltaMS > 0) fps += (1000 / t.deltaMS - fps) * 0.05;
     if (!game) return;
@@ -560,3 +581,11 @@ async function boot() {
 }
 
 boot();
+
+/** The visible area in CSS pixels (the visual viewport where there is one: it is right on iOS when innerWidth lags). */
+function viewportSize(): { width: number; height: number } {
+  const vv = window.visualViewport;
+  const width = Math.round(vv?.width || window.innerWidth);
+  const height = Math.round(vv?.height || window.innerHeight);
+  return { width: Math.max(1, width), height: Math.max(1, height) };
+}
