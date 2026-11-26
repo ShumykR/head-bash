@@ -23,6 +23,20 @@ describe('lockstep over a simulated network', () => {
     expect(expectSameHashes(a, b)).toBeGreaterThan(5);
   });
 
+  it('abilities (the action button) stay in sync on both sides', () => {
+    // Cars with abilities: the action bit must reach the other player's simulation too.
+    const { a, b, run } = setup(0.05, 0.03, 4, 3, ['porcupine', 'rammer']);
+    run(2, () => !!(a.game && b.game));
+    const used = [0, 0];
+    a.game!.on((e) => { if (e.type === 'ability') used[e.player]++; });
+    run(400, () => !!(a.ended && b.ended));
+    expect(used[0]).toBeGreaterThan(0);
+    expect(used[1]).toBeGreaterThan(0);
+    expect(a.desync || b.desync).toBe(false);
+    expect(b.ended).toEqual(a.ended);
+    expect(expectSameHashes(a, b)).toBeGreaterThan(5);
+  });
+
   it('keeps going (slower) on a bad link: 150 ms ± 120 ms', () => {
     const { a, b, run } = setup(0.15, 0.12, 5, 20);
     run(60);

@@ -57,6 +57,10 @@ export class Lockstep {
   private calmWindows = 0;
   /** Smoothed length of our frames in ticks (a slow device sends its confirmations less often). */
   private frameTicks = 1;
+  /** Seconds spent waiting for the other player since the start (for the network stats overlay). */
+  stallTime = 0;
+  /** Closest the other player's input came to being late in the last adaptation window (ticks; < 0 = we waited). */
+  peerMargin = 0;
 
   constructor(
     readonly game: Game,
@@ -156,9 +160,13 @@ export class Lockstep {
   private adapt(realDt: number, waiting: boolean) {
     const dt = Math.min(Math.max(realDt, 0), 1);
     this.winT += dt;
-    if (waiting) this.winStall += dt;
+    if (waiting) {
+      this.winStall += dt;
+      this.stallTime += dt;
+    }
     this.winMargin = Math.min(this.winMargin, this.confirmed[1 - this.slot] - this.simTick);
     if (this.winT < WINDOW) return;
+    this.peerMargin = this.winMargin === Infinity ? 0 : this.winMargin;
     const ratio = this.winStall / this.winT;
     if (ratio > 0.1) {
       this.delay = Math.min(DELAY_CAP, this.delay + 1);

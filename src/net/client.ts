@@ -24,6 +24,8 @@ export class NetClient {
   slot: 0 | 1 | null = null;
   /** Smoothed round trip, ms. */
   rtt = 0;
+  /** The last few round trips (ms), for the network stats overlay. */
+  readonly rttSamples: number[] = [];
   onMessage: ((m: ServerMsg) => void) | null = null;
   onStatus: ((s: ClientStatus) => void) | null = null;
   onReject: ((r: RejectReason) => void) | null = null;
@@ -75,6 +77,8 @@ export class NetClient {
       if (m.t === 'pong') {
         const r = now() - m.ts;
         this.rtt = this.rtt ? this.rtt * 0.7 + r * 0.3 : r;
+        this.rttSamples.push(r);
+        if (this.rttSamples.length > 10) this.rttSamples.shift();
         return;
       }
       if (m.t === 'welcome') {

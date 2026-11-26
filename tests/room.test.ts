@@ -131,7 +131,8 @@ describe('room lobby', () => {
     send(r, b, { t: 'pick', car: 'y' });
     send(r, a, { t: 'ready', ready: true });
     send(r, b, { t: 'ready', ready: true });
-    expect(a.last('start')?.delay).toBe(15);
+    // 400 ms round trip: 12 ticks one way + BATCH (1) + 1 of slack.
+    expect(a.last('start')?.delay).toBe(14);
   });
 });
 

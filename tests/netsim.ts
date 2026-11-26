@@ -107,7 +107,7 @@ export function player(seed: number) {
   };
 }
 
-export function setup(latency: number, jitter: number, seed = 1, target = 2) {
+export function setup(latency: number, jitter: number, seed = 1, target = 2, cars: [string, string] = ['sparrow', 'bulldog']) {
   const net = new Net(latency, jitter, lcg(seed));
   const room = new RoomCore('TESTS', { now: () => net.t * 1000, rand: lcg(seed + 7) });
   room.create();
@@ -117,7 +117,7 @@ export function setup(latency: number, jitter: number, seed = 1, target = 2) {
   b.attach('b1');
   a.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'A' });
   b.toServer({ t: 'hello', proto: PROTO, build: 't', name: 'B' });
-  for (const c of [a, b]) c.toServer({ t: 'pick', car: c === a ? 'sparrow' : 'bulldog' });
+  for (const c of [a, b]) c.toServer({ t: 'pick', car: cars[c === a ? 0 : 1] });
   a.toServer({ t: 'config', config: { target, roundTime: 15 } });
   for (const c of [a, b]) c.toServer({ t: 'ping', ts: 0, rtt: latency * 2000 });
   // Let the host's config land before anyone is ready (a config change clears ready).
