@@ -9,9 +9,9 @@ compatibility_date = "2026-11-01"
 # Telegram bot settings are public values (the API key is a secret: BOT_API_KEY).
 [vars]
 GAME_URL = "https://shumykr.github.io/head-bash/"
-TG_BOT_ID = ""
-TG_BOT_USERNAME = ""
-TG_APP_SHORT_NAME = ""
+TG_BOT_ID = "8623414083"
+TG_BOT_USERNAME = "DriveHQ_Bot"
+TG_APP_SHORT_NAME = "arena"
 
 [[durable_objects.bindings]]
 name = "ROOMS"
@@ -34,9 +34,9 @@ name = "head-bash-staging"
 
 [env.staging.vars]
 GAME_URL = "https://shumykr.github.io/head-bash/"
-TG_BOT_ID = ""
-TG_BOT_USERNAME = ""
-TG_APP_SHORT_NAME = ""
+TG_BOT_ID = "8623414083"
+TG_BOT_USERNAME = "DriveHQ_Bot"
+TG_APP_SHORT_NAME = "arena"
 
 [[env.staging.durable_objects.bindings]]
 name = "ROOMS"
