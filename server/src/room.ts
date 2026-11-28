@@ -165,7 +165,13 @@ export class Room extends DurableObject<Env> {
   }
 
   private makeCore(code: string) {
-    return new RoomCore(code, { now: () => Date.now(), rand: random, onEvent: (e) => this.onEvent(e) });
+    return new RoomCore(code, {
+      now: () => Date.now(),
+      rand: random,
+      onEvent: (e) => this.onEvent(e),
+      // Workers Logs (observability in wrangler.toml) keeps these: `wrangler tail` or the dashboard.
+      log: (line) => console.log(JSON.stringify(line)),
+    });
   }
 
   private conn(ws: WebSocket, id: string): Conn {

@@ -15,7 +15,7 @@ export interface Settings {
   name: string;
   /** The player switched the debug buttons themselves (otherwise the default applies, even to settings saved earlier). */
   debugChosen?: boolean;
-  /** Show the network stats overlay in online matches (ping, input delay, waiting). */
+  /** The network panel is open in online matches (a tap on the ping badge toggles it). */
   netStats?: boolean;
 }
 
